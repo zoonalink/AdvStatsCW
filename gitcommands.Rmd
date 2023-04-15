@@ -1,0 +1,32 @@
+---
+title: "Git Commands"
+author: "p lovehagen"
+date: "2023-04-15"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+-   To add changes to the staging area: **`git add <file>`** or **`git add .`** (to stage all changes)
+
+-   To see which files are staged and which are not: **`git status`**
+
+-   To unstage changes from the staging area: **`git reset <file>`** or **`git reset`**
+
+-   To commit changes: **`git commit -m "commit message"`**
+
+-   To push changes to the remote repository: **`git push`**
+
+It's important to note that these commands should be used in a specific order:
+
+1.  Add changes to the staging area using **`git add`**
+
+2.  Review the changes using **`git status`**
+
+3.  Stage the changes using **`git commit`**
+
+4.  Commit the changes using **`git commit`**
+
+5.  Push the changes to the remote repository using **`git push`**
