@@ -6,23 +6,189 @@ format: html
 
 This is my working file
 
-## Quarto
+## Brief
 
-Quarto enables you to weave together content and executable code into a finished document. To learn more about Quarto see <https://quarto.org>.
+::: {#brief style="color: gray"}
+You are working with a team who have been tasked to create a classification tool for use by a company doing chemical analysis.
 
-## Running Code
+They wish to know if they need to measure all variables, or if a subset of variables could achieve the same out-of-sample classification performance.   Being able to use a subset of variables would mean faster processing times; but they would not wish to sacrifice classification performance for the sake of marginal speed gains.
+:::
 
-When you click the **Render** button a document will be generated that includes both content and the output of embedded code. You can embed code like this:
+### Questions to answer
+
+-   Do they need to measure all variables?
+    -   Will a subset of variables achieve the same out-of-sample classification performance?
+-   Is there any sacrifice to classification performance?
+-   Is there any performance speed gains (processing times)?
+
+::: {#Task style="color: gray"}
+Your role in this team is to create and build a markdown file (either using quarto or rmarkdown) to
+
+1.    Check for missing data;
+
+2.    Check for outliers and perform exploratory data analysis;
+
+3.    Create a training, test and validation split -- with at least 15% of the observations to be in the validation set;
+
+4.    Investigate a variety of classification approaches and recommend the optimal one for this dataset;
+
+Evaluate the performance of that approach on the validation dataset
+:::
+
+### Tasks to include in report
+
+1.  Missing data
+2.  Outliers and EDA
+3.  Data split - training, test, validation - at least 15% in the validation set
+4.  Investigate a variety of classification approaches and recommend optimal
+5.  Evaluate performance of that approach on the validation set
+
+::: {#Report style="color: gray"}
+-   2000 words max
+
+-   Describe process
+
+-   Describe decision-making process
+
+-   Include EDA, Descriptive Statistics, dimension reduction, classification, in-sample training and test classification performance, out of sample validation performance, and any differences observed
+:::
+
+## Planning - Psuedo-structure
+
+### Introduction
+
+-   summarise brief
+
+### Data preprocessing / preparation
+
+-   Missing data
+-   Cleaning
+-   Normalising
+-   Transforming?
+
+### Exploratory Data Analysis
+
+-   Descriptive statistics
+-   Correlation analysis
+-   Visualisations - understanding relationships between variables
+-   Identify outliers, missing data, data quality issues
+-   Highlight any questions for client to check/confirm
+
+### Feature selection
+
+-   Feature selection techniques to identify the most relevant variables
+-   Dimension reduction
+-   correlation-based methods
+-   feature importance measures
+-   model-based approaches
+
+### Model building
+
+-   Build different classification models using various algos like logistic regression, decision trees, random forests, svm
+-   use Cross validation to evaluate model performance, ensuring that they generalise well to new data
+
+### Model evaluation
+
+-   Compare performance of different models - accuracy, precision, recall, F1-score
+-   Assess if using a subset of variables results in a significant drop in classification performance compared to using all variables
+
+### Model deployment
+
+-   Deploy classification tool to company and use it to classify new chemical samples
+
+## WORKING FILE STARTS HERE
+
+## Setup
+
+* packages iteration approach
+* default for code printing or not, etc. 
 
 ```{r}
-1 + 1
+library(gt) # tables
 ```
 
-You can add options to executable code like this
+## Summary
+
+* intro to brief - what's been asked
+* absence of additional information, measurements are treated equally - if clients have information about which are more important, than this can be important, useful
+* questions for client to consider are included in each section and additional information may result in rework, iteration
+
+## Data Processing / Preparation
+
+### Load data
 
 ```{r}
-#| echo: false
-2 * 2
+# load csv file
+chem_data <- read.csv("../data/5976423.csv")
+
+# display first rows
+head(chem_data)
+
+# check dimensions of df
+dim(chem_data)
 ```
 
-The `echo: false` option disables the printing of code (only output is displayed).
+**TODO:**
+* hide code block above
+* keep output (head)
+* summary statement using inline r to describe the data
+  * dimensions - rows, cols and data type
+
+```{r}
+
+```
+### Missing data
+
+First need to check for missing data
+* missing data makes some analysis impossible and can hamper some classification
+* but decision needed re what to do about missing data
+* reference paper shared on Teams
+
+```{r}
+# check for missing data
+sum(is.na(chem_data))
+```
+
+* Inline R code - 49 rows with at least one missing data
+* print head of missing data
+
+* question for client:
+  * why is there missing data
+  * can this data be obtained
+  * will this be a problem
+
+```{r}
+# create a new data frame with only rows with missing data
+missing_rows <- my_data[apply(my_data, 1, function(row) any(is.na(row))), ]
+
+# print the missing rows data frame
+print(missing_rows)
+
+# dimensions of missing rows
+dim(missing_rows)
+```
+
+
+
+```{r}
+
+# summarise missing values per column 
+na_counts <- colSums(is.na(missing_rows))
+
+# create a gt table 
+gt(data.frame(Variable = names(na_counts), Count = na_counts)) %>%
+  tab_header(title = "Missing Values per Column")
+
+```
+
+handling missing data: 
+
+1. complete case analysis (cca) - all rows with missing values are removed from analysis.  useful when amount of missing data is small and missing vlaues are randomly distributed across the data.  it can lead to loss of information and potentially biased results if the data are not random
+
+2. imputation - missing values are replaced with estimates based on observed data.  many methos - mean imputation, regression imputation, multiple imputation.  approach can be useful when the amount of missing data is moderate and the missing values are not completely random.  however, validity of imputed data depends on quality of imputation method and assumptions re missin data
+
+3. model-based analysis - statiscial models are used which handle missing data directly such as generalised linear models or decision trees.  can be useful when the missing data is moderate and missing values are not completely at random.  but these models can be sensitive to missing data mechanism. 
+
+need to examing pattern and extent of missing data as well as potential impact of missing data on analysis results.  for example, if proportion of missing data for a particular variable then could exclude that variable.  could be useful to explore relationship between missingness and other variables in the dataset to identify potential sources of bias.
+
+TODO above
