@@ -1,0 +1,157 @@
+---
+title: "Missing Data - Notes"
+author: "p lovehagen"
+format: html
+---
+
+```{r}
+chem_data <- read.csv("../data/5976423.csv")
+```
+
+[CRAN Task View: Missing Data (r-project.org)](https://cran.r-project.org/web/views/MissingData.html)
+
+EDA
+
+Likelihood based approaches
+
+Single imputation
+
+Multiple imputation
+
+Weighting Methods
+
+```{r naniar_missing}
+library(naniar)
+
+# Create a visualization of the missing data pattern
+vis_miss(chem_data)
+
+# Check if there is any pairwise correlation between missingness
+miss_var_summary(chem_data)
+
+# Compute the amount and percentage of missing data for each variable
+miss_var_summary(chem_data)
+
+# Compute the amount and percentage of missing data for each observation
+miss_case_summary(chem_data)
+
+
+
+```
+
+```{r naniar}
+library(naniar)
+
+# Create a visualization of the missing data pattern
+gg_miss_var(chem_data)
+
+# Check if there is any pairwise correlation between missingness
+#gg_miss_upset(chem_data)
+
+# Compute the amount and percentage of missing data for each variable
+miss_var_summary(chem_data)
+
+# Compute the amount and percentage of missing data for each observation
+miss_case_summary(chem_data)
+
+```
+
+```{r}
+library(naniar)
+
+gg_miss_fct(chem_data, fct = label)
+
+```
+
+```{r}
+# Load the naniar package
+library(naniar)
+
+# Select the columns containing the numeric features
+feature_cols <- paste0("X", 1:20)
+
+# Create a subset of chem_data containing only the feature columns
+chem_data_features <- chem_data[, feature_cols]
+
+# Create an upset plot of missing values in the feature columns
+gg_miss_upset(chem_data_features)
+
+```
+
+```{r}
+# Load ggplot2 package
+library(ggplot2)
+
+# Create line chart of X1 vs X2, grouped by label
+ggplot(chem_data, aes(x = X1, y = X2, group = label)) +
+  geom_line()
+
+```
+
+```{r mi}
+
+library(mi)
+
+# Compute the amount and percentage of missing data for each variable
+summary(chem_data)
+
+library(mi)
+library(VIM)
+
+# Create a missingness matrix
+mm <- marginplot(chem_data, "cex.axis" = 1, "las" = 3)
+
+# Visualize the missing data pattern for each variable
+aggr(chem_data, col=c('grey','red'), numbers=TRUE, sortVars=TRUE, labels=names(chem_data), cex.axis=.7, gap=3, ylab=c("Histogram of missing data","Pattern"))
+
+
+
+```
+
+```{r wrangle}
+library(wrangle)
+
+# Create a missingness summary
+miss_summary(chem_data)
+
+```
+
+```{r DescTools}
+# Load the DescTools package
+library(DescTools)
+
+# Generate a missingness matrix plot
+Desc(chem_data, plot = TRUE)
+
+
+```
+
+```{r}
+#install.packages("missMDA")
+library(missMDA)
+
+# First, remove the label column
+chem_data_no_labels <- chem_data[, -ncol(chem_data)]
+
+# Impute missing values using PCA
+imputed_data <- imputePCA(chem_data_no_labels)
+
+# Combine the imputed data with the label column
+imputed_data_with_labels <- cbind(imputed_data, labels = chem_data$labels)
+
+# Check if there are any missing values left
+sum(is.na(imputed_data_with_labels))
+
+# Note that the "labels" column will still have missing values since we did not use it for imputation
+
+
+```
+
+```{}
+```
+
+1.  Assume MAR - missing at random - then multiple imputation (MI) may be appropriate. It can estimate the missing vlaues based on observed data and provide statistical inferences. MAR is where missingness depends only on the observed variables.
+2.  If not MAR - depends on unobserved variables like chemical composition of the samples or the measurement process, then other imputation, like maximum likelihood imputation (MLI) or regression may be more appropriate.
+3.  Or not so much missing data - so remove those rows?
+
+Imputation can introduce bias into the analysis if the assumptions underlying the imputation model are violated or the imputed values are substantially different from the true missing values...
