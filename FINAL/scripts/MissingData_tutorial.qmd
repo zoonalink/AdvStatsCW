@@ -1,0 +1,94 @@
+---
+title: "Missing data exploration - in class"
+format: html
+---
+
+```{r}
+library(naniar)
+chem_data <- read.csv("../data/5976423.csv")
+```
+
+```{r}
+# visualise missing data pattern
+vis_miss(chem_data)
+```
+
+Less than 0.1% missing values
+99.9% present
+Seems random
+
+```{r}
+gg_miss_upset(chem_data)
+```
+
+X6, X15, X17, X18, X9 have missing values
+No observations have more than one missing value - no combinations
+X9 has the most missing values with 6
+
+```{r}
+n_var_miss(chem_data)
+```
+```{r}
+gg_miss_upset(chem_data, nsets = n_var_miss(chem_data))
+```
+
+
+```{r}
+# Compute the amount and percentage of missing data for each variable
+miss_var_summary(chem_data)
+```
+
+```{r}
+# Compute the amount and percentage of missing data for each observation
+miss_case_summary(chem_data)
+```
+```{r}
+# Create a visualization of the missing data pattern
+gg_miss_var(chem_data)
+```
+
+```{r}
+gg_miss_var(chem_data, show_pct = TRUE)
+```
+```{r}
+gg_miss_var(chem_data, facet = label)
+```
+
+
+```{r}
+gg_miss_case(chem_data)
+```
+
+```{r}
+gg_miss_case(chem_data, facet = label)
+```
+
+
+```{r}
+gg_miss_fct(chem_data, fct = label)
+
+```
+
+```{r}
+# using group_by
+library(dplyr)
+chem_data %>%
+  group_by(label) %>%
+  miss_var_summary()
+```
+
+
+```{r}
+gg_miss_var_cumsum(chem_data)
+```
+
+
+
+to consider: 
+
+when to split dataset, especially in relation missing data, bias in the dataset, stratify
+
+```{r}
+gg_miss_which(chem_data)
+```
+

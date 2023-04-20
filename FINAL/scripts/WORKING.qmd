@@ -65,19 +65,21 @@ Evaluate the performance of that approach on the validation dataset
 -   Cleaning
 -   Normalising
 -   Transforming?
+-   Split data set here?  (50, 25, 25)
 
 ### Exploratory Data Analysis
 
 -   Descriptive statistics
 -   Correlation analysis
--   Visualisations - understanding relationships between variables
+-   Visualisations - understanding relationships between variables, ggalley
 -   Identify outliers, missing data, data quality issues
 -   Highlight any questions for client to check/confirm
 
 ### Feature selection
 
 -   Feature selection techniques to identify the most relevant variables
--   Dimension reduction
+-   Dimension reduction - PCA?
+-   Does Random Forest (for feature selection) produce same results as PCA
 -   correlation-based methods
 -   feature importance measures
 -   model-based approaches
