@@ -1,0 +1,64 @@
+---
+title: "Chemical Analysis Report"
+author: "Petter Lövehagen"
+date: "2023-05-07"
+
+format: 
+  docx:
+    reference_docx: "custom-reference-doc.docx"
+  html:
+    toc: true
+    toc-depth: 2
+    toc-title: "Contents"
+    toc-location: left
+    code-fold: true
+    code-line-numbers: true
+    theme: spacelab
+    html-math-method: mathjax
+    highlight: "tango"
+    #css: "../data/custom.css"
+# output:
+#   word_document:
+    # reference_docx: "custom-reference-doc.docx"
+    
+
+# format:
+  # html:
+    # toc: true
+    # toc-depth: 2
+    # toc-title: "Contents"
+    # toc-location: left
+    # code-fold: true
+    # code-line-numbers: true
+    # theme: spacelab
+    # html-math-method: mathjax
+    # highlight: "tango"
+    # #css: "../data/custom.css"
+
+prefer-docx: true
+
+lang: "en-GB"
+bibliography: "../data/AS_CW_References.bib"
+csl: "../data/harvard-university-of-the-west-of-england.csl"
+knitr:
+  opts_chunk:
+    include: false
+    tidy: true
+    echo: false
+    warning: false
+    message: false
+    error: true
+---
+
+## Brief {#sec-brief}
+
+The brief is to develop a `classification tool` to classify chemicals into classes.
+
+In addition, the client is interested in knowing whether all variables are necessary for achieving optimal out-of-sample classification performance, or if a subset of measurements will suffice.
+
+This report will aim to: 
+
+* analyse and feedback on the provided dataset
+* develop an optimsed classification model
+* determine whether all variables are required
+* provide recommendations and options, as applicable

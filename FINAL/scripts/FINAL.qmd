@@ -1,11 +1,151 @@
 ---
-title: "QuartoCW"
+title: "Chemical Analysis Report"
+subtitle: "Classification Model"
+
+author: "Petter Lövehagen - petter2.lovehagen@live.uwe.ac.uk"
+date: "07 May 2023"
+
+RVersion: 3.6.0 
+RStudio: 2023.03.0+386 Cherry Blossom Release
+Platform: "x86_64-w64-mingw32/x64 (64-bit)"
+OS: "Windows 11 SE"
+
+
+
+# output:
+#   html_document:
+#     toc: true
+#     toc_depth: 2
+#     toc_title: "Report Contents"
+#     toc_float: true
+#     code_folding: hide
+#     theme: spacelab
+#     highlight: tango
+#     number_sections: true
+#     df_print: paged
+#   pdf_document:
+#     latex_engine: pdflatex
+#     number_sections: true
+#     toc: true
+#     toc_depth: 2
+#     toc_title: "Report Contents"
+#   word_document:
+#     reference_docx: custom-reference-doc.docx
+#     keep_md: true
+#     keep_tex: true
+
+# output:
+#   quarto::quarto_docx:
+#     reference_docx: custom-reference-doc.docx
+#     template: custom-reference-doc.docx
+#     keep_md: true
+#     keep_tex: true
+
+
+
+format: 
+  docx: 
+    #toc: true
+    #toc-depth: 2
+    #toc-title: "Report Contents"
+    #number-sections: true
+    highlight-style: github
+    reference-doc: custom-reference-doc.docx
+  html:
+    toc: true
+    toc-depth: 2
+    toc-title: "Report Contents"
+    toc-location: left
+    code-fold: true
+    code-line-numbers: true
+    theme: spacelab
+    html-math-method: mathjax
+    highlight: "tango"
+    #css: "../data/custom.css"
+  pdf:
+    latex_engine: pdflatex
+    geometry:
+      - top=30mm
+      - left=30mm
+  #ipynb: default
+  
+prefer-docx: true
+lang: "en-GB"
+bibliography: "../data/AS_CW_References.bib"
+csl: "../data/harvard-university-of-the-west-of-england.csl"
+knitr:
+  opts_chunk:
+    include: false
+    tidy: true
+    echo: false
+    warning: false
+    message: false
+    error: true
+    #comment: "NA"
 ---
 
-## Quarto
+```{r packages}
+# "ggplot2", "ggrepel", "forecast", "patchwork"
 
-Quarto enables you to weave together content and executable code into a finished document. To learn more about Quarto see <https://quarto.org>.
+# vector of packages to install/load
+packages <- c("citr", "readr", "naniar", "gt")
 
-```{r}
-1 + 1
+for (package in packages) {
+  if (!require(package, character.only = TRUE)) {
+    if (package == "citr") {
+      devtools::install_github("crsh/citr")
+    } else {
+      install.packages(package)
+    }
+    library(package, character.only = TRUE)
+  }
+}
+
 ```
+
+
+
+## Brief {#sec-brief}
+
+The brief is to develop a classification tool to classify chemicals.  
+
+In addition, the client is interested in knowing whether all variables are necessary for achieving optimal out-of-sample classification performance, or if a subset of measurements will suffice.
+
+This report will aim to: 
+
+* analyse and feedback on the provided dataset
+* develop an optimsed classification model
+* determine whether all variables are required
+
+## Data {#sec-data}
+
+```{r data}
+
+# load csv file
+chem_data <- read.csv("../data/5976423.csv")
+
+# display first rows
+head(chem_data)
+
+# check dimensions of df
+dim(chem_data)
+```
+
+
+### Missing data {#sec-missing-data}
+
+### Exploratory Data Analysis {#sec-exploratory-data-analysis}
+
+### Splitting data {#sec-splitting-d}
+
+## Model {#sec-model}
+
+### Features {#sec-features}
+
+### Build {#sec-build}
+
+### Evaluation {#sec-evaluation}
+
+### Validation {#sec-validation}
+
+## Summary {#sec-summary}

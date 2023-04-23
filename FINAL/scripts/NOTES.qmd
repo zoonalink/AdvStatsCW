@@ -4,6 +4,19 @@ author: "P Lovehagen"
 format: html
 ---
 
+## TO DELETE - Notes - TO DELETE
+
+For individual code block:
+
+-   echo = TRUE -\> display the code
+-   results = FALSE -\> suppresses results
+-   results = 'hide' -\> includes them in output but hides results
+
+```{r}
+# citr::tidy_bib_file( #   rmd_file = "FINAL.qmd", #   messy_bibliography = "AS_CW_References.bib", #updated by Zotero #   file = "AS_CW_tidy_references.bib" #read in by R # )`
+
+```
+
 This is my working file
 
 ## Brief

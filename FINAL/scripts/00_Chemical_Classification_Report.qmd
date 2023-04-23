@@ -1,0 +1,53 @@
+---
+title: "Chemical Analysis Report"
+subtitle: "Classification Model"
+author: "Petter Lövehagen"
+RVersion: 3.6.0 
+RStudio: 2023.03.0+386 Cherry Blossom Release
+Platform: "x86_64-w64-mingw32/x64 (64-bit)"
+OS: "Windows 11 SE"
+date: "07 May 2023"
+
+format: 
+  docx:
+    reference_docx: "custom-reference-doc.docx"
+  html:
+    toc: true
+    toc-depth: 2
+    toc-title: "Contents"
+    toc-location: left
+    code-fold: true
+    code-line-numbers: true
+    theme: spacelab
+    html-math-method: mathjax
+    highlight: "tango"
+  
+output:
+  word_document:
+    reference_docx: "custom-reference-doc.docx"
+    
+prefer-docx: true
+lang: "en-GB"
+bibliography: "../data/AS_CW_References.bib"
+csl: "../data/harvard-university-of-the-west-of-england.csl"
+
+knitr:
+  opts_chunk:
+    include: false
+    tidy: true
+    echo: false
+    warning: false
+    message: false
+    error: true
+---
+
+```{r packages}
+source("packages.R")
+
+```
+
+```{r child="01_intro.qmd"}
+```
+
+```{r child="02_data.qmd"}
+```

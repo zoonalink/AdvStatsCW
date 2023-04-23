@@ -1,0 +1,234 @@
+---
+title: test
+format: 
+  docx:
+    reference_docx: "custom-reference-doc.docx"
+output:
+  quarto::word_document:
+    reference_docx: "custom-reference-doc.docx"
+lang: "en-GB"
+bibliography: "../data/AS_CW_References.bib"
+csl: "../data/harvard-university-of-the-west-of-england.csl"
+knitr:
+  opts_chunk:
+    include: false
+    tidy: true
+    echo: false
+    warning: false
+    message: false
+    error: true
+editor: 
+  markdown: 
+    wrap: 72
+---
+
+```{r}
+source("packages.R")
+
+```
+
+
+```{r inspect_data}
+
+# load csv file
+chem_data <- read.csv("../data/5976423.csv")
+
+# display first rows
+head(chem_data)
+
+# check dimensions of df
+dim(chem_data)
+```
+
+## Data {#sec-data}
+
+The supplied dataset contains `r nrow(chem_data)` measurements of
+`r ncol(chem_data)-1` numerical variables.
+
+The analysis team and report writer were not supplied with any
+additional information about the data, e.g.:
+
+-   what has been measured
+-   variable importance, interactions
+-   measurement scale, units, reliability
+
+Therefore, variables are treated equally and without bias in the
+analysis and modelling. Decisions are made on statistical grounds and
+stated assumptions.
+
+::: callout-tip
+## Tip
+
+Additional contextual information about the data could result in
+alternative modelling decisions and outcomes and should be considered.
+:::
+
+### Missing data {#sec-missing-data}
+
+Before proceeding with [Exploratory Data
+Analysis](#sec-exploratory-data-analysis), it is important to explore
+the extent of missing data and whether there are patterns to the
+`missingness`. Some classification models assume no missing data, and
+depending on the amount, prevalence and patterning of missing data,
+different assumptions and techniques can be applied.
+
+We investigate `missingness` to see whether the assumption that missing data is
+'missing at random' (MAR) holds - that is, is the probability of
+`missingness` only dependent on **observed** variables? If so and there is a significant amount of missing data (>5%), multiple imputation approaches may be explored to *impute* missing values by estimation through statistical inference.
+
+If the missing data is not MAR - that is, it appears to depend on **unobserved**
+variables, there may be other, more appropriate imputation methods
+such as maximum likelihood imputation. Unobserved influences may include
+the measurement processes or chemical compositions of the samples.
+
+*Imputation* can introduce bias into the analysis if the assumptions of the imputation method are violated, or the imputed values differ
+significantly from true missing values.
+
+::: callout-caution
+The client should consider `missingness` in their data:
+
+-   Are there any concerns regarding missing data?
+-   What are the reasons for missing data? Can they be mitigated?
+-   Can data be collected where it has been identified as missing?
+-   Is there likely to be (more, less, similar amount of) missing data
+    in the future?
+:::
+
+```{r}
+# check for missing data
+
+sum(is.na(chem_data))
+mean(is.na(chem_data)) * 100
+```
+
+```{r missing_summaries}
+# create a new data frame with only rows with missing data
+missing_rows <- chem_data[apply(chem_data, 1, function(row) any(is.na(row))), ]
+
+# print the missing rows data frame
+print(missing_rows)
+
+# dimensions of missing rows
+#dim(missing_rows)
+
+
+# there was an issue rendering the output with the gt() table
+# added tryCatch
+
+# tryCatch({
+#   # summarise missing values per column 
+#   na_counts <- colSums(is.na(missing_rows))
+#   
+#   # calculate percentage of missing values per variable
+#   na_percent <- round(na_counts/nrow(chem_data)*100, 2)
+#   
+#   # create a gt table with counts and percentages
+#   na_var <- gt(data.frame(Variable = names(na_counts), Count = na_counts, Percentage = na_percent)) |>
+#     tab_header(title = "Missing values per variable")
+# }, error = function(e) {
+#   # handle the error here
+# })
+
+
+# summarise missing values per column 
+na_counts <- colSums(is.na(missing_rows))
+  
+# calculate percentage of missing values per variable
+na_percent <- round(na_counts/nrow(chem_data)*100, 2)
+
+# table
+na_var <- gt(data.frame(Variable = names(na_counts), Count = na_counts, Percentage = na_percent)) |>
+    tab_header(title = "Missing values per variable")
+
+# summarise missing values by label
+na_summary <- chem_data %>%
+  group_by(label) %>%
+  summarize_all(~ sum(is.na(.)))
+
+total_obs <- nrow(chem_data)
+
+row_sums <- data.frame(Label = na_summary$label, 
+                        Count = rowSums(na_summary[,-1]),
+                        Percentage = round(rowSums(na_summary[,-1])/total_obs * 100, 2))
+
+na_lab <- gt(row_sums) |>
+  tab_header(title = "Missing values by 'label'") 
+
+na_var
+na_lab
+
+
+
+
+```
+
+```{r Missing by label, fig.cap="Missing by label", tbl.cap = "Missing values by 'label'"}
+
+
+
+library(kableExtra)
+
+# create data frame
+na_summary <- chem_data %>%
+  group_by(label) %>%
+  summarize_all(~ sum(is.na(.)))
+
+# calculate total number of observations
+total_obs <- nrow(chem_data)
+
+# calculate row sums and percentages
+row_sums <- data.frame(Label = na_summary$label, 
+                        Count = rowSums(na_summary[,-1]),
+                        Percentage = round(rowSums(na_summary[,-1])/total_obs * 100, 2))
+
+
+# create table using kableExtra
+# kable(row_sums) %>%
+#   kable_styling(bootstrap_options = "striped", full_width = FALSE)
+
+
+```
+
+```{r missing_naniar}
+
+# visualise missing pattern
+vis_miss(chem_data)
+
+# visualise missing pattern
+gg_miss_var(chem_data)
+
+# visualise with facet
+gg_miss_fct(chem_data, fct = label)
+
+# pairwise correlation between missingness
+gg_miss_upset(chem_data)
+
+# amount and percentage missing for each variable
+miss_var<-miss_var_summary(chem_data)
+
+# amount and percentage missing for each observation
+miss_case<-miss_case_summary(chem_data)
+
+# visualise with facet
+p1 <- gg_miss_fct(chem_data, fct = label)
+
+# pairwise correlation between missingness
+p2 <-gg_miss_upset(chem_data)
+
+# extract var with most missing
+most_missing_var <- miss_var %>%
+  arrange(desc(n_miss)) %>%
+  slice(1) %>%
+  pull(variable)
+  
+
+```
+
+In the chemical dataset, there are `r sum(is.na(chem_data))` rows with
+at least one missing value which is
+`r round(mean(is.na(chem_data)) * 100,2)`% of the entire dataset. The breakdown per chemical class is shown in Figure 1 below.
+
+```{r na_lab, include=TRUE, echo=FALSE, message = FALSE, fig.id=TRUE, fig.cap="Fig1: Missing data per 'label'", label="fig_missLab" }
+# call na_lab
+na_lab
+```
