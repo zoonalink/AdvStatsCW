@@ -1,14 +1,19 @@
 ---
-title: "Chemical Analysis Report"
+title: "Chemical Sample Classification Report"
+subtitle: "Data Preparation"
 author: "Petter Lövehagen"
-date: "2023-05-07"
+date: "08 May 2023"
+
+RVersion: 3.6.0 
+RStudio: 2023.03.0+386 Cherry Blossom Release
+Platform: "x86_64-w64-mingw32/x64 (64-bit)"
+OS: "Windows 11 SE"
 
 format: 
-  docx:
-    reference_docx: "custom-reference-doc.docx"
+  docx: default
   html:
     toc: true
-    toc-depth: 2
+    toc-depth: 3
     toc-title: "Contents"
     toc-location: left
     code-fold: true
@@ -17,24 +22,11 @@ format:
     html-math-method: mathjax
     highlight: "tango"
     #css: "../data/custom.css"
-output:
-  quarto::word_document:
-    reference_docx: "custom-reference-doc.docx"
-  html:
-    toc: true
-    toc-depth: 2
-    toc-title: "Contents"
-    toc-location: left
-    code-fold: true
-    code-line-numbers: true
-    theme: spacelab
-    html-math-method: mathjax
-    highlight: "tango"
-    # #css: "../data/custom.css"
- 
+prefer-docx: true
 lang: "en-GB"
 bibliography: "../data/AS_CW_References.bib"
 csl: "../data/harvard-university-of-the-west-of-england.csl"
+
 knitr:
   opts_chunk:
     include: false
@@ -43,13 +35,22 @@ knitr:
     warning: false
     message: false
     error: true
-editor: 
-  markdown: 
-    wrap: 72
 ---
 
-```{r}
+```{r data_packages}
+# load/install R packages/libraries
 source("packages.R")
+
+```
+
+```{r flextable_defaults}
+
+
+set_flextable_defaults(
+  font.size = 10, border.color = "gray", 
+  font.family = "Arial", theme_fun = theme_vanilla,
+  background.color = "#FAFAFA", layout= "autofit", na_str = "<NA>")
+
 
 ```
 
@@ -69,34 +70,31 @@ dim(chem_data)
 
 ## Data {#sec-data}
 
-The supplied dataset contains `r nrow(chem_data)` measurements of
-`r ncol(chem_data)-1` numerical variables.
+The supplied dataset contains `r nrow(chem_data)` measurements of `r ncol(chem_data)-1` numerical variables.
 
-The analysis team and report writer were not supplied with any
-additional information about the data, e.g.:
+The analysis team and report writer did not have any contextual information about the data, e.g.:
 
 -   what has been measured
 -   variable importance, interactions
 -   measurement scale, units, reliability
 
-Therefore, variables are treated equally and without bias in the
-analysis and modelling. Decisions are made on statistical grounds and
-stated assumptions.
+Therefore, variables are treated equally and without bias in the analysis and modelling. Decisions are made on statistical grounds and stated assumptions.
 
 ::: callout-tip
 ## Tip
 
-Additional contextual information about the data could result in
-alternative modelling decisions and outcomes and should be considered.
+Additional domain-specific information about the data could result in alternative modelling decisions and outcomes and should be considered by the client.
 :::
 
 ### Missing data {#sec-missing-data}
 
-```{r}
+```{r missing_check}
 # check for missing data
 
-sum(is.na(chem_data))
-mean(is.na(chem_data)) * 100
+total_na<-sum(is.na(chem_data))
+pct_na<-round(mean(is.na(chem_data)) * 100,2)
+total_na
+pct_na
 ```
 
 ```{r missing_summaries}
@@ -104,7 +102,7 @@ mean(is.na(chem_data)) * 100
 missing_rows <- chem_data[apply(chem_data, 1, function(row) any(is.na(row))), ]
 
 # print the missing rows data frame
-print(missing_rows)
+#print(missing_rows)
 
 # dimensions of missing rows
 #dim(missing_rows)
@@ -114,14 +112,6 @@ na_counts <- colSums(is.na(missing_rows))
   
 # calculate percentage of missing values per variable
 na_percent <- round(na_counts/nrow(chem_data)*100, 2)
-
-# table
-na_var2 <- gt(data.frame(Variable = names(na_counts), Count = na_counts, Percentage = na_percent)) |>
-    tab_header(title = "Missing values per variable")
-
-na_var <- gt(data.frame(Variable = names(na_counts), Count = na_counts, Percentage = na_percent)) 
-
-
 
 # summarise missing values by label
 na_summary <- chem_data %>%
@@ -134,13 +124,30 @@ row_sums <- data.frame(Label = na_summary$label,
                         Count = rowSums(na_summary[,-1]),
                         Percentage = round(rowSums(na_summary[,-1])/total_obs * 100, 2))
 
-na_lab2 <- gt(row_sums) |>
-  tab_header(title = "Missing values by 'label'") 
+#max label
+max_label_pct <- row_sums$Label[which.max(row_sums$Percentage)]
+max_label_cnt <- row_sums$Label[which.max(row_sums$Count)]
 
-na_lab <- gt(row_sums)
 
-na_var2
-na_lab2
+
+# Same tables in Flextable for Word docx
+missing_by_var <- data.frame(Variable = names(na_counts), Count = na_counts, Percentage = na_percent)
+
+FT_missing_by_var <- flextable(missing_by_var)
+
+FT_top_missing_vars <- missing_by_var %>% 
+  arrange(desc(Count)) %>% 
+  head(5) |>
+  flextable() |>
+  bold(j=1)
+
+
+
+
+FT_missing_by_label <- flextable(row_sums) |>
+  bold(j=1)
+
+FT_missing_table <- flextable(missing_rows)
 
 ```
 
@@ -153,10 +160,11 @@ vis_miss(chem_data)
 gg_miss_var(chem_data)
 
 # visualise with facet
-gg_miss_fct(chem_data, fct = label)
-
+facet_plot <- gg_miss_fct(chem_data, fct = label)
+facet_plot
 # pairwise correlation between missingness
-gg_miss_upset(chem_data)
+upset_plot <-gg_miss_upset(chem_data)
+upset_plot
 
 # amount and percentage missing for each variable
 miss_var<-miss_var_summary(chem_data)
@@ -164,175 +172,246 @@ miss_var<-miss_var_summary(chem_data)
 # amount and percentage missing for each observation
 miss_case<-miss_case_summary(chem_data)
 
-# visualise with facet
-p1 <- gg_miss_fct(chem_data, fct = label)
-
-# pairwise correlation between missingness
-p2 <-gg_miss_upset(chem_data)
-
-# extract var with most missing
+# var with most missing
 most_missing_var <- miss_var %>%
   arrange(desc(n_miss)) %>%
   slice(1) %>%
   pull(variable)
-  
+most_missing_var
+
+# label with most missing
+
 
 ```
 
-Before proceeding with [Exploratory Data
-Analysis](#sec-exploratory-data-analysis), it is important to explore
-the extent of missing data and whether there are patterns to the
-`missingness`. Some classification models assume no missing data, and
-depending on the amount, prevalence and patterning of missing data,
-different assumptions and techniques can be applied.
+Before proceeding with [Exploratory Data Analysis](#sec-exploratory-data-analysis), it is important to explore the extent of missing data and whether there are patterns to the `missingness`. Some classification models assume no missing data, and depending on the amount, prevalence and patterning of missing data, different assumptions and techniques can be applied.
 
-We investigate `missingness` to see whether the assumption that missing
-data is 'missing at random' (MAR) holds - that is, is the probability of
-`missingness` only dependent on **observed** variables? If so and there
-is a significant amount of missing data (\>5%), multiple imputation
-approaches may be explored to *impute* missing values by estimation
-through statistical inference.
+We investigate `missingness` to see whether the assumption that missing data is 'missing at random' (MAR) holds - that is, is the probability of `missingness` only dependent on **observed** variables? If so and there is a significant amount of missing data (\>5%), multiple imputation approaches may be explored to *impute* missing values by estimation through statistical inference.
 
-There are `r sum(is.na(chem_data))` rows with at least one missing value
-which is `r round(mean(is.na(chem_data)) * 100,2)`% of the entire
-dataset. There are significantly fewer missing values than the 5%
-threshold, so imputation is not required.
+```{r mcar}
+# missing completely at random
+# results (statistic = 416, p < 0.05) lead to rejecting H0 that data is MCAR.
+mcar_test(chem_data)
 
-```{r echo=FALSE, include=TRUE,message=FALSE, warning=FALSE, fig.id="fig_visMiss", fig.cap="Figure 1: Missing Data" }
+# more work could be done to test for MAR but is not within the scope of this brief.
+
+
+```
+
+```{r dataset_missing_sentence, echo=FALSE }
+
+
+# total_na<-sum(is.na(chem_data))
+# pct_na<-round(mean(is.na(chem_data)) * 100,2)
+# 
+# dataset_miss_sentence <- case_when(
+#   pct_na <= 5 ~ paste0("The sample has ",total_na," rows with at least one missing value, which is ",pct_na,"% of the entire dataset. As there are fewer missing values than the 5% threshold, imputation is not required and removing these rows is acceptable."),
+#   pct_na > 5 ~ paste0("The sample has ",total_na," rows with at least one missing value, which is ",pct_na,"% of the entire dataset. As there are more missing values than the 5% threshold, how to handle missing data needs further consideration.")
+# )
+# cat(as.character(dataset_miss_sentence))
+```
+
+`r case_when(pct_na <= 5 ~ paste0("The sample has ",total_na," rows with at least one missing value, which is ",pct_na,"% of the entire dataset. As there are fewer missing values than the 5% threshold, imputation is not required and removing these rows is acceptable."), pct_na > 5 ~ paste0("The sample has ",total_na," rows with at least one missing value, which is ",pct_na,"% of the entire dataset. As there are more missing values than the 5% threshold, how to handle missing data needs further consideration.") )`
+
+```{r vis_miss, echo=FALSE, include=TRUE,message=FALSE, warning=FALSE}
+#| fig-alt: "Summary Visualisation of Missing Data"
+#| label: fig-missData
+#| fig-cap: "Visualised Missing Data"
+
 # visualise missing pattern
 vis_miss(chem_data)
 ```
 
-If the missing data is not MAR - that is, it appears to depend on
-**unobserved** variables, there may be other, more appropriate
-imputation methods such as maximum likelihood imputation. Unobserved
-influences in this case may include the sample purity/quality, sample
-handling/measuring differences, measurement/equipment discrepancies or
-chemical compositions of the samples.
+If the missing data is not MAR - that is, it appears to depend on **unobserved** variables, there may be other, more appropriate imputation methods such as maximum likelihood imputation. Unobserved influences in this scenario may include the sample purity/quality, sample handling/measuring differences, measurement/equipment discrepancies or chemical compositions of the samples.
 
-*Imputation* can introduce bias into the analysis if the assumptions of
-the imputation method are violated, or the imputed values differ
-significantly from true missing values.
+*Imputation* can introduce bias into the analysis if the assumptions of the imputation method are violated, or the imputed values differ significantly from true missing values.
 
 ::: callout-caution
 The client should consider `missingness` in their data:
 
 -   Are there any concerns regarding missing data?
--   Is the equipment, staff, technique, facilities, chemicals, etc.
-    consistent?
+-   Is the equipment, staff, technique, facilities, chemicals, etc. consistent?
 -   What are the reasons for missing data? Can they be mitigated?
 -   Can data be collected where it has been identified as missing?
--   Is there likely to be (more, less, similar amount of) missing data
-    in the future?
+-   Is there likely to be (more, less, similar amount of) missing data in the future?
 :::
 
-On a case basis, no single observation has more than
-`r max(miss_case$n_miss)` missing value. This means that, at most, a
-sample is missing `r round(max(miss_case$pct_miss), 2)`% of its data. If
-we group by 'label' we see that `Class E` has the most missing data at
-0.52%.
+#### Missing value details by class and variable {#sec-missing-value-details-by-class-and-variable}
 
-```{r echo=FALSE, include=TRUE,message=FALSE, warning=FALSE, fig.id="fig_missLab", fig.cap="Table 1: Missing Data by 'label'" }
-na_lab
+```{r var_missing_sentence_original, include=TRUE}
+# #| tbl-cap: "Top 5 Variables with missing data, by count"
+# #| tbl-cap-location: bottom
+# #| tbl-alt: "Table with top five variables with most missing data"
+# #| label: tbl-top5missing
+# 
+# # vars with missing data
+# missingVars <- miss_var_which(chem_data)
+# # how many variables with missing data
+# missingLen <- length(missingVars)
+# 
+# 
+# # ifelse to print different output depending on how many variables with missing data. 
+# if (missingLen == 0) {
+#   cat("This sample has no variables with missing values.")
+# } else if (missingLen == 1) {
+#   cat(paste0("In this sample, ", missingVars, " is the only variable with missing data."))
+# } else if (missingLen < 6) {
+#   # Create a character vector of the missing variables, with commas between each item except for the last
+#   missingVars_string <- paste(missingVars[-length(missingVars)], collapse = ", ")
+#   # Add "and" to the end of the character vector
+#   missingVars_string <- paste0(missingVars_string, " and ", missingVars[length(missingVars)])
+#   # Print the sentence
+#   cat(paste0("In this sample, the following variables have missing data: ", missingVars_string, "."))
+# } else {
+#   cat(paste0("This dataset has ", missingLen, " variables with missing data. The five variables with the most missing data are:\n\n"))
+#   
+#   FT_top_missing_vars
+# 
+# }
+
 
 ```
 
-Variable `r most_missing_var` has the most missing values with
-`r miss_var[which.max(miss_var$n_miss), "n_miss"]`, accounting for
-`r max(miss_var$pct_miss)`% of this variable's data.
+```{r var_missing_sentence, echo=FALSE, results='asis'}
+# vars with missing data
+missingVars <- miss_var_which(chem_data)
+# how many variables with missing data
+missingLen <- length(missingVars)
 
-```{r echo=FALSE, include=TRUE,message=FALSE, warning=FALSE, fig.id="fig_missVar", fig.cap="Table 2: Missing Data by Variable" }
-na_var
+# Initialize the output variable
+output <- ""
+
+# ifelse to print different output depending on how many variables with missing data. 
+if (missingLen == 0) {
+  output <- "This sample has no variables with missing values."
+} else if (missingLen == 1) {
+  output <- paste0("In this sample, ", missingVars, " is the only variable with missing data.")
+} else if (missingLen < 6) {
+  # Create a character vector of the missing variables, with commas between each item except for the last
+  missingVars_string <- paste(missingVars[-length(missingVars)], collapse = ", ")
+  # Add "and" to the end of the character vector
+  missingVars_string <- paste0(missingVars_string, " and ", missingVars[length(missingVars)])
+  # Print the sentence
+  output <- paste0("In this sample, the following variables have missing data: ", missingVars_string, ".")
+} else {
+  output <- paste0("This dataset has ", missingLen, " variables with missing data. The five variables with the most missing data are:")
+  
+}
+
+# Print the output variable
+cat(output)
 
 ```
 
-The upset plot below shows the five variables with the most missing
-values and confirms that there are no instances where there are missing
-values in two variables in the same observations.
+`r output`
 
-```{r include=TRUE, echo=FALSE, message = FALSE, fig.id=TRUE, fig.cap="Figure 2: Upset plot of missing data", label="fig_upset", plotid = "fig_upset"}
+```{r print_FT_top_missing_vars, include=TRUE, echo=FALSE, results='asis'}
+#| tbl-cap: "Top 5 Variables with missing data, by count"
+#| tbl-cap-location: bottom
+#| tbl-alt: "Table with top five variables with most missing data"
+#| label: tbl-top5missing
+if (missingLen >= 6) {
+  FT_top_missing_vars
+}
+```
+
+Variable `r most_missing_var` has the most missing values with `r miss_var[which.max(miss_var$n_miss), "n_miss"]`, accounting for `r max(miss_var$pct_miss)`% of this variable's data.
+
+No single sample (observation) has more than `r max(miss_case$n_miss)` missing values. This means that, at most, a sample is missing `r round(max(miss_case$pct_miss), 2)`% of its data.
+
+The upset plot below shows the five variables with the most missing values and confirms that there are no instances where there are missing values in two variables in the same observations.
+
+```{r upset_plot, include=TRUE, echo=FALSE, message = FALSE}
+#| fig-alt: "Upset plot of missing data"
+#| label: fig-upsetplot
+#| fig-cap: "Upset plot of missing data"
+
 # call upset plot
-p2
+upset_plot
 ```
 
-The target variable ('label') has no missing values and when we group
-data by the classes,\
-patterns of `missingness` begin to emerge. It appears that missing
-values for sequential variables (measurements) may be correlated with
-the chemical class. There is a clear stepped pattern in the heatmap
-below and the 'Missing Data' plot above.
+If we group missing data by the target label, we see that `r max_label_pct` has the most missing data at `r max(row_sums$Percentage)`%.
+
+```{r missingByLabel, echo=FALSE, include=TRUE,message=FALSE, warning=FALSE}
+#| label: tbl-missingByClass
+#| tbl-cap-location: bottom
+#| tbl-cap: "Missing Data by Class (label)"
+#| tbl-alt: "Table with missing data, grouped by chemical class"
+#| tab: tbl-missingByClass
+FT_missing_by_label
+
+```
+
+Patterns of `missingness` begin to emerge when examining missing data for variables, grouping by 'labels'. It seems that there is a relationship between missing values for sequential variables when grouping observations. This is clearly visible in the `heatmap` below as well as in the stepped pattern in @fig-missData above.
+
+```{r heatmapMissing, include=TRUE, echo=FALSE, message = FALSE}
+#| fig-alt: "Heatmap of missing data per variable, grouped by Chemical class (label)"
+#| label: fig-heatmapMiss
+#| fig-cap: "Heatmap of missing data per variable, grouped by Chemical class"
+
+facet_plot
+```
+
+It is important to note that the target variable ('label') has no missing values.
 
 ::: callout-warning
 Is there anything systemic, in terms of `missingness`:
 
--   X1-X4 is *only* missing for chemical A
--   X6, X8 are *only* missing for chemical B
--   X9-X12 is *only* missing for chemical C
--   X13-X16 are *only* missing for chemical D
--   X17-X19 are *only* missing for chemical E
+-   X1-X4 is *only* missing for label A
+-   X6, X8 are *only* missing for label B
+-   X9-X12 is *only* missing for label C
+-   X13-X16 are *only* missing for label D
+-   X17-X19 are *only* missing for label E
 
-Is there a relationship between the variables, in terms of what they
-measure?
+Is there a relationship between the variables, in terms of what they measure?
 :::
-
-```{r include=TRUE, echo=FALSE, message = FALSE, fig.cap="Figure 3: Missing data per variable, grouped by Chemical Class (label)", fig.id=TRUE, label="fig_heatLab"}
-
-p1
-```
 
 \[include citation to missing data references\]
 
 ::: callout-important
 ## Decision
 
-Given the minimal amount of missing data - it will be removed before
-exploratory data analysis, data splitting and modelling.
+Given the minimal amount of missing data - it will be removed before exploratory data analysis, data splitting and modelling.
 
-If this dataset is representative, the missing data may not be an
-issue - assuming the pattern identified above is understood.
+If this dataset is representative, the missing data may not be an issue in the future - assuming the pattern identified above is understood.
 :::
 
 ### Splitting data
 
-```{r}
+```{r cleandata}
 clean_chem_data <- chem_data[complete.cases(chem_data), ]
 #clean_chem_data
 dim(clean_chem_data)
 sum(is.na(clean_chem_data))
 ```
 
-Before proceeding with additional exploratory analysis, we split the
-dataset into three random subsets:
+Before proceeding with additional exploratory analysis, we split the dataset into three random subsets:
 
--   `train` - used to *train* the classification model to *learn* the
-    relationship between the variables and the label
--   `validation` - used to *validate* the performance of the trained
-    model and to tune any hyperparameters; determines how well the model
-    generalises to 'unseen' data
--   `test` - used to *evaluate* the final performance of the model post
-    training and tuning; this data is ony used once and kept separate.
+-   `train` - used to *train* the classification model to *learn* the relationship between the variables and the label
+-   `validation` - used to *validate* the performance of the trained model(s) and to tune any hyperparameters; determines how well the model generalises to 'unseen' data
+-   `test` - used to *evaluate* the final performance of the model post training and tuning; this data is only used once and kept separate.
 
-As EDA will explore and visualise relationships between variables,
-potentially creating new features, it is essential to split the data so
-that we do not introduce bias into the process. Any insights or
-observations during the EDA phase will therefore emerge solely from the
-training dataset.
+In order to not introduce bias into the modelling process, the data will be split prior to any EDA, where the dataset is explored and summarised. Any insights or observations made during EDA will emerge solely from the training subset.
 
-The only thing we will check in advance is the target variable balance.
-Given that it is not perfectly balanced, the data subsets will be split
-with 'stratification' which ensures each partition has a representative
-proportion of each class.
+The only thing we check in advance is the target variable balance - that is the split across labels. Given that it is not *perfectly* balanced, the data subsets will be split with 'stratification' ensuring that each partition has a representative proportion of each class.
 
-```{r include=TRUE, echo=FALSE, message = FALSE, fig.cap="Table 3: Frequency Table", fig.id=TRUE, label="fig_freq"}
-#table(clean_chem_data$label)
+```{r frequency, include=TRUE, echo=FALSE, message = FALSE}
+#| label: tbl-countByClass
+#| tbl-cap-location: bottom
+#| tbl-cap: "Frequency Table by Class (label)"
+#| tbl-alt: "Frequency table grouped by chemical class"
+#| tab: tbl-countByClass
 
 
 # frequency table
-clean_chem_data %>%
-  dplyr::count(label, name = 'Freq') %>% 
-  gt() 
+freq<-clean_chem_data %>%
+  dplyr::count(label, name = 'Frequency') %>% 
+  mutate(Percent = round(Frequency / sum(Frequency[1:5])*100, 2)) 
 
-
+freq |>
+  flextable() |>
+  autofit() |>
+  bold(j=1)
 
 
 ```
@@ -340,43 +419,23 @@ clean_chem_data %>%
 ::: callout-important
 ## Decision
 
-The clean dataset is sufficiently large to split into:
+The clean dataset is sufficiently large to split:
 
 -   `train` - 50%
 -   `validation` - 25%
 -   `test` - 25%
 :::
 
-```{r split_test_code}
-train_prop <- 0.5
-val_prop <- 0.25
-test_prop <- 0.25
+```{r dataset_split_function}
+# reusable function to split into three - train, validate, test - finally (it took a while)!!
+# inputs -> dataframe, target column, proportions (train, validation, test), stratify (T/F)
 
-
-N <- nrow(clean_chem_data)
-train_size <- round(N * train_prop)
-test_size <- round(N * test_prop)
-val_size <- N - train_size - test_size
-
-train_size
-test_size
-val_size
-
-train_size+test_size+val_size
-dim(clean_chem_data)
-
-#unique(clean_chem_data$label)
-table(clean_chem_data$label)
-```
-```{r}
-# reusable function to split into three - train, validate, test - finally!!
-# this took so long.
 
 df_splitter <- function(df, target_col, train_prop, val_prop, test_prop, stratify) {
   
   if (stratify) {
    
-    # split the dataframe into groups based on the target variable
+    # split dataframe into groups based on the target variable
     groups <- split(df, df[[target_col]])
     
     # for each group, randomly sample a portion of the rows for the train set
@@ -432,21 +491,15 @@ df_splitter <- function(df, target_col, train_prop, val_prop, test_prop, stratif
   # Return a list of the three data frames
   return(list(train = train_df, val = val_df, test = test_df))
 }
-
-
-
-
-
-
 ```
 
-```{r}
+```{r applySplitCleanChem}
 # apply to clean_chem_data
 datasets <- df_splitter(df = clean_chem_data, target_col = "label", train_prop = 0.5, val_prop = 0.25, test_prop = 0.25, stratify = TRUE)
 
 # print the sizes of each resulting dataset
-cat("train:", nrow(datasets$train), "\n\n")
-cat("validation:", nrow(datasets$val), "\n\n")
+cat("train:", nrow(datasets$train), "\n")
+cat("validation:", nrow(datasets$val), "\n")
 cat("test:", nrow(datasets$test), "\n\n\n")
 
 # check that the proportions of the target variable are similar across the three datasets
@@ -456,97 +509,29 @@ cat("Test set target variable proportions:\n", prop.table(table(datasets$test$la
 
 # save separate datasets
 train <- datasets$train
-val <- datasets$val
+valid <- datasets$val
 test <- datasets$test
 
 # counts
 table(train$label)
-table(test$label)
 table(val$label)
+table(test$label)
 
 
-
-```
-
-
-
-
-
-### Exploratory Data Analysis {#sec-exploratory-data-analysis}
-
-```{r}
-# structure and summary
-
-str(train)
-summary(train)
-
-
-
+# save to file
+write.csv(train, "../data/chem_train.csv", row.names = FALSE)
+write.csv(valid, "../data/chem_valid.csv", row.names = FALSE)
+write.csv(test, "../data/chem_test.csv", row.names = FALSE)
 
 ```
 
-```{r}
-# overall min
-min(train[1:20])
-minCol_index <- which(train[1:20] == min(train[1:20]), arr.ind = TRUE)[2]
-colnames(train)[minCol_index]
-
-# overall max
-max(train[1:20])
-maxCol_index <- which(train[1:20] == max(train[1:20]), arr.ind = TRUE)[2]
-colnames(train)[maxCol_index]
 
 
 
-# ranges
-ranges <- apply(train[,-21], 2, function(x) diff(range(x)))
-ranges
-maxRange <- max(ranges)
-minRange <- min(ranges)
-maxRange_var <- colnames(train)[which.max(ranges)]
-minRange_var <- colnames(train)[which.min(ranges)]
 
 
-# standard deviations
-sd <- apply(train[,-21], 2, sd)
-sd
-maxSD <- max(sd)
-minSD <- min(sd)
-maxSD_var <- colnames(train)[which.max(sd)]
-minSD_var <- colnames(train)[which.min(sd)]
 
-# means
-means <- apply(train[,-21], 2, mean)
-means
-maxMean <- max(means)
-minMean <- min(means)
-maxMean_var <- colnames(train)[which.max(means)]
-minMean_var <- colnames(train)[which.min(means)]
 
-# variances
-vars <- apply(train[,-21], 2, var)
-vars
-maxVar <- max(vars)
-minVar <- min(vars)
-maxVar_var <- colnames(train)[which.max(vars)]
-minVar_var <- colnames(train)[which.min(vars)]
-
-```
-
-Throughout EDA and model training, we will only use the `train` dataset
-which has a total of `r nrow(train)` rows, with a minimum value of
-`r min(train[1:20])` (`r colnames(train)[minCol_index]`) and a maximum
-value of `r max(train[1:20])` (`r colnames(train)[maxCol_index]`).
-
-The variables have different scales and variances:
-
-| Statistic | Min                             | Max                             |
-|------------------------------------|------------------|------------------|
-| Mean      | `r minMean` (`r minMean_var`)   | `r maxMean` (`r maxMean_var`)   |
-| Variance  | `r minVar` (`r minVar_var`)     | `r maxVar` (`r maxVar_var`)     |
-| Range     | `r minRange` (`r minRange_var`) | `r maxRange` (`r maxRange_var`) |
-
-: Table 4: Statistics across Variables
 
 ```{r}
 library(ggplot2)

@@ -1,0 +1,300 @@
+---
+title: "Chemical Sample Classification Report"
+subtitle: "Exploratory Data"
+author: "Petter Lövehagen"
+date: "08 May 2023"
+
+RVersion: 3.6.0 
+RStudio: 2023.03.0+386 Cherry Blossom Release
+Platform: "x86_64-w64-mingw32/x64 (64-bit)"
+OS: "Windows 11 SE"
+
+format: 
+  docx: default
+  html:
+    toc: true
+    toc-depth: 3
+    toc-title: "Contents"
+    toc-location: left
+    code-fold: true
+    code-line-numbers: true
+    theme: spacelab
+    html-math-method: mathjax
+    highlight: "tango"
+    #css: "../data/custom.css"
+prefer-docx: true
+lang: "en-GB"
+bibliography: "../data/AS_CW_References.bib"
+csl: "../data/harvard-university-of-the-west-of-england.csl"
+
+knitr:
+  opts_chunk:
+    include: false
+    tidy: true
+    echo: false
+    warning: false
+    message: false
+    error: true
+---
+
+
+
+```{r packages}
+# load/install R packages/libraries
+source("packages.R")
+
+```
+
+```{r load_data}
+# load train data set
+train <-read.csv("../data/chem_train.csv")
+
+```
+
+```{r train_str}
+# structure and summary
+
+head(train)
+dim(train)
+str(train)
+summary(train)
+```
+
+### Exploratory Data Analysis {#sec-exploratory-data-analysis}
+
+```{r trainstatistics}
+# extract numeric columns
+num_train <- train[, -21]
+
+# overall min and max
+overall_min <- round(min(num_train),2)
+overall_max <- round(max(num_train),2)
+minCol_index <- which(num_train == overall_min, arr.ind = TRUE)[2]
+maxCol_index <- which(num_train == overall_max, arr.ind = TRUE)[2]
+minCol_name <- colnames(num_train)[minCol_index]
+maxCol_name <- colnames(num_train)[maxCol_index]
+
+# ranges
+ranges <- apply(num_train, 2, function(x) diff(range(x)))
+maxRange <- round(max(ranges),2)
+minRange <- round(min(ranges),2)
+maxRange_name <- colnames(num_train)[which.max(ranges)]
+minRange_name <- colnames(num_train)[which.min(ranges)]
+
+# standard deviations
+sd_vals <- apply(num_train, 2, sd)
+maxSD <- round(max(sd_vals),2)
+minSD <- round(min(sd_vals),2)
+maxSD_name <- colnames(num_train)[which.max(sd_vals)]
+minSD_name <- colnames(num_train)[which.min(sd_vals)]
+
+# means
+mean_vals <- apply(num_train, 2, mean)
+maxMean <- round(max(mean_vals),2)
+minMean <- round(min(mean_vals),2)
+maxMean_name <- colnames(num_train)[which.max(mean_vals)]
+minMean_name <- colnames(num_train)[which.min(mean_vals)]
+
+# variances
+var_vals <- apply(num_train, 2, var)
+maxVar <- round(max(var_vals),2)
+minVar <- round(min(var_vals),2)
+maxVar_name <- colnames(num_train)[which.max(var_vals)]
+minVar_name <- colnames(num_train)[which.min(var_vals)]
+
+
+```
+Throughout EDA and model training, only the `train` dataset will be analysed.  It has `r nrow(train)` rows, with an overall minimum value of `r overall_min` (`r minCol_name`) and a maximum value of `r overall_max` (`r maxCol_name`). 
+
+The variables have different scales and variances:
+
+<!-- | Statistic | Min                             | Max                             | -->
+<!-- |----------------------------------|-------------------|-------------------| -->
+<!-- | Mean      | `r minMean` (`r minMean_name`)   | `r maxMean` (`r maxMean_name`)   | -->
+<!-- | Variance  | `r minVar` (`r minVar_name`)     | `r maxVar` (`r maxVar_name`)     | -->
+<!-- | Range     | `r minRange` (`r minRange_name`) | `r maxRange` (`r maxRange_name`) | -->
+
+<!-- : Table 4: Statistics across Variables -->
+
+
+```{r minmaxStats, include=TRUE, echo=FALSE}
+#| tbl-cap: "Minimum / Maximum Statistics in 'train'"
+#| tbl-cap-location: bottom
+#| tbl-alt: "Table with minimum and maximum mean, variance and range in train dataset"
+#| label: tbl-minmaxStats
+
+
+# data frame with the statistics and their values
+statistics <- data.frame(
+  Statistic = c("Mean", "Variance", "Range"),
+  "Minimum" = c(paste(minMean, "(", minMean_name, ")"), paste(minVar, "(", minVar_name, ")"), paste(minRange, "(", minRange_name, ")")),
+  "Maximum" = c(paste(maxMean, "(", maxMean_name, ")"), paste(maxVar, "(", maxVar_name, ")"), paste(maxRange, "(", maxRange_name, ")"))
+)
+
+
+statistics |>
+  flextable() |> 
+  set_caption("Summary Statistics") |>
+  autofit() |> 
+  bold(j=1)
+
+
+
+```
+At glance, we can see that there is a significant spread between the variables in terms of mean, variance and range.  In order to mitigate against any one variable having undue influence and because nothing is known about the variables, they will be `normalised` or  standardised so that they have the same scale from 0 to 1.  
+
+
+
+
+```{r}
+# Create a list of plots, with one plot for each variable
+plot_list <- lapply(names(train), function(var) {
+  ggplot(train, aes_string(x = var, fill = "label")) +
+    geom_density(alpha = 0.5) +
+    ggtitle(paste0("Distribution of ", var))
+})
+
+# Combine the plots into a grid using the cowplot package
+plot_grid(plotlist = plot_list, ncol = 4)
+
+```
+```{r}
+# order - order of ariables - hierarchical clustering
+# method - correlation strength
+
+# Compute the correlation matrix
+corr_matrix <- cor(train[, 1:20])
+
+# Plot the correlation matrix
+corrplot(corr_matrix, method = "color", type = "upper", order = "hclust",
+         col = colorRampPalette(c("#BB4444", "#EE9988", "#FFFFFF", "#77AADD", "#4477AA"))(200),
+         addCoef.col = "black", tl.col = "black")
+```
+
+
+Observations
+* many normal distributions
+* some which differ across labels, eg. X7-X11
+
+```{r}
+library(ggplot2)
+library(GGally)
+
+train %>%
+  select(label, X1, X2, X3, X4, X5) %>% 
+  GGally::ggpairs(aes(color = label),
+          columns = c("X1", "X2", "X3", "X4", "X5"), progress = FALSE) 
+
+```
+
+```{r}
+
+train %>%
+  select(label, X7, X8, X9, X10, X11) %>% 
+  GGally::ggpairs(aes(color = label),
+          columns = c("X7", "X8", "X9", "X10", "X11"), progress = FALSE) 
+
+```
+
+
+## NOTES BELOW
+
+so there appears to be value in two different approaches
+* correlation for dimension reduction
+* needs domain knowledge to clarify and ratifiy, explain
+
+* feature reduction - several variables which may be superfluous, measuring similar things or do not add to the model
+
+
+
+To do
+* normalise and scale
+* check for outliers 
+* address outliers as appropriate
+* correlation plot
+
+To try:
+
+```{r}
+# correlation plot
+
+corrplot(cor(num_train))
+corrplot(cor(num_train), method = "ellipse", type = "lower")
+```
+interpretation - say what you see
+* sparse - lots of variables which are not correlated with each other
+* x17-20, and x7-10 appear to correlate, some neg, some pos
+
+
+
+
+
+### dimension reduction:
+
+PCA - identify principal components, linear combos of original variabes explaining the most variation in the data, plot to see in a lower dimension space
+t-SNE
+
+PCA: 
+
+like a plot with PC1, PC2
+the actual 5 classes (shape and label by label)
+pca arrows and variable labels
+
+(see penguin example)
+
+```{r}
+library(ade4)
+library(factoextra)
+pca <- dudi.pca(num_train,scannf = F, nf=4)
+fviz_pca_biplot(pca)
+fviz_pca_biplot(pca, label="var",title="Chemical variables", repel=TRUE)
+fviz_screeplot(pca)
+get_eigenvalue(pca)
+fviz_pca_biplot(pca,repel=T,label="var",axes=c(1,2))
+fviz_pca_biplot(pca,repel=T,label="var",axes=c(1,3))
+```
+
+```{r}
+
+## write your code here 
+fviz_pca_biplot(pca,
+                repel=T,
+                label="var",
+                col.ind = train$label)
+fviz_pca_biplot(pca,axes=c(1,3),
+                repel=T,
+                label="var",
+                col.ind = train$label)
+
+
+fviz_pca_ind(pca,
+             geom.ind = "point", # show points only (but not "text")
+             col.ind = train$label, # colour by groups
+             addEllipses = TRUE, # Concentration ellipses
+            legend.title = "Chemicals"
+            )
+
+fviz_pca_ind(pca,axes=c(1,3),
+             geom.ind = "point", # show points only (but not "text")
+             col.ind = train$label, # colour by groups
+             addEllipses = TRUE, # Concentration ellipses
+            legend.title = "Chemicals"
+            )
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

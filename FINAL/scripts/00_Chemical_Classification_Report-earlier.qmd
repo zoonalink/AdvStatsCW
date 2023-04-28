@@ -1,6 +1,6 @@
 ---
 title: "Chemical Sample Classification Report"
-subtitle: "Introduction"
+subtitle: ""
 author: "Petter Lövehagen"
 date: "08 May 2023"
 
@@ -24,7 +24,6 @@ format:
     #css: "../data/custom.css"
 prefer-docx: true
 lang: "en-GB"
-subject: "chemical sample classifition"
 bibliography: "../data/AS_CW_References.bib"
 csl: "../data/harvard-university-of-the-west-of-england.csl"
 
@@ -38,19 +37,16 @@ knitr:
     error: true
 ---
 
-## Brief {#sec-brief}
+```{r packages}
+# load/install R packages/libraries
+source("packages.R")
 
-The brief is to develop a `classification tool` to classify chemicals into classes.
+```
 
-In addition, the client is interested in knowing whether all variables are *necessary* for achieving optimal out-of-sample classification performance, or if a subset of measurements will suffice.
+```{r child="01_intro.qmd"}
+#knit intro section
+```
 
-This report will aim to:
-
--   explore, analyse and feedback on the provided dataset
--   develop an optimised classification model
--   determine whether all variables are required
--   provide recommendations and options, as applicable
-
-::: callout-note
-Additional technical details are available in the code comments.
-:::
+```{r child="02_data.qmd"}
+#knit data section
+```

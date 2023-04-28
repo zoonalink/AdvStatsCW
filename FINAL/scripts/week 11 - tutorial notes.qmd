@@ -1,0 +1,132 @@
+---
+title: "week 11 - final week tut notes"
+format: html
+---
+
+## Requirements:
+
+Look at FlexTable for tables
+
+Look at Missing stats from naniar for table production
+
+e.g. miss_var_summary, miss_var_which
+
+only display the missing rows in the table
+
+remove packages which are not used
+
+No document template
+
+consider reproducibility - so if there are no missing values, make an if statement...
+
+Generalise the first section - the EDA.
+
+No expectation of rotation in FA because this requires domain knowledge (which we don't have in this instance)
+
+compliled file
+
+add alternative text to all figures
+
+TODO:
+
+sort out label: fig-figname; fig-cap: "fig title"; label: tbl-tableName; tbl-cap: "table title"
+
+this should allow for @referencing within document
+
+@tbl-tableName
+
+reference different data subsets - tvt
+
+Feature: FlexTable
+
+-   understand
+
+-   set FT style, and defaults for all tables in the report
+
+-   change current tables to FT format -\> replace GT (save as scrap)
+
+Create repeatable missing checks:
+
+-   missing vars (length of missing vars - case when)
+
+Revisit comments
+
+Create bibliography -\> base R, critical packages
+
+Reference comments for 'additional detail' - if client wants
+
+Consider implementing a DataValidateR option in github
+
+-   upload csv, validate for errors
+
+-   upload csv, run classification model
+
+```{r}
+# flextable example
+
+x<-cov(airquality, use = "pairwise.complete.obs")
+# will turn all numbers into strings- so consider rounding, etc. first
+x1 <- cbind(variables = rownames(x), x)
+x1 <- as.data.frame(x1)
+library(flextable)
+flextable(x1)
+
+x1[,-1] <-x
+flextable(x1)|>
+  colformat_double(digits=2)|>theme_booktabs(bold_header=TRUE) |>
+  bold(j=1)|>
+  autofit()
+```
+
+Dimension reduction:
+
+-   FA, PCA, Parallel analysis - Review tutorials and plan out approach
+
+-   PCA may not be the best approach - eigenvectors/values (not explaining much)
+
+    means keeping all variaables - projecting into dimensions
+
+-   Trees, forests may be more appropriate -\> feature selection (can remove features)
+
+one approach using whole dataset -\> projection (PCA + classification)
+
+other method is feature reduction (RF, for example)
+
+compared in the second dataset 'test'
+
+```{r}
+MySentence1<- case_when(
+  length(MissingVars) ==0 ~ "there are no missing variables.",
+  length(MissingVars) ==1 ~ paste0("the following variable has missing values: ", MissingVars,"."),
+  length(MissingVars) ==2 ~ paste0("the following variables have missing values: ", paste(MissingVars, collapse = "and" )), 
+  length(MissingVars) >2 ~ paste0("there are ", length(MissingVars))
+)
+```
+
+if(!is.null(miss_var_which(airquality)),
+
+paste0("the following variables have missing variables:", miss_var_which(airquality)"."
+
+Reporting missing variables - swap into R chunk with rules
+
+missingVars \<- missing_var_which(df)
+
+case_when(
+
+missingVars == 0 - 'no missing'
+
+missingVars ==1 - 'there is one var with missing;
+
+missingVars ==2-5
+
+missingVars \>5
+
+Final file production - ZIP
+
+Need to zip all dependencies - files
+
+-   sections to knit
+
+-   bibliography/references
+
+-   packages.R

@@ -57,9 +57,27 @@ chem_data <- read.csv("../data/5976423.csv")
 
 ```
 
-
 ```{r}
 library(flextable)
+set_flextable_defaults(
+  font.size = 10, border.color = "#3B5998", digits = 2,
+  font.family = "Arial", theme_fun = theme_vanilla,
+  padding = 6,
+  background.color = "#DFE3EE", layout= "autofit", na_str = "<na>")
+flextable(iris)
+```
+
+```{r}
+head(df) |> 
+  flextable() |> 
+  colformat_double() |> 
+  autofit()
+```
+
+
+
+```{r}
+
 
 # create a new data frame with only rows with missing data
 missing_rows <- chem_data[apply(chem_data, 1, function(row) any(is.na(row))), ]
