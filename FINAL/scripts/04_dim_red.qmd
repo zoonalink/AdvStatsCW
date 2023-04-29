@@ -1,6 +1,6 @@
 ---
 title: "Chemical Sample Classification Report"
-subtitle: ""
+subtitle: "Dimension Reduction"
 author: "Petter Lövehagen"
 date: "08 May 2023"
 
@@ -13,7 +13,7 @@ format:
   docx: default
   html:
     toc: true
-    toc-depth: 2
+    toc-depth: 3
     toc-title: "Contents"
     toc-location: left
     code-fold: true
@@ -35,23 +35,18 @@ knitr:
     warning: false
     message: false
     error: true
+    fig.align: 'left'
+    out.width: '90%'
+    fig.width: 6
+    fig.height: 4
 ---
 
-```{r report_packages}
+```{r data_packages}
 # load/install R packages/libraries
-source("packages.R")
+# load flextable defaults
 
-```
+file <- "dim_red"
+source("chem_packages.R")
 
-```{r child="01_intro.qmd"}
-#knit intro section
-```
-
-```{r child="02_data.qmd"}
-#knit data section
-```
-
-```{r child="03_EDA.qmd"}
-#knit EDA section
 
 ```

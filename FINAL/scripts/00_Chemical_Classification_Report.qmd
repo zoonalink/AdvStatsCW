@@ -1,16 +1,17 @@
 ---
-title: "Chemical Analysis Report"
-subtitle: "Classification Model"
+title: "Chemical Sample Classification Report"
+subtitle: ""
 author: "Petter Lövehagen"
+date: "08 May 2023"
+
 RVersion: 3.6.0 
 RStudio: 2023.03.0+386 Cherry Blossom Release
 Platform: "x86_64-w64-mingw32/x64 (64-bit)"
 OS: "Windows 11 SE"
-date: "07 May 2023"
 
 format: 
-  docx:
-    reference_docx: "custom-reference-doc.docx"
+  docx: 
+    pagenumbering: true
   html:
     toc: true
     toc-depth: 2
@@ -21,11 +22,7 @@ format:
     theme: spacelab
     html-math-method: mathjax
     highlight: "tango"
-  
-output:
-  word_document:
-    reference_docx: "custom-reference-doc.docx"
-    
+    #css: "../data/custom.css"
 prefer-docx: true
 lang: "en-GB"
 bibliography: "../data/AS_CW_References.bib"
@@ -39,15 +36,33 @@ knitr:
     warning: false
     message: false
     error: true
+    fig.align: left
+    out.width: '90%'
+    fig.width: 6
+    fig.height: 4
+    fig.cap: center
 ---
 
 ```{r packages}
+# load/install R packages/libraries
 source("packages.R")
-
 ```
 
 ```{r child="01_intro.qmd"}
+#knit intro section
 ```
 
+\newpage
+
 ```{r child="02_data.qmd"}
+#knit data section
 ```
+\newpage
+
+```{r child="03_EDA.qmd"}
+#knit EDA section
+```
+\newpage
+
+
+

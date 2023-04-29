@@ -35,19 +35,40 @@ knitr:
     warning: false
     message: false
     error: true
+    fig.align: left
+    out.width: '90%'
+    fig.width: 6
+    fig.height: 4
 ---
 
 
 
-```{r packages}
+```{r EDA_packages}
 # load/install R packages/libraries
-source("packages.R")
+# load flextable defaults
+
+file <- "EDA"
+source("chem_packages.R")
+
+
+# what is currently loaded/attached:
+#sessionInfo()
+
+# for this section
+# library(flextable)
+# library(dplyr)
+# library(ggplot2)
+# library(cowplot)
+# library(corrplot)
+# library(GGally)
 
 ```
 
 ```{r load_data}
 # load train data set
 train <-read.csv("../data/chem_train.csv")
+
+
 
 ```
 
@@ -69,8 +90,8 @@ num_train <- train[, -21]
 # overall min and max
 overall_min <- round(min(num_train),2)
 overall_max <- round(max(num_train),2)
-minCol_index <- which(num_train == overall_min, arr.ind = TRUE)[2]
-maxCol_index <- which(num_train == overall_max, arr.ind = TRUE)[2]
+minCol_index <- which(num_train == min(num_train), arr.ind = TRUE)[2]
+maxCol_index <- which(num_train == max(num_train), arr.ind = TRUE)[2]
 minCol_name <- colnames(num_train)[minCol_index]
 maxCol_name <- colnames(num_train)[maxCol_index]
 
@@ -124,11 +145,12 @@ The variables have different scales and variances:
 #| label: tbl-minmaxStats
 
 
+
 # data frame with the statistics and their values
 statistics <- data.frame(
   Statistic = c("Mean", "Variance", "Range"),
-  "Minimum" = c(paste(minMean, "(", minMean_name, ")"), paste(minVar, "(", minVar_name, ")"), paste(minRange, "(", minRange_name, ")")),
-  "Maximum" = c(paste(maxMean, "(", maxMean_name, ")"), paste(maxVar, "(", maxVar_name, ")"), paste(maxRange, "(", maxRange_name, ")"))
+  "Minimum" = c(paste0(minMean, " (", minMean_name, ") "), paste0(minVar, " (", minVar_name, ") "), paste0(minRange, " (", minRange_name, ") ")),
+  "Maximum" = c(paste0(maxMean, " (", maxMean_name, ") "), paste0(maxVar, " (", maxVar_name, ") "), paste0(maxRange, " (", maxRange_name, ") "))
 )
 
 
@@ -138,13 +160,44 @@ statistics |>
   autofit() |> 
   bold(j=1)
 
-
-
 ```
 At glance, we can see that there is a significant spread between the variables in terms of mean, variance and range.  In order to mitigate against any one variable having undue influence and because nothing is known about the variables, they will be `normalised` or  standardised so that they have the same scale from 0 to 1.  
 
 
+```{r}
+describe(train)[,c(2:5,8,9)]
+```
 
+```{r}
+par(mar = c(1, 1, 1, 1))
+pairs.panels(train)
+```
+
+```{r}
+
+
+
+set.seed(567)
+
+
+# create correlation matrix
+corr_matrix <- cor(num_train)
+
+# plot correlation matrix using corrplot
+corrplot(corr_matrix)
+
+# plot scatterplot matrix using GGally
+#ggpairs(train, progress=FALSE)
+
+```
+
+
+
+```{r}
+ggplot(train, aes(x = X1, fill = label)) +
+  geom_density(alpha = 0.5) +
+  facet_wrap(~ label, nrow = 3)
+```
 
 ```{r}
 # Create a list of plots, with one plot for each variable
@@ -177,8 +230,7 @@ Observations
 * some which differ across labels, eg. X7-X11
 
 ```{r}
-library(ggplot2)
-library(GGally)
+
 
 train %>%
   select(label, X1, X2, X3, X4, X5) %>% 
@@ -196,7 +248,11 @@ train %>%
 
 ```
 
+```{r}
+corr_matrix <- cor(train %>% select(-label))
 
+corrplot(corr_matrix, method = "circle")
+```
 ## NOTES BELOW
 
 so there appears to be value in two different approaches
@@ -241,6 +297,42 @@ the actual 5 classes (shape and label by label)
 pca arrows and variable labels
 
 (see penguin example)
+
+```{r}
+KMO(train[1:20])
+```
+OVeral KMO is 0.71 which is above 0.5 indicating that the dataset has sufficient correlation present to warrant PCA/FA.  The variable with the lowest ?? is X15 with 0.46.
+
+some citation here.
+
+parallel analysis [citation]
+
+```{r}
+scree(num_train)
+```
+```{r}
+paran(num_train, iterations = 5000)
+```
+```{r}
+# save as separate function and call in code
+# Define a function to scale/normalize data
+scale_data <- function(data) {
+  m <- colMeans(data) # means of columns
+  MeanCentred <- t(apply(data, 1, function(x){x-m}))
+  
+  s <- apply(MeanCentred, 2, function(x){sd(x)*(length(x)-1)/length(x)})
+  ScaledData <- t(apply(MeanCentred, 1, function(x){x/s}))
+  
+  return(ScaledData)
+}
+
+# Usage example
+num_train_scaled <- scale_data(num_train)
+
+```
+
+
+
 
 ```{r}
 library(ade4)

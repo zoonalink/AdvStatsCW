@@ -35,21 +35,39 @@ knitr:
     warning: false
     message: false
     error: true
+    fig.align: 'left'
+    out.width: '90%'
+    fig.width: 6
+    fig.height: 4
 ---
 
 ```{r data_packages}
 # load/install R packages/libraries
-source("packages.R")
+# load flextable defaults
+file <- "data"
+source("chem_packages.R")
+
+# library(dplyr)
+# library(flextable)
+# library(naniar)
 
 ```
 
 ```{r flextable_defaults}
-
-
-set_flextable_defaults(
-  font.size = 10, border.color = "gray", 
-  font.family = "Arial", theme_fun = theme_vanilla,
-  background.color = "#FAFAFA", layout= "autofit", na_str = "<NA>")
+# 
+# set_flextable_defaults(
+#   font.family = "Arial",
+#   font.size = 10, 
+#   font.color = "#333333",
+#   border.color = "gray", 
+#   background.color = "#FAFAFA",
+#   table.layout= "autofit",
+#   theme_fun = theme_vanilla,
+#   padding.top = 3, padding.bottom = 3,
+#   padding.left = 4, padding.right = 4,
+#   na_str = "<na>", 
+#   digits = 2
+#   )
 
 
 ```
@@ -130,22 +148,25 @@ max_label_cnt <- row_sums$Label[which.max(row_sums$Count)]
 
 
 
-# Same tables in Flextable for Word docx
+# Flextable for Word docx
 missing_by_var <- data.frame(Variable = names(na_counts), Count = na_counts, Percentage = na_percent)
 
 FT_missing_by_var <- flextable(missing_by_var)
 
-FT_top_missing_vars <- missing_by_var %>% 
-  arrange(desc(Count)) %>% 
+
+FT_top_missing_vars <- missing_by_var |>
+  arrange(desc(Count)) |>
   head(5) |>
   flextable() |>
-  bold(j=1)
+  bold(j=1) 
 
 
+#FT_top_missing_vars <- align(FT_top_missing_vars, align = "left")
 
 
 FT_missing_by_label <- flextable(row_sums) |>
   bold(j=1)
+
 
 FT_missing_table <- flextable(missing_rows)
 
@@ -179,8 +200,6 @@ most_missing_var <- miss_var %>%
   pull(variable)
 most_missing_var
 
-# label with most missing
-
 
 ```
 
@@ -188,35 +207,25 @@ Before proceeding with [Exploratory Data Analysis](#sec-exploratory-data-analysi
 
 We investigate `missingness` to see whether the assumption that missing data is 'missing at random' (MAR) holds - that is, is the probability of `missingness` only dependent on **observed** variables? If so and there is a significant amount of missing data (\>5%), multiple imputation approaches may be explored to *impute* missing values by estimation through statistical inference.
 
+<!--# Missingness may require additional analysis asa future datasets may not be suited to discarding rows with missing values.  It is assumed that the dataset is 'missing at random although this should be confirmed to ensure that assumptions hold.  -->
+
+<!--# The mcar_test() from the `naniar` package has been run and it leads us to reject the null hypothesis that the data is `missing completely at random`.  Additional tests and explorations could be employed to check`missing at random` -->
+
 ```{r mcar}
 # missing completely at random
-# results (statistic = 416, p < 0.05) lead to rejecting H0 that data is MCAR.
+# results (statistic = 416, p < 0.05) lead to rejecting H0 that data is MCAR and accepting alternative that data is not MCAR.
 mcar_test(chem_data)
 
-# more work could be done to test for MAR but is not within the scope of this brief.
 
-
-```
-
-```{r dataset_missing_sentence, echo=FALSE }
-
-
-# total_na<-sum(is.na(chem_data))
-# pct_na<-round(mean(is.na(chem_data)) * 100,2)
-# 
-# dataset_miss_sentence <- case_when(
-#   pct_na <= 5 ~ paste0("The sample has ",total_na," rows with at least one missing value, which is ",pct_na,"% of the entire dataset. As there are fewer missing values than the 5% threshold, imputation is not required and removing these rows is acceptable."),
-#   pct_na > 5 ~ paste0("The sample has ",total_na," rows with at least one missing value, which is ",pct_na,"% of the entire dataset. As there are more missing values than the 5% threshold, how to handle missing data needs further consideration.")
-# )
-# cat(as.character(dataset_miss_sentence))
 ```
 
 `r case_when(pct_na <= 5 ~ paste0("The sample has ",total_na," rows with at least one missing value, which is ",pct_na,"% of the entire dataset. As there are fewer missing values than the 5% threshold, imputation is not required and removing these rows is acceptable."), pct_na > 5 ~ paste0("The sample has ",total_na," rows with at least one missing value, which is ",pct_na,"% of the entire dataset. As there are more missing values than the 5% threshold, how to handle missing data needs further consideration.") )`
 
-```{r vis_miss, echo=FALSE, include=TRUE,message=FALSE, warning=FALSE}
+```{r vis_miss, echo=FALSE, include=TRUE,message=FALSE, warning=FALSE, fig.align='left'}
 #| fig-alt: "Summary Visualisation of Missing Data"
 #| label: fig-missData
 #| fig-cap: "Visualised Missing Data"
+
 
 # visualise missing pattern
 vis_miss(chem_data)
@@ -238,47 +247,13 @@ The client should consider `missingness` in their data:
 
 #### Missing value details by class and variable {#sec-missing-value-details-by-class-and-variable}
 
-```{r var_missing_sentence_original, include=TRUE}
-# #| tbl-cap: "Top 5 Variables with missing data, by count"
-# #| tbl-cap-location: bottom
-# #| tbl-alt: "Table with top five variables with most missing data"
-# #| label: tbl-top5missing
-# 
-# # vars with missing data
-# missingVars <- miss_var_which(chem_data)
-# # how many variables with missing data
-# missingLen <- length(missingVars)
-# 
-# 
-# # ifelse to print different output depending on how many variables with missing data. 
-# if (missingLen == 0) {
-#   cat("This sample has no variables with missing values.")
-# } else if (missingLen == 1) {
-#   cat(paste0("In this sample, ", missingVars, " is the only variable with missing data."))
-# } else if (missingLen < 6) {
-#   # Create a character vector of the missing variables, with commas between each item except for the last
-#   missingVars_string <- paste(missingVars[-length(missingVars)], collapse = ", ")
-#   # Add "and" to the end of the character vector
-#   missingVars_string <- paste0(missingVars_string, " and ", missingVars[length(missingVars)])
-#   # Print the sentence
-#   cat(paste0("In this sample, the following variables have missing data: ", missingVars_string, "."))
-# } else {
-#   cat(paste0("This dataset has ", missingLen, " variables with missing data. The five variables with the most missing data are:\n\n"))
-#   
-#   FT_top_missing_vars
-# 
-# }
-
-
-```
-
 ```{r var_missing_sentence, echo=FALSE, results='asis'}
 # vars with missing data
 missingVars <- miss_var_which(chem_data)
 # how many variables with missing data
 missingLen <- length(missingVars)
 
-# Initialize the output variable
+# initialise output variable
 output <- ""
 
 # ifelse to print different output depending on how many variables with missing data. 
@@ -287,7 +262,7 @@ if (missingLen == 0) {
 } else if (missingLen == 1) {
   output <- paste0("In this sample, ", missingVars, " is the only variable with missing data.")
 } else if (missingLen < 6) {
-  # Create a character vector of the missing variables, with commas between each item except for the last
+  # create a character vector of the missing variables, with commas between each item except for the last
   missingVars_string <- paste(missingVars[-length(missingVars)], collapse = ", ")
   # Add "and" to the end of the character vector
   missingVars_string <- paste0(missingVars_string, " and ", missingVars[length(missingVars)])
@@ -309,7 +284,7 @@ cat(output)
 #| tbl-cap: "Top 5 Variables with missing data, by count"
 #| tbl-cap-location: bottom
 #| tbl-alt: "Table with top five variables with most missing data"
-#| label: tbl-top5missing
+#| tab.id: tbl-top5missing
 if (missingLen >= 6) {
   FT_top_missing_vars
 }
@@ -321,8 +296,7 @@ No single sample (observation) has more than `r max(miss_case$n_miss)` missing v
 
 The upset plot below shows the five variables with the most missing values and confirms that there are no instances where there are missing values in two variables in the same observations.
 
-```{r upset_plot, include=TRUE, echo=FALSE, message = FALSE}
-#| fig-alt: "Upset plot of missing data"
+```{r upset_plot, include=TRUE, echo=FALSE, message = FALSE, tab.align='left', fig.alt="Upset plot of missing data"}
 #| label: fig-upsetplot
 #| fig-cap: "Upset plot of missing data"
 
@@ -332,12 +306,11 @@ upset_plot
 
 If we group missing data by the target label, we see that `r max_label_pct` has the most missing data at `r max(row_sums$Percentage)`%.
 
-```{r missingByLabel, echo=FALSE, include=TRUE,message=FALSE, warning=FALSE}
-#| label: tbl-missingByClass
-#| tbl-cap-location: bottom
+```{r missingByLabel, echo=FALSE, include=TRUE,message=FALSE, warning=FALSE, results='asis'}
 #| tbl-cap: "Missing Data by Class (label)"
+#| tbl-cap-location: bottom
 #| tbl-alt: "Table with missing data, grouped by chemical class"
-#| tab: tbl-missingByClass
+#| 
 FT_missing_by_label
 
 ```
@@ -366,8 +339,6 @@ Is there anything systemic, in terms of `missingness`:
 Is there a relationship between the variables, in terms of what they measure?
 :::
 
-\[include citation to missing data references\]
-
 ::: callout-important
 ## Decision
 
@@ -395,13 +366,11 @@ In order to not introduce bias into the modelling process, the data will be spli
 
 The only thing we check in advance is the target variable balance - that is the split across labels. Given that it is not *perfectly* balanced, the data subsets will be split with 'stratification' ensuring that each partition has a representative proportion of each class.
 
-```{r frequency, include=TRUE, echo=FALSE, message = FALSE}
+```{r frequency, include=TRUE, echo=FALSE, message = FALSE, results='asis'}
 #| label: tbl-countByClass
 #| tbl-cap-location: bottom
 #| tbl-cap: "Frequency Table by Class (label)"
 #| tbl-alt: "Frequency table grouped by chemical class"
-#| tab: tbl-countByClass
-
 
 # frequency table
 freq<-clean_chem_data %>%
@@ -426,71 +395,12 @@ The clean dataset is sufficiently large to split:
 -   `test` - 25%
 :::
 
-```{r dataset_split_function}
-# reusable function to split into three - train, validate, test - finally (it took a while)!!
-# inputs -> dataframe, target column, proportions (train, validation, test), stratify (T/F)
+<!--# The below is a function to split a dataframe into three random subsets - train, validate, test.  It takes `dataframe`, `target column` (e.g. label), `proportions` (train, validate, test - need to sum to 1), `stratify` (TRUE, FALSE whether to stratify on target column).  It is saved in a separate file -->
 
+```{r load_df_splitter}
+#load dataset splitter function
+source("df_splitter.R")
 
-df_splitter <- function(df, target_col, train_prop, val_prop, test_prop, stratify) {
-  
-  if (stratify) {
-   
-    # split dataframe into groups based on the target variable
-    groups <- split(df, df[[target_col]])
-    
-    # for each group, randomly sample a portion of the rows for the train set
-    train_list <- lapply(groups, function(x) x[sample(nrow(x), floor(train_prop * nrow(x))), ])
-    
-    # combine the randomly sampled groups into one train set
-    train_df <- do.call(rbind, train_list)
-    
-    # create a dataframe of the remaining rows not in the train set
-    val_test_df <- df[!row.names(df) %in% row.names(train_df), ]
-    
-    # split the remaining rows into groups based on the target variable
-    groups_val_test <- split(val_test_df, val_test_df[[target_col]])
-    
-    # for each group, randomly sample a portion of the rows for the validation set
-    val_list <- lapply(groups_val_test, function(x) {
-      n <- nrow(x)
-      val_indices <- sample(n, floor(val_prop * n), replace = FALSE)
-      x[val_indices, ]
-    })
-    
-    # combine the randomly sampled groups into one validation set
-    val_df <- do.call(rbind, val_list)
-    
-    # for each group, randomly sample a portion of the rows for the test set
-    test_list <- lapply(groups_val_test, function(x) {
-      n <- nrow(x)
-      test_indices <- sample(n, floor(test_prop * n), replace = FALSE)
-      x[test_indices, ]
-    })
-    
-    # combine the randomly sampled groups into one test set
-    test_df <- do.call(rbind, test_list)
-    
-  } else {
-    # Randomly sample indices for each set
-    # randomly sample a portion of the rows for the train set
-    train_indices <- sample(nrow(df), floor(train_prop * nrow(df)), replace = FALSE)
-    train_df <- df[train_indices, ]
-    
-    # create a dataframe of the remaining rows not in the train set
-    val_test_df <- df[!row.names(df) %in% row.names(train_df), ]
-    
-    # randomly sample a portion of the rows for the validation set
-    val_indices <- sample(nrow(val_test_df), floor(val_prop * nrow(val_test_df)), replace = FALSE)
-    val_df <- val_test_df[val_indices, ]
-    
-    # randomly sample a portion of the rows for the test set
-    test_indices <- sample(nrow(val_test_df), floor(test_prop * nrow(val_test_df)), replace = FALSE)
-    test_df <- val_test_df[test_indices, ]
-  }
-  
-  # Return a list of the three data frames
-  return(list(train = train_df, val = val_df, test = test_df))
-}
 ```
 
 ```{r applySplitCleanChem}
@@ -514,7 +424,7 @@ test <- datasets$test
 
 # counts
 table(train$label)
-table(val$label)
+table(valid$label)
 table(test$label)
 
 
@@ -525,58 +435,4 @@ write.csv(test, "../data/chem_test.csv", row.names = FALSE)
 
 ```
 
-
-
-
-
-
-
-
-
-```{r}
-library(ggplot2)
-
-ggplot(train, aes(x = X1, fill = label)) +
-  geom_density(alpha = 0.5) +
-  facet_wrap(~ label, nrow = 3)
-
-
-
-
-
-
-
-```
-
-```{r}
-
-
-
-
-
-# # Freedman-Diaconis rule for binwidth
-# 
-# iqr <- IQR(train$value)
-# n <- nrow(train)
-# binwidth <- 2 * iqr / (n^(1/3))
-# binwidth
-# 
-# 
-# 
-# 
-# train %>%
-#   select(-label) %>%
-#   gather() %>%
-#   ggplot(aes(x = value)) +
-#   geom_histogram() +
-#   facet_wrap(~ key, scales = "free")
-```
-
-```{r}
-corr_matrix <- cor(train %>% select(-label))
-
-corrplot(corr_matrix, method = "circle")
-
-```
-
-\[histograms\] \[outliers\] \[pair plots\] \[correlation\]
+<!--# The above output needs to be inspected to ensure that each subset of the original dataframe is the correct size (proportion) and has the same proportions of target labels, if stratification is required. -->

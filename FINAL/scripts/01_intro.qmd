@@ -36,19 +36,23 @@ knitr:
     warning: false
     message: false
     error: true
+    fig.align: left
+    out.width: '90%'
+    fig.width: 6
+    fig.height: 4
 ---
 
 ## Brief {#sec-brief}
 
 The brief is to develop a `classification tool` to classify chemicals into classes.
 
-In addition, the client is interested in knowing whether all variables are *necessary* for achieving optimal out-of-sample classification performance, or if a subset of measurements will suffice.
+In addition, the client is interested in understanding whether all variables are *necessary* for achieving optimal out-of-sample classification performance, or if a subset of measurements will suffice.
 
 This report will aim to:
 
 -   explore, analyse and feedback on the provided dataset
--   develop an optimised classification model
--   determine whether all variables are required
+-   develop an optimised, classification model
+-   comment on whether all variables are required
 -   provide recommendations and options, as applicable
 
 ::: callout-note
