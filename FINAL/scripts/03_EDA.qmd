@@ -1,6 +1,6 @@
 ---
 title: "Chemical Sample Classification Report"
-subtitle: "Exploratory Data"
+#subtitle: "Exploratory Data"
 author: "Petter Lövehagen"
 date: "08 May 2023"
 
@@ -22,6 +22,9 @@ format:
     html-math-method: mathjax
     highlight: "tango"
     #css: "../data/custom.css"
+output:
+  word_document:
+    fig.retina: 300
 prefer-docx: true
 lang: "en-GB"
 bibliography: "../data/AS_CW_References.bib"
@@ -35,15 +38,12 @@ knitr:
     warning: false
     message: false
     error: true
-    fig.align: left
     out.width: '90%'
-    fig.width: 6
-    fig.height: 4
+    #fig.width: 6
+    #fig.height: 4
 ---
 
-<!--# The `EDA` qmd file uses the following libraries: dplyr (data manipulation), flextable (tables), ggplot2 (plots), cowplots (plots), GGally (plots), corrplot (correlation). -->
-
-<!--# The 'chem_packages.R file installs/loads required packages, sets a seed (for reproducibility) and loads flextable defaults. -->
+<!--# The 'chem_packages.R file installs/loads required packages for this section, sets a seed (for reproducibility) and loads flextable defaults. Check for further details. -->
 
 ```{r EDA_packages}
 # load/install R packages/libraries
@@ -65,10 +65,11 @@ source("chem_packages.R")
 # library(corrplot)
 # library(GGally)
 # library(psych)
+# library(patchwork)
 
 ```
 
-```{r load_data}
+```{r load_data_from_csv}
 # load train data set
 train <-read.csv("../data/chem_train.csv")
 # extract numeric columns
@@ -142,7 +143,7 @@ minVar_name <- colnames(num_train)[which.min(var_vals)]
 
 ```
 
-`train` has `r nrow(train)` rows, with an overall minimum value of `r overall_min` (`r minCol_name`) and a maximum value of `r overall_max` (`r maxCol_name`).
+`train` has `r nrow(train)` rows, with an overall minimum value of `r overall_min` (`r minCol_name`) and an overal maximum value of `r overall_max` (`r maxCol_name`).
 
 The variables have different scales and variances:
 
@@ -158,11 +159,12 @@ The variables have different scales and variances:
 
 <!-- : Table 4: Statistics across Variables -->
 
-```{r minmaxStats, include=TRUE, echo=FALSE}
+```{r minmaxStats, include=TRUE, echo=FALSE, results='asis'}
+#| label: tbl-minmaxStats
 #| tbl-cap: "Minimum / Maximum Statistics in 'train'"
 #| tbl-cap-location: bottom
 #| tbl-alt: "Table with minimum and maximum mean, variance and range in train dataset"
-#| label: tbl-minmaxStats
+
 
 # data frame with the statistics and their values
 statistics <- data.frame(
@@ -174,21 +176,12 @@ statistics <- data.frame(
 
 statistics |>
   flextable() |> 
-  set_caption("Sample data - Overall Summary Statistics") |>
   autofit() |> 
   bold(j=1)
 
 ```
 
-At glance, we can see that there is a significant *spread* across the data in the dataset in terms of mean, variance and range.
-
-::: callout-important
-## Decision
-
-As nothing is known about the variables, the `train` will be *scaled* before modeling resulting in a dataset with a mean of 0 and standard deviation of 1.
-
-This mitigates against any single variable having undue influence.
-:::
+At a glance, we can see that there is a significant *spread* across the data in the dataset in terms of mean, variance and range.
 
 ```{r scale_train}
 # load scale_data function
@@ -214,34 +207,140 @@ write.csv(train, "../data/num_train_scaled_label.csv", row.names = FALSE)
 
 #### Outliers
 
-In addition to variables having different scales, we also need to consider `outliers` within variables - that is, values which are *significantly* different from other data points for a given variable. These could be cause by errors (measurement, data entry), faulty or uncalibrated equipment, or they could be genuine.
+In addition to variables having different scales, we also need to consider `outliers` - that is, values which are *significantly* different from other data points for a given variable. These could be as a result of error (measurement, data entry), faulty or poorly calibrated equipment, or they could be *genuine* measurements.
 
-Genuine extreme values need to be retained in order to add valuable information to the model. However, problematic outliers need to be identified and either *treated* or removed before further analysis, as they could skew the analysis or model.
+Genuine extreme values need to be retained in order to add valuable information to the model. However, problematic outliers need to be identified and either *treated* or removed before further analysis, as they could skew the analysis and model.
 
-Outliers can be observed visually through plots such as boxplots and histograms.
+Outliers can be explored visually through plots such as histograms and violinplots. The majority of variables appear to be *normally* distributed, but there are some non-normal distributions. The below variables were chosen to illustrate the variety in shape and distribution within the sample data, although most variables have a similar shape to 'X1'.
 
-\[Insert plot here and some observations\]
+```{r hists, include=TRUE, echo=FALSE, message = FALSE, tab.align='left', fig.alt="Histograms and Density Plots of Selected Variables"}
 
-Another approach is to calculate a statistic (*z-score*) for each variable.
+#| label: fig-hist
+#| fig-cap: "Histograms and Density Plots of Selected Variables in `train`"
 
-\[insert explanation and outcome\]
+# selected variables
+var_subset <- num_train[c("X1", "X7", "X8", "X9")]
 
-::: callout-important
-## Decision
+# binwidth function using Freedman-Diaconis Rule
+binwidths <- lapply(var_subset, function(x) diff(range(x))/30)
 
-Further the purposes of this analysis, given no prior domain knowledge about the data, the outliers will be retained. It is assumed that they are genuine measurements which are essential in a classification model.
-:::
+# set size, small
+theme_set(theme_bw(base_size = 10))
 
-::: callout-caution
-The client should consider whether these outliers are problematic. Additional domain knowledge could result in a different approach to handling outliers, including removal or transformation.
-:::
+# list of histograms for each variable
+histograms <- lapply(names(var_subset), function(x) {
+  ggplot(data = data.frame(y = num_train[[x]]), aes(x = y)) +
+    geom_histogram(aes(y = after_stat(density)), fill = "#A3C4BC", color = "#616161",
+                   binwidth = binwidths[[x]]) +
+    geom_density(aes(y = after_stat(density)), alpha = 0.8) +
+    labs(x = x, y = NULL) +
+    theme(axis.text.x = element_blank(), axis.title.y = element_text(margin = margin(r = 10)))
+})
 
-<!--# I investigated outliers on the raw data in case they are masked or distorted in the scaling process by plotting boxplots of each variable.  There is no obvious difference between the scaled and non-scaled datasets in terms of structure and outliers.  -->
+# histograms with cowplot package
+hists <- plot_grid(plotlist = histograms, ncol = 2, align = "v") +
+  ggtitle("Histograms and Density Plots of Selected Variables") +
+  theme(plot.title = element_text(hjust = 0.5, size = 14),
+        plot.margin = unit(c(1, 1, 1, 1), "cm"))
 
-<!--# The plots below are not suitable for a report but if opened and enlarged are suitable for EDA. -->
+hists
+
+
+
+```
+
+In the distribution and density plots (@fig-hist), we see that some variables have non-normal distributions, with several peaks or skewness. The violin plots below (@fig-violin) include a boxplot where we can more easily see the outliers in the variables. They are represented by the dots on the tails of the violins. Every variable
+
+```{r hists_sc}
+
+#| label: fig-hist
+#| fig-cap: "Histograms and Density Plots of Selected Variables in `train`"
+
+# selected variables
+var_subset_sc <- num_train_scaled[c("X1", "X7", "X8", "X9")]
+
+# binwidth function using Freedman-Diaconis Rule
+binwidths <- lapply(var_subset, function(x) diff(range(x))/30)
+
+# set size, small
+theme_set(theme_bw(base_size = 10))
+
+# list of histograms for each variable
+histograms <- lapply(names(var_subset), function(x) {
+  ggplot(data = data.frame(y = num_train[[x]]), aes(x = y)) +
+    geom_histogram(aes(y = after_stat(density)), fill = "#A3C4BC", color = "#616161",
+                   binwidth = binwidths[[x]]) +
+    geom_density(aes(y = after_stat(density)), alpha = 0.8) +
+    labs(x = x, y = NULL) +
+    theme(axis.text.x = element_blank(), axis.title.y = element_text(margin = margin(r = 10)))
+})
+
+# histograms with cowplot package
+hists_sc <- plot_grid(plotlist = histograms, ncol = 2, align = "v") +
+  ggtitle("Histograms and Density Plots of Selected Variables") +
+  theme(plot.title = element_text(hjust = 0.5, size = 14),
+        plot.margin = unit(c(1, 1, 1, 1), "cm"))
+
+hists_sc
+```
+
+```{r violins, include=TRUE, echo=FALSE, message = FALSE, tab.align='left', fig.alt="Violin Plots of Selected Variables"}
+#| label: fig-violin
+#| fig-cap: "Violin Plots of Selected Variables in `train`"
+
+# variables of interest
+#var_subset <- num_train[c("X1", "X7", "X8", "X9")]
+
+# binwidths for histograms
+#binwidths <- lapply(var_subset, function(x) diff(range(x))/30)
+
+# list of labeled boxplot and violin plot for each variable
+viol_box <- lapply(names(var_subset), function(x) {
+
+  # # Create a labeled boxplot
+  # boxplot <- ggplot(data = data.frame(y = var_subset[[x]]), aes(y = y)) +
+  #   geom_boxplot(fill = "#A3C4BC", color = "#616161") +
+  #   ggtitle(paste("Boxplot of", x)) +
+  #   xlab(x) +
+  #   ylab("Value") +
+  #   theme_bw(base_size = 10) +
+  #   theme(plot.title = element_text(hjust = 0.5, size = 14),
+  #         axis.text.x = element_blank(),
+  #         axis.title.y = element_text(margin = margin(r = 10)))
+
+  # violin plot
+  violinplot <- ggplot(data = data.frame(y = var_subset[[x]]), aes(x = "", y = y)) +
+    geom_violin(fill = "#A3C4BC", color = "#616161") +
+    geom_boxplot(width = 0.2, fill = "white", color = "#616161") +
+    #ggtitle(paste("Violin Plot of", x)) +
+    xlab(x) +
+    ylab("") +
+    theme_bw(base_size = 10) +
+    theme(plot.title = element_text(hjust = 0.5, size = 14),
+          axis.text.x = element_blank(),
+          axis.title.y = element_text(margin = margin(r = 10)))
+
+  # Return a list with labeled boxplot and violin plot
+  list(
+    #boxplot, 
+    violinplot)
+})
+
+# Flatten the list of plots and arrange them in a grid
+plots_flat <- unlist(viol_box, recursive = FALSE)
+
+violins <- plot_grid(plotlist = plots_flat, 
+          #nrow = 2, 
+          ncol = 4) +
+  ggtitle("Violin Plots of Selected Variables") +
+  theme(plot.title = element_text(hjust = 0.5, size = 14),
+        plot.margin = unit(c(1, 1, 1, 1), "cm"))
+
+violins
+
+```
 
 ```{r train_box}
-
 
 # set size, small
 theme_set(theme_bw(base_size = 10))
@@ -250,16 +349,63 @@ theme_set(theme_bw(base_size = 10))
 boxplots <- lapply(num_train, function(x) ggplot(data = data.frame(y = x), aes(y = y)) +
                geom_boxplot(fill = "#A3C4BC", color = "#616161") +
                labs(x = NULL, y = NULL) +
+               coord_fixed(ratio = .04) +
                theme(axis.text.x = element_blank(), axis.title.y = element_text(margin = margin(r = 10)))) 
 
 # boxplots with cowplot package
-plot_grid(plotlist = boxplots, ncol = 5, align = "h") +
+plot_grid(plotlist = boxplots, ncol = 4, align = "h") +
   ggtitle("Boxplots of Variables in `num_train`") +
-  theme(plot.title = element_text(hjust = 0.5, size = 16),
+  theme(plot.title = element_text(hjust = 0.5, size = 14),
         plot.margin = unit(c(1, 1, 1, 1), "cm"))
 
 
+
+
 ```
+
+```{r default_hist_train}
+
+
+
+# set size, small
+theme_set(theme_bw(base_size = 10))
+
+# list of histograms for each variable
+histograms <- lapply(num_train, function(x) ggplot(data = data.frame(y = x), aes(x = y)) +
+               geom_histogram(aes(y = after_stat(density)), fill = "#A3C4BC", color = "#616161") +
+               geom_density(aes(y = after_stat(density)), alpha = 0.8) +
+               labs(x = NULL, y = NULL) +
+               theme(axis.text.x = element_blank(), axis.title.y = element_text(margin = margin(r = 10))))
+
+               
+# histograms with cowplot package
+plot_grid(plotlist = histograms, ncol = 4, align = "h") +
+  ggtitle("Histograms and Density Plots of Variables in `num_train`") +
+  theme(plot.title = element_text(hjust = 0.5, size = 14),
+        plot.margin = unit(c(1, 1, 1, 1), "cm"))
+```
+
+Another approach is to calculate a statistic (*z-score*) for each variable.
+
+\[insert explanation and outcome\]
+
+::: callout-important
+## Decision
+
+Given no prior knowledge about the dataset or domain, the `train` data will be *scaled* before proceeding, resulting in a dataset where all variables have a mean of 0 and a standard deviation of 1.
+
+This mitigates against any single variable having undue influence in the classification model as a result of different scales.
+
+Outliers will be retained. It is assumed that they are genuine measurements which will add to the model's performance.
+:::
+
+::: callout-caution
+With their domain knowledge, the client should consider whether outliers are problematic. Additional contextual information could result in different approaches to handling outliers, including removal or transformation.
+:::
+
+<!--# I investigated outliers on the raw data in case they are masked or distorted in the scaling process by plotting boxplots of each variable.  There is no obvious difference between the scaled and non-scaled datasets in terms of structure and outliers.  -->
+
+<!--# The plots below are not suitable for a report but if opened and enlarged are suitable for EDA. -->
 
 ```{r scaletrain_box}
 
@@ -283,27 +429,6 @@ plot_grid(plotlist = boxplots_scale, ncol = 5, align = "h") +
 ```
 
 <!--#I plotted histograms and density plots of the variables using the same approach as for the boxplots.  First the plots, with default binwidths-->
-
-```{r default_hist_train}
-# set size, small
-theme_set(theme_bw(base_size = 10))
-
-# list of histograms for each variable
-histograms <- lapply(num_train, function(x) ggplot(data = data.frame(y = x), aes(x = y)) +
-               geom_histogram(aes(y = after_stat(density)), fill = "#A3C4BC", color = "#616161", binwidth = binwidth ) +
-               geom_density(aes(y = after_stat(density), color = "Density"), alpha = 0.8) +
-               labs(x = NULL, y = NULL) +
-               theme(axis.text.x = element_blank(), axis.title.y = element_text(margin = margin(r = 10))))
-
-               
-# histograms with cowplot package
-plot_grid(plotlist = histograms, ncol = 5, align = "h") +
-  ggtitle("Histograms and Density Plots of Variables in `num_train`") +
-  theme(plot.title = element_text(hjust = 0.5, size = 16),
-        plot.margin = unit(c(1, 1, 1, 1), "cm"))
-
-
-```
 
 <!--# Below, I used the `Freedman-Diaconis rule` to get the best 'binwdidth' for each variable.   Not easy to read, unless maximised.-->
 
@@ -349,6 +474,11 @@ z_scores <- apply(num_train, 2, function(x) scale(x, center = TRUE, scale = TRUE
 outliers <- which(abs(z_scores) > 3, arr.ind = TRUE)
 dim(outliers)
 
+table_outliers <- table(outliers[, "col"])
+
+
+# Print the summary table
+print(table_outliers)
 
 
 ```

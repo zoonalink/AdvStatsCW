@@ -41,11 +41,9 @@ knitr:
     fig.height: 4
 ---
 
-<!--# The `dim_red` qmd file uses the following libraries: dplyr (data manipulation), flextable (tables), ggplot2 (plots), cowplots (plots), GGally (plots), corrplot (correlation). -->
+<!--# The 'chem_packages.R file installs/loads required packages for this section, sets a seed (for reproducibility) and loads flextable defaults. Check for further details. -->
 
-<!--# The 'chem_packages.R file installs/loads required packages, sets a seed (for reproducibility) and loads flextable defaults. -->
-
-```{r data_packages}
+```{r dim_red_packages}
 # load/install R packages/libraries
 # set seed
 # load flextable defaults
