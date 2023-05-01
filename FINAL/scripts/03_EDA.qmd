@@ -41,10 +41,13 @@ knitr:
     fig.height: 4
 ---
 
+<!--# The `EDA` qmd file uses the following libraries: dplyr (data manipulation), flextable (tables), ggplot2 (plots), cowplots (plots), GGally (plots), corrplot (correlation). -->
 
+<!--# The 'chem_packages.R file installs/loads required packages, sets a seed (for reproducibility) and loads flextable defaults. -->
 
 ```{r EDA_packages}
 # load/install R packages/libraries
+# set seed
 # load flextable defaults
 
 file <- "EDA"
@@ -61,14 +64,15 @@ source("chem_packages.R")
 # library(cowplot)
 # library(corrplot)
 # library(GGally)
+# library(psych)
 
 ```
 
 ```{r load_data}
 # load train data set
 train <-read.csv("../data/chem_train.csv")
-
-
+# extract numeric columns
+num_train <- train[, -21]
 
 ```
 
@@ -81,7 +85,19 @@ str(train)
 summary(train)
 ```
 
+```{r stats_psych}
+#summary of stats using 'psych'
+
+describe(train)
+```
+
+<!--# Looking at the overall statistics of the dataset before any transformation, there are different scales between the variables.  Without knowing the units of measurement or anything else, the data will be mean scaled/normalised to ensure that variables are on the same scale. -->
+
 ### Exploratory Data Analysis {#sec-exploratory-data-analysis}
+
+Only the *train* dataset will be analysed in the EDA stage.
+
+#### Overall Size and Shape {#sec-overall-statistics}
 
 ```{r trainstatistics}
 # extract numeric columns
@@ -125,26 +141,28 @@ minVar_name <- colnames(num_train)[which.min(var_vals)]
 
 
 ```
-Throughout EDA and model training, only the `train` dataset will be analysed.  It has `r nrow(train)` rows, with an overall minimum value of `r overall_min` (`r minCol_name`) and a maximum value of `r overall_max` (`r maxCol_name`). 
+
+`train` has `r nrow(train)` rows, with an overall minimum value of `r overall_min` (`r minCol_name`) and a maximum value of `r overall_max` (`r maxCol_name`).
 
 The variables have different scales and variances:
 
 <!-- | Statistic | Min                             | Max                             | -->
+
 <!-- |----------------------------------|-------------------|-------------------| -->
+
 <!-- | Mean      | `r minMean` (`r minMean_name`)   | `r maxMean` (`r maxMean_name`)   | -->
+
 <!-- | Variance  | `r minVar` (`r minVar_name`)     | `r maxVar` (`r maxVar_name`)     | -->
+
 <!-- | Range     | `r minRange` (`r minRange_name`) | `r maxRange` (`r maxRange_name`) | -->
 
 <!-- : Table 4: Statistics across Variables -->
-
 
 ```{r minmaxStats, include=TRUE, echo=FALSE}
 #| tbl-cap: "Minimum / Maximum Statistics in 'train'"
 #| tbl-cap-location: bottom
 #| tbl-alt: "Table with minimum and maximum mean, variance and range in train dataset"
 #| label: tbl-minmaxStats
-
-
 
 # data frame with the statistics and their values
 statistics <- data.frame(
@@ -156,17 +174,186 @@ statistics <- data.frame(
 
 statistics |>
   flextable() |> 
-  set_caption("Summary Statistics") |>
+  set_caption("Sample data - Overall Summary Statistics") |>
   autofit() |> 
   bold(j=1)
 
 ```
-At glance, we can see that there is a significant spread between the variables in terms of mean, variance and range.  In order to mitigate against any one variable having undue influence and because nothing is known about the variables, they will be `normalised` or  standardised so that they have the same scale from 0 to 1.  
 
+At glance, we can see that there is a significant *spread* across the data in the dataset in terms of mean, variance and range.
+
+::: callout-important
+## Decision
+
+As nothing is known about the variables, the `train` will be *scaled* before modeling resulting in a dataset with a mean of 0 and standard deviation of 1.
+
+This mitigates against any single variable having undue influence.
+:::
+
+```{r scale_train}
+# load scale_data function
+source("scale_data.R")
+
+# scale num_train
+num_train_scaled <- scale_data(num_train)
+#dim(num_train_scaled)
+#describe(num_train_scaled)
+summary(num_train_scaled)
+
+# add label to scaled data
+num_train_scaled <- as.data.frame(scale(num_train))
+num_train_scaled_label <- cbind(num_train_scaled, label = train$label)
+
+num_train_scaled_label
+
+#save to csv
+write.csv(train, "../data/num_train_scaled_label.csv", row.names = FALSE)
+
+
+```
+
+#### Outliers
+
+In addition to variables having different scales, we also need to consider `outliers` within variables - that is, values which are *significantly* different from other data points for a given variable. These could be cause by errors (measurement, data entry), faulty or uncalibrated equipment, or they could be genuine.
+
+Genuine extreme values need to be retained in order to add valuable information to the model. However, problematic outliers need to be identified and either *treated* or removed before further analysis, as they could skew the analysis or model.
+
+Outliers can be observed visually through plots such as boxplots and histograms.
+
+\[Insert plot here and some observations\]
+
+Another approach is to calculate a statistic (*z-score*) for each variable.
+
+\[insert explanation and outcome\]
+
+::: callout-important
+## Decision
+
+Further the purposes of this analysis, given no prior domain knowledge about the data, the outliers will be retained. It is assumed that they are genuine measurements which are essential in a classification model.
+:::
+
+::: callout-caution
+The client should consider whether these outliers are problematic. Additional domain knowledge could result in a different approach to handling outliers, including removal or transformation.
+:::
+
+<!--# I investigated outliers on the raw data in case they are masked or distorted in the scaling process by plotting boxplots of each variable.  There is no obvious difference between the scaled and non-scaled datasets in terms of structure and outliers.  -->
+
+<!--# The plots below are not suitable for a report but if opened and enlarged are suitable for EDA. -->
+
+```{r train_box}
+
+
+# set size, small
+theme_set(theme_bw(base_size = 10))
+
+# list of boxplots for each variable
+boxplots <- lapply(num_train, function(x) ggplot(data = data.frame(y = x), aes(y = y)) +
+               geom_boxplot(fill = "#A3C4BC", color = "#616161") +
+               labs(x = NULL, y = NULL) +
+               theme(axis.text.x = element_blank(), axis.title.y = element_text(margin = margin(r = 10)))) 
+
+# boxplots with cowplot package
+plot_grid(plotlist = boxplots, ncol = 5, align = "h") +
+  ggtitle("Boxplots of Variables in `num_train`") +
+  theme(plot.title = element_text(hjust = 0.5, size = 16),
+        plot.margin = unit(c(1, 1, 1, 1), "cm"))
+
+
+```
+
+```{r scaletrain_box}
+
+
+# set size, small
+theme_set(theme_bw(base_size = 10))
+
+# list of boxplots for each variable
+boxplots_scale <- lapply(num_train_scaled, function(x) ggplot(data = data.frame(y = x), aes(y = y)) +
+               geom_boxplot(fill = "#A3C4BC", color = "#616161") +
+               labs(x = NULL, y = NULL) +
+               theme(axis.text.x = element_blank(), axis.title.y = element_text(margin = margin(r = 10)))) 
+
+# boxplots with cowplot package
+plot_grid(plotlist = boxplots_scale, ncol = 5, align = "h") +
+  ggtitle("Boxplots of Variables in `num_train_scaled`") +
+  theme(plot.title = element_text(hjust = 0.5, size = 16),
+        plot.margin = unit(c(1, 1, 1, 1), "cm"))
+
+
+```
+
+<!--#I plotted histograms and density plots of the variables using the same approach as for the boxplots.  First the plots, with default binwidths-->
+
+```{r default_hist_train}
+# set size, small
+theme_set(theme_bw(base_size = 10))
+
+# list of histograms for each variable
+histograms <- lapply(num_train, function(x) ggplot(data = data.frame(y = x), aes(x = y)) +
+               geom_histogram(aes(y = after_stat(density)), fill = "#A3C4BC", color = "#616161", binwidth = binwidth ) +
+               geom_density(aes(y = after_stat(density), color = "Density"), alpha = 0.8) +
+               labs(x = NULL, y = NULL) +
+               theme(axis.text.x = element_blank(), axis.title.y = element_text(margin = margin(r = 10))))
+
+               
+# histograms with cowplot package
+plot_grid(plotlist = histograms, ncol = 5, align = "h") +
+  ggtitle("Histograms and Density Plots of Variables in `num_train`") +
+  theme(plot.title = element_text(hjust = 0.5, size = 16),
+        plot.margin = unit(c(1, 1, 1, 1), "cm"))
+
+
+```
+
+<!--# Below, I used the `Freedman-Diaconis rule` to get the best 'binwdidth' for each variable.   Not easy to read, unless maximised.-->
+
+```{r F-D_rule}
+#
+binwidth <- 2 * IQR(num_train$X1) / (length(num_train$X1)^(1/3))
+binwidth
+```
+
+```{r FD_hist_train}
+# calculate ideal binwidth for each variable in num_train, using Freedman-Diaconis Rule
+binwidths <- apply(num_train, 2, function(x) {
+  bw <- 2 * IQR(x) / (length(x)^(1/3))
+  round(bw, 2)
+})
+
+# list of histograms for each variable
+histograms <- lapply(names(num_train), function(x) {
+  ggplot(data = num_train, aes(x = .data[[x]], y = after_stat(density))) +
+    geom_histogram(binwidth = binwidths[x], fill = "#A3C4BC", color = "#616161") +
+    geom_density(alpha = 0.5, color = "#0F4C5C") +
+    labs(x = x, y = "") +
+    theme(axis.text.x = element_text(angle = 45, hjust = 1))
+})
+
+# histograms with cowplot package
+plot_grid(plotlist = histograms, ncol = 3, align = "hv", axis = "tb") +
+  ggtitle("Distribution of Variables in `num_train`") +
+  theme(plot.title = element_text(hjust = 0.5, size = 16),
+        plot.margin = unit(c(1, 1, 1, 1), "cm"))
+
+```
+
+<!--# In addition to visually inspecting the variables in terms of distributions and densities, I looked at a more formal approach to identify outliers in the dataset.  I calculated z-scores for each variable using 'scale()'.  -->
+
+<!--# Then outliers where pulled out - those with a z-score of +/- 3 which is a common threshold.  In a normal distribution - 99.7% of observations fall within 3 standard deviations. -->
 
 ```{r}
-describe(train)[,c(2:5,8,9)]
+# calculate z-scores for each variable
+z_scores <- apply(num_train, 2, function(x) scale(x, center = TRUE, scale = TRUE))
+
+# identify values with z-score greater than 3 or less than -3
+outliers <- which(abs(z_scores) > 3, arr.ind = TRUE)
+dim(outliers)
+
+
+
 ```
+
+<!--# As was confirmed by visual inspection of IQR, most of the variables appear to be normally distributed although there are a few which are not normal.  The z-score approach suggests that there are 81 'outliers' in the dataset. -->
 
 ```{r}
 par(mar = c(1, 1, 1, 1))
@@ -174,11 +361,6 @@ pairs.panels(train)
 ```
 
 ```{r}
-
-
-
-set.seed(567)
-
 
 # create correlation matrix
 corr_matrix <- cor(num_train)
@@ -190,8 +372,6 @@ corrplot(corr_matrix)
 #ggpairs(train, progress=FALSE)
 
 ```
-
-
 
 ```{r}
 ggplot(train, aes(x = X1, fill = label)) +
@@ -211,6 +391,7 @@ plot_list <- lapply(names(train), function(var) {
 plot_grid(plotlist = plot_list, ncol = 4)
 
 ```
+
 ```{r}
 # order - order of ariables - hierarchical clustering
 # method - correlation strength
@@ -224,10 +405,7 @@ corrplot(corr_matrix, method = "color", type = "upper", order = "hclust",
          addCoef.col = "black", tl.col = "black")
 ```
 
-
-Observations
-* many normal distributions
-* some which differ across labels, eg. X7-X11
+Observations \* many normal distributions \* some which differ across labels, eg. X7-X11
 
 ```{r}
 
@@ -253,21 +431,14 @@ corr_matrix <- cor(train %>% select(-label))
 
 corrplot(corr_matrix, method = "circle")
 ```
+
 ## NOTES BELOW
 
-so there appears to be value in two different approaches
-* correlation for dimension reduction
-* needs domain knowledge to clarify and ratifiy, explain
+so there appears to be value in two different approaches \* correlation for dimension reduction \* needs domain knowledge to clarify and ratifiy, explain
 
-* feature reduction - several variables which may be superfluous, measuring similar things or do not add to the model
+-   feature reduction - several variables which may be superfluous, measuring similar things or do not add to the model
 
-
-
-To do
-* normalise and scale
-* check for outliers 
-* address outliers as appropriate
-* correlation plot
+To do \* normalise and scale \* check for outliers \* address outliers as appropriate \* correlation plot
 
 To try:
 
@@ -277,116 +448,7 @@ To try:
 corrplot(cor(num_train))
 corrplot(cor(num_train), method = "ellipse", type = "lower")
 ```
-interpretation - say what you see
-* sparse - lots of variables which are not correlated with each other
-* x17-20, and x7-10 appear to correlate, some neg, some pos
 
+interpretation - say what you see \* sparse - lots of variables which are not correlated with each other \* x17-20, and x7-10 appear to correlate, some neg, some pos
 
-
-
-
-### dimension reduction:
-
-PCA - identify principal components, linear combos of original variabes explaining the most variation in the data, plot to see in a lower dimension space
-t-SNE
-
-PCA: 
-
-like a plot with PC1, PC2
-the actual 5 classes (shape and label by label)
-pca arrows and variable labels
-
-(see penguin example)
-
-```{r}
-KMO(train[1:20])
-```
-OVeral KMO is 0.71 which is above 0.5 indicating that the dataset has sufficient correlation present to warrant PCA/FA.  The variable with the lowest ?? is X15 with 0.46.
-
-some citation here.
-
-parallel analysis [citation]
-
-```{r}
-scree(num_train)
-```
-```{r}
-paran(num_train, iterations = 5000)
-```
-```{r}
-# save as separate function and call in code
-# Define a function to scale/normalize data
-scale_data <- function(data) {
-  m <- colMeans(data) # means of columns
-  MeanCentred <- t(apply(data, 1, function(x){x-m}))
-  
-  s <- apply(MeanCentred, 2, function(x){sd(x)*(length(x)-1)/length(x)})
-  ScaledData <- t(apply(MeanCentred, 1, function(x){x/s}))
-  
-  return(ScaledData)
-}
-
-# Usage example
-num_train_scaled <- scale_data(num_train)
-
-```
-
-
-
-
-```{r}
-library(ade4)
-library(factoextra)
-pca <- dudi.pca(num_train,scannf = F, nf=4)
-fviz_pca_biplot(pca)
-fviz_pca_biplot(pca, label="var",title="Chemical variables", repel=TRUE)
-fviz_screeplot(pca)
-get_eigenvalue(pca)
-fviz_pca_biplot(pca,repel=T,label="var",axes=c(1,2))
-fviz_pca_biplot(pca,repel=T,label="var",axes=c(1,3))
-```
-
-```{r}
-
-## write your code here 
-fviz_pca_biplot(pca,
-                repel=T,
-                label="var",
-                col.ind = train$label)
-fviz_pca_biplot(pca,axes=c(1,3),
-                repel=T,
-                label="var",
-                col.ind = train$label)
-
-
-fviz_pca_ind(pca,
-             geom.ind = "point", # show points only (but not "text")
-             col.ind = train$label, # colour by groups
-             addEllipses = TRUE, # Concentration ellipses
-            legend.title = "Chemicals"
-            )
-
-fviz_pca_ind(pca,axes=c(1,3),
-             geom.ind = "point", # show points only (but not "text")
-             col.ind = train$label, # colour by groups
-             addEllipses = TRUE, # Concentration ellipses
-            legend.title = "Chemicals"
-            )
-```
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+### 

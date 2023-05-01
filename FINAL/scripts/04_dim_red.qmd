@@ -41,12 +41,83 @@ knitr:
     fig.height: 4
 ---
 
+<!--# The `dim_red` qmd file uses the following libraries: dplyr (data manipulation), flextable (tables), ggplot2 (plots), cowplots (plots), GGally (plots), corrplot (correlation). -->
+
+<!--# The 'chem_packages.R file installs/loads required packages, sets a seed (for reproducibility) and loads flextable defaults. -->
+
 ```{r data_packages}
 # load/install R packages/libraries
+# set seed
 # load flextable defaults
 
 file <- "dim_red"
 source("chem_packages.R")
 
 
+```
+dimension reduction:
+
+PCA - identify principal components, linear combos of original variabes explaining the most variation in the data, plot to see in a lower dimension space t-SNE
+
+PCA:
+
+like a plot with PC1, PC2 the actual 5 classes (shape and label by label) pca arrows and variable labels
+
+(see penguin example)
+
+```{r}
+KMO(train[1:20])
+```
+
+OVeral KMO is 0.71 which is above 0.5 indicating that the dataset has sufficient correlation present to warrant PCA/FA. The variable with the lowest ?? is X15 with 0.46.
+
+some citation here.
+
+parallel analysis [citation]
+
+```{r}
+scree(num_train)
+```
+
+```{r}
+paran(num_train, iterations = 5000)
+```
+```{r}
+library(ade4)
+library(factoextra)
+pca <- dudi.pca(num_train,scannf = F, nf=4)
+fviz_pca_biplot(pca)
+fviz_pca_biplot(pca, label="var",title="Chemical variables", repel=TRUE)
+fviz_screeplot(pca)
+get_eigenvalue(pca)
+fviz_pca_biplot(pca,repel=T,label="var",axes=c(1,2))
+fviz_pca_biplot(pca,repel=T,label="var",axes=c(1,3))
+```
+
+```{r}
+
+## write your code here 
+fviz_pca_biplot(pca,
+                repel=T,
+                label="var",
+                col.ind = train$label)
+fviz_pca_biplot(pca,axes=c(1,3),
+                repel=T,
+                label="var",
+                col.ind = train$label)
+
+
+fviz_pca_ind(pca,
+             geom.ind = "point", # show points only (but not "text")
+             col.ind = train$label, # colour by groups
+             addEllipses = TRUE, # Concentration ellipses
+            legend.title = "Chemicals"
+            )
+
+fviz_pca_ind(pca,axes=c(1,3),
+             geom.ind = "point", # show points only (but not "text")
+             col.ind = train$label, # colour by groups
+             addEllipses = TRUE, # Concentration ellipses
+            legend.title = "Chemicals"
+            )
 ```

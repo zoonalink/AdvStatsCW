@@ -41,9 +41,15 @@ knitr:
     fig.height: 4
 ---
 
+<!--# The `data` qmd file uses the following libraries: dplyr (data manipulation), flextable (tables), naniar (missing data). -->
+
+<!--# The 'chem_packages.R file installs/loads required packages, sets a seed (for reproducibility) and loads flextable defaults. -->
+
 ```{r data_packages}
 # load/install R packages/libraries
+# set seed
 # load flextable defaults
+
 file <- "data"
 source("chem_packages.R")
 
@@ -73,8 +79,6 @@ source("chem_packages.R")
 ```
 
 ```{r inspect_data}
-# set a seed for reproducibility
-set.seed(567)
 
 # load csv file
 chem_data <- read.csv("../data/5976423.csv")
@@ -428,7 +432,7 @@ table(valid$label)
 table(test$label)
 
 
-# save to file
+# save to file - access by other sections independently
 write.csv(train, "../data/chem_train.csv", row.names = FALSE)
 write.csv(valid, "../data/chem_valid.csv", row.names = FALSE)
 write.csv(test, "../data/chem_test.csv", row.names = FALSE)
