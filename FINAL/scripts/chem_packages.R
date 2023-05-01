@@ -11,7 +11,7 @@ packages <- default_packages
 if (file == "dim_red") {
   packages <- c("dplyr", "flextable")
 } else if (file == "EDA") {
-  packages <- c("dplyr", "flextable", "ggplot2", "GGally", "corrplot", "cowplot", "psych", "patchwork")
+  packages <- c("dplyr", "flextable", "ggplot2", "GGally", "ggcorrplot", "corrplot", "cowplot", "psych", "patchwork")
 } else if (file == "data") {
   packages <- c("dplyr", "flextable", "naniar")
 } else if (file == "intro") {

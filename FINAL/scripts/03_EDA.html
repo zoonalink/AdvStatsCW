@@ -50,6 +50,7 @@ ul.task-list li input[type="checkbox"] {
    
   <ul>
   <li><a href="#sec-exploratory-data-analysis" id="toc-sec-exploratory-data-analysis" class="nav-link active" data-scroll-target="#sec-exploratory-data-analysis">Exploratory Data Analysis</a></li>
+  <li><a href="#sec-correlation-between-variables" id="toc-sec-correlation-between-variables" class="nav-link" data-scroll-target="#sec-correlation-between-variables">Correlation between Variables</a></li>
   <li><a href="#notes-below" id="toc-notes-below" class="nav-link" data-scroll-target="#notes-below">NOTES BELOW</a>
   <ul class="collapse">
   <li><a href="#section" id="toc-section" class="nav-link" data-scroll-target="#section"></a></li>
@@ -92,7 +93,7 @@ ul.task-list li input[type="checkbox"] {
 
 
 <!--# The 'chem_packages.R file installs/loads required packages for this section, sets a seed (for reproducibility) and loads flextable defaults. Check for further details. -->
-<!--# Looking at the overall statistics of the dataset before any transformation, there are different scales between the variables.  Without knowing the units of measurement or anything else, the data will be mean scaled/normalised to ensure that variables are on the same scale. -->
+<!--# Looking at the overall statistics of the dataset before any transformation, there are different scales between the variables.  Without knowing the units of measurement or anything else about the dataset, the data will need to be mean scaled/normalised to ensure that variables are on the same scale. -->
 <section id="sec-exploratory-data-analysis" class="level3">
 <h3 class="anchored" data-anchor-id="sec-exploratory-data-analysis">Exploratory Data Analysis</h3>
 <p>Only the <em>train</em> dataset will be analysed in the EDA stage.</p>
@@ -107,41 +108,62 @@ ul.task-list li input[type="checkbox"] {
 <!-- | Range     | 1.42 (X18) | 8.37 (X14) | -->
 
 <!-- : Table 4: Statistics across Variables -->
-<div class="cell tbl-cap-location-bottom" data-layout-align="left" data-tbl-alt="Table with minimum and maximum mean, variance and range in train dataset">
+<div class="cell tbl-cap-location-bottom" data-tbl-alt="Table with minimum and maximum mean, variance and range in train dataset">
 <div class="cell-output-display">
 <div id="tbl-minmaxStats" class="anchored">
 
-<div class="tabwid tabwid-caption-bottom"><style>.cl-d97e40ac{table-layout:auto;}.cl-d97727a4{font-family:'Arial';font-size:10pt;font-weight:bold;font-style:normal;text-decoration:none;color:rgba(97, 97, 97, 1.00);background-color:transparent;}.cl-d97727ae{font-family:'Arial';font-size:10pt;font-weight:normal;font-style:normal;text-decoration:none;color:rgba(97, 97, 97, 1.00);background-color:transparent;}.cl-d979ebce{margin:0;text-align:left;border-bottom: 0 solid rgba(0, 0, 0, 1.00);border-top: 0 solid rgba(0, 0, 0, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);padding-bottom:3pt;padding-top:3pt;padding-left:4pt;padding-right:4pt;line-height: 1;background-color:transparent;}.cl-d979fc04{background-color:rgba(194, 210, 202, 1.00);vertical-align: middle;border-bottom: 1.5pt solid rgba(190, 190, 190, 1.00);border-top: 1.5pt solid rgba(190, 190, 190, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);margin-bottom:0;margin-top:0;margin-left:0;margin-right:0;}.cl-d979fc05{background-color:rgba(194, 210, 202, 1.00);vertical-align: middle;border-bottom: 1.5pt solid rgba(190, 190, 190, 1.00);border-top: 1.5pt solid rgba(190, 190, 190, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);margin-bottom:0;margin-top:0;margin-left:0;margin-right:0;}.cl-d979fc0e{background-color:rgba(194, 210, 202, 1.00);vertical-align: middle;border-bottom: 0.75pt solid rgba(190, 190, 190, 1.00);border-top: 0 solid rgba(0, 0, 0, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);margin-bottom:0;margin-top:0;margin-left:0;margin-right:0;}.cl-d979fc0f{background-color:rgba(194, 210, 202, 1.00);vertical-align: middle;border-bottom: 0.75pt solid rgba(190, 190, 190, 1.00);border-top: 0 solid rgba(0, 0, 0, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);margin-bottom:0;margin-top:0;margin-left:0;margin-right:0;}.cl-d979fc10{background-color:rgba(194, 210, 202, 1.00);vertical-align: middle;border-bottom: 0.75pt solid rgba(190, 190, 190, 1.00);border-top: 0.75pt solid rgba(190, 190, 190, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);margin-bottom:0;margin-top:0;margin-left:0;margin-right:0;}.cl-d979fc11{background-color:rgba(194, 210, 202, 1.00);vertical-align: middle;border-bottom: 0.75pt solid rgba(190, 190, 190, 1.00);border-top: 0.75pt solid rgba(190, 190, 190, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);margin-bottom:0;margin-top:0;margin-left:0;margin-right:0;}.cl-d979fc18{background-color:rgba(194, 210, 202, 1.00);vertical-align: middle;border-bottom: 1.5pt solid rgba(190, 190, 190, 1.00);border-top: 0.75pt solid rgba(190, 190, 190, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);margin-bottom:0;margin-top:0;margin-left:0;margin-right:0;}.cl-d979fc19{background-color:rgba(194, 210, 202, 1.00);vertical-align: middle;border-bottom: 1.5pt solid rgba(190, 190, 190, 1.00);border-top: 0.75pt solid rgba(190, 190, 190, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);margin-bottom:0;margin-top:0;margin-left:0;margin-right:0;}</style><table data-quarto-disable-processing="true" class="cl-d97e40ac"><caption style="margin:0pt;text-align:center;border-bottom: 0.00pt solid transparent;border-top: 0.00pt solid transparent;border-left: 0.00pt solid transparent;border-right: 0.00pt solid transparent;padding-top:3pt;padding-bottom:3pt;padding-left:3pt;padding-right:3pt;line-height: 1;background-color:transparent;">Table&nbsp;1:  <p>Minimum / Maximum Statistics in ‘train’</p> </caption><thead><tr style="overflow-wrap:break-word;"><th class="cl-d979fc04"><p class="cl-d979ebce"><span class="cl-d97727a4">Statistic</span></p></th><th class="cl-d979fc05"><p class="cl-d979ebce"><span class="cl-d97727a4">Minimum</span></p></th><th class="cl-d979fc05"><p class="cl-d979ebce"><span class="cl-d97727a4">Maximum</span></p></th></tr></thead><tbody><tr style="overflow-wrap:break-word;"><td class="cl-d979fc0e"><p class="cl-d979ebce"><span class="cl-d97727a4">Mean</span></p></td><td class="cl-d979fc0f"><p class="cl-d979ebce"><span class="cl-d97727ae">0.25 (X8) </span></p></td><td class="cl-d979fc0f"><p class="cl-d979ebce"><span class="cl-d97727ae">13.8 (X5) </span></p></td></tr><tr style="overflow-wrap:break-word;"><td class="cl-d979fc10"><p class="cl-d979ebce"><span class="cl-d97727a4">Variance</span></p></td><td class="cl-d979fc11"><p class="cl-d979ebce"><span class="cl-d97727ae">0.04 (X10) </span></p></td><td class="cl-d979fc11"><p class="cl-d979ebce"><span class="cl-d97727ae">1.57 (X4) </span></p></td></tr><tr style="overflow-wrap:break-word;"><td class="cl-d979fc18"><p class="cl-d979ebce"><span class="cl-d97727a4">Range</span></p></td><td class="cl-d979fc19"><p class="cl-d979ebce"><span class="cl-d97727ae">1.42 (X18) </span></p></td><td class="cl-d979fc19"><p class="cl-d979ebce"><span class="cl-d97727ae">8.37 (X14) </span></p></td></tr></tbody></table></div>
+<div class="tabwid tabwid-caption-bottom"><style>.cl-792fdc5e{}.cl-79284a52{font-family:'Helvetica';font-size:12pt;font-weight:bold;font-style:normal;text-decoration:none;color:rgba(51, 51, 51, 1.00);background-color:transparent;}.cl-79284a66{font-family:'Helvetica';font-size:12pt;font-weight:normal;font-style:normal;text-decoration:none;color:rgba(51, 51, 51, 1.00);background-color:transparent;}.cl-792b2a24{margin:0;text-align:left;border-bottom: 0 solid rgba(0, 0, 0, 1.00);border-top: 0 solid rgba(0, 0, 0, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);padding-bottom:5pt;padding-top:5pt;padding-left:6pt;padding-right:6pt;line-height: 1;background-color:transparent;}.cl-792b3bf4{width:0.98in;background-color:rgba(255, 255, 255, 1.00);vertical-align: middle;border-bottom: 1.5pt solid rgba(0, 0, 128, 1.00);border-top: 1.5pt solid rgba(0, 0, 128, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);margin-bottom:0;margin-top:0;margin-left:0;margin-right:0;}.cl-792b3bfe{width:1.147in;background-color:rgba(255, 255, 255, 1.00);vertical-align: middle;border-bottom: 1.5pt solid rgba(0, 0, 128, 1.00);border-top: 1.5pt solid rgba(0, 0, 128, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);margin-bottom:0;margin-top:0;margin-left:0;margin-right:0;}.cl-792b3bff{width:0.98in;background-color:rgba(255, 255, 255, 1.00);vertical-align: middle;border-bottom: 0.75pt solid rgba(0, 0, 128, 1.00);border-top: 0 solid rgba(0, 0, 0, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);margin-bottom:0;margin-top:0;margin-left:0;margin-right:0;}.cl-792b3c00{width:1.147in;background-color:rgba(255, 255, 255, 1.00);vertical-align: middle;border-bottom: 0.75pt solid rgba(0, 0, 128, 1.00);border-top: 0 solid rgba(0, 0, 0, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);margin-bottom:0;margin-top:0;margin-left:0;margin-right:0;}.cl-792b3c01{width:0.98in;background-color:rgba(255, 255, 255, 1.00);vertical-align: middle;border-bottom: 0.75pt solid rgba(0, 0, 128, 1.00);border-top: 0.75pt solid rgba(0, 0, 128, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);margin-bottom:0;margin-top:0;margin-left:0;margin-right:0;}.cl-792b3c08{width:1.147in;background-color:rgba(255, 255, 255, 1.00);vertical-align: middle;border-bottom: 0.75pt solid rgba(0, 0, 128, 1.00);border-top: 0.75pt solid rgba(0, 0, 128, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);margin-bottom:0;margin-top:0;margin-left:0;margin-right:0;}.cl-792b3c09{width:0.98in;background-color:rgba(255, 255, 255, 1.00);vertical-align: middle;border-bottom: 1.5pt solid rgba(0, 0, 128, 1.00);border-top: 0.75pt solid rgba(0, 0, 128, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);margin-bottom:0;margin-top:0;margin-left:0;margin-right:0;}.cl-792b3c0a{width:1.147in;background-color:rgba(255, 255, 255, 1.00);vertical-align: middle;border-bottom: 1.5pt solid rgba(0, 0, 128, 1.00);border-top: 0.75pt solid rgba(0, 0, 128, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);margin-bottom:0;margin-top:0;margin-left:0;margin-right:0;}</style><table data-quarto-disable-processing="true" class="cl-792fdc5e"><caption>Table&nbsp;1:  <p>Minimum / Maximum Statistics in ‘train’</p> </caption><thead><tr style="overflow-wrap:break-word;"><th class="cl-792b3bf4"><p class="cl-792b2a24"><span class="cl-79284a52">Statistic</span></p></th><th class="cl-792b3bfe"><p class="cl-792b2a24"><span class="cl-79284a52">Minimum</span></p></th><th class="cl-792b3bfe"><p class="cl-792b2a24"><span class="cl-79284a52">Maximum</span></p></th></tr></thead><tbody><tr style="overflow-wrap:break-word;"><td class="cl-792b3bff"><p class="cl-792b2a24"><span class="cl-79284a52">Mean</span></p></td><td class="cl-792b3c00"><p class="cl-792b2a24"><span class="cl-79284a66">0.25 (X8) </span></p></td><td class="cl-792b3c00"><p class="cl-792b2a24"><span class="cl-79284a66">13.8 (X5) </span></p></td></tr><tr style="overflow-wrap:break-word;"><td class="cl-792b3c01"><p class="cl-792b2a24"><span class="cl-79284a52">Variance</span></p></td><td class="cl-792b3c08"><p class="cl-792b2a24"><span class="cl-79284a66">0.04 (X10) </span></p></td><td class="cl-792b3c08"><p class="cl-792b2a24"><span class="cl-79284a66">1.57 (X4) </span></p></td></tr><tr style="overflow-wrap:break-word;"><td class="cl-792b3c09"><p class="cl-792b2a24"><span class="cl-79284a52">Range</span></p></td><td class="cl-792b3c0a"><p class="cl-792b2a24"><span class="cl-79284a66">1.42 (X18) </span></p></td><td class="cl-792b3c0a"><p class="cl-792b2a24"><span class="cl-79284a66">8.37 (X14) </span></p></td></tr></tbody></table></div>
 </div>
 </div>
 </div>
 <p>At a glance, we can see that there is a significant <em>spread</em> across the data in the dataset in terms of mean, variance and range.</p>
 </section>
-<section id="outliers" class="level4">
-<h4 class="anchored" data-anchor-id="outliers">Outliers</h4>
-<p>In addition to variables having different scales, we also need to consider <code>outliers</code> - that is, values which are <em>significantly</em> different from other data points for a given variable. These could be as a result of error (measurement, data entry), faulty or uncalibrated equipment, or they could be genuine measurements.</p>
+<section id="sec-outliers" class="level4">
+<h4 class="anchored" data-anchor-id="sec-outliers">Outliers</h4>
+<p>In addition to variables having different scales, we also need to consider <code>outliers</code> - that is, values which are <em>significantly</em> different from other data points for a given variable. These could be as a result of error (measurement, data entry), faulty or poorly calibrated equipment, or they could be <em>genuine</em> measurements - understanding which is true is essential.</p>
 <p>Genuine extreme values need to be retained in order to add valuable information to the model. However, problematic outliers need to be identified and either <em>treated</em> or removed before further analysis, as they could skew the analysis and model.</p>
-<p>Outliers can be observed visually through plots such as boxplots and histograms.</p>
-<div class="cell" data-layout-align="left">
+<p>Outliers can be explored visually through plots such as histograms and violinplots. The majority of variables appear to be <em>normally</em> distributed. The below variables were chosen to illustrate varieties in shape and distribution within the sample data.</p>
+<div class="callout callout-style-default callout-note callout-titled">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+Note
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<p>Complete plots for all variables are available in the code comments.</p>
+</div>
+</div>
+<!--# When looking at histograms, I explored how to best determine which binwidth to use.  I came across Freedman-Diaconis and Sturges rules. The results for `num_train` are below and they are quite different.  For example, X7 - FD has a bw of 0.07 and Sturges has a bw of 0.14, that is, double.  In general, Sturges bw is much large. The reason is that FD takes into account the variability of the data, not just the count of observations (Sturges).  I am going to use FDR. -->
+<div class="cell" data-tab.align="left">
 <div class="cell-output-display">
-<div class="quarto-figure quarto-figure-left">
+<div id="fig-hist" class="quarto-figure quarto-figure-center anchored">
 <figure class="figure">
-<p><img src="03_EDA_files/figure-html/train_box-1.png" class="quarto-discovered-preview-image img-fluid figure-img" style="width:110.0%"></p>
+<p><img src="03_EDA_files/figure-html/fig-hist-1.png" class="quarto-discovered-preview-image img-fluid figure-img" style="width:90.0%" alt="Histograms and Density Plots of Selected Variables"></p>
+<p></p><figcaption class="figure-caption">Figure&nbsp;1: Histograms and Density Plots of Selected Variables in <code>train</code></figcaption><p></p>
 </figure>
 </div>
 </div>
 </div>
-<div class="cell" data-layout-align="left">
+<p>In the distribution and density plots (<a href="#fig-hist">Figure&nbsp;1</a>), we see that some variables have non-normal distributions, with multiple peaks or skewness. The violin plots below (<a href="#fig-violin">Figure&nbsp;2</a>) include a boxplot where we can more easily see the presence of outliers. The box contains data within the <code>interquartile range</code> (IQR), which represents 50% of the data; the points beyond the <em>whisker</em> are data beyond 1.5x the IQR and are often considered ‘outliers’. In the subset below, X8 has many more potential outliers than variable X9.</p>
+<div class="cell">
 <div class="cell-output-display">
-<div class="quarto-figure quarto-figure-left">
+<div id="fig-violin" class="quarto-figure quarto-figure-center anchored">
 <figure class="figure">
-<p><img src="03_EDA_files/figure-html/default_hist_train-1.png" class="img-fluid figure-img" style="width:110.0%" alt="Histograms and Density plots of Numeric Variables (X1-X20)"></p>
+<p><img src="03_EDA_files/figure-html/fig-violin-1.png" class="img-fluid figure-img" style="width:90.0%" alt="Violin Plots of Selected Variables"></p>
+<p></p><figcaption class="figure-caption">Figure&nbsp;2: Violin Plots of Selected Variables in <code>train</code></figcaption><p></p>
 </figure>
 </div>
 </div>
 </div>
-<p>Another approach is to calculate a statistic (<em>z-score</em>) for each variable.</p>
-<p>[insert explanation and outcome]</p>
+<!--# Below are the histograms and boxplots for all variables. -->
+<!--# To be certain, I have reproduced the above plots on the scaled data.  The density plots remain the same but the binwidths are different, producing a slightly different visual.  The bins for X7-X9 are clearly larger for the scaled dataset, indicating that there is a smaller range of values in comparison.  However, they are the same shape.-->
+<!--# In addition to visually inspecting the variables in terms of distributions and densities, I looked at a more formal approach to identify outliers in the dataset.  I calculated z-scores for each variable using 'scale()'.  -->
+<!--# Then outliers where pulled out - those with a z-score of +/- 3 which is a common threshold.  In a normal distribution - 99.7% of observations fall within 3 standard deviations. -->
+<p>Another approach for exploring outliers is to calculate a statistic (<em>z-score</em>) for each variable and extract those which exceed the threshold (+/- 3 standard deviations). In a normal distribution, 99.7% of observations fall within 3 standard deviation, so we identify 0.03% of observations either side of the centre of the variable.</p>
+<p>There are a total of 81 ‘outliers’ in the dataset from 19 variables, with variable ‘X8’ having the most with 10.</p>
 <div class="callout callout-style-default callout-important callout-titled">
 <div class="callout-header d-flex align-content-center">
 <div class="callout-icon-container">
@@ -154,7 +176,7 @@ Decision
 <div class="callout-body-container callout-body">
 <p>Given no prior knowledge about the dataset or domain, the <code>train</code> data will be <em>scaled</em> before proceeding, resulting in a dataset where all variables have a mean of 0 and a standard deviation of 1.</p>
 <p>This mitigates against any single variable having undue influence in the classification model as a result of different scales.</p>
-<p>Outliers will be retained. It is assumed that they are genuine measurements which will add to the model’s performance.</p>
+<p>Outliers will be retained. In the absence of anything to the contrary, it is assumed that they are genuine measurements which will add to the model’s performance.</p>
 </div>
 </div>
 <div class="callout callout-style-default callout-caution callout-titled">
@@ -170,16 +192,12 @@ Caution
 <p>With their domain knowledge, the client should consider whether outliers are problematic. Additional contextual information could result in different approaches to handling outliers, including removal or transformation.</p>
 </div>
 </div>
-<!--# I investigated outliers on the raw data in case they are masked or distorted in the scaling process by plotting boxplots of each variable.  There is no obvious difference between the scaled and non-scaled datasets in terms of structure and outliers.  -->
-
-<!--# The plots below are not suitable for a report but if opened and enlarged are suitable for EDA. -->
-<!--#I plotted histograms and density plots of the variables using the same approach as for the boxplots.  First the plots, with default binwidths-->
-<!--# Below, I used the `Freedman-Diaconis rule` to get the best 'binwdidth' for each variable.   Not easy to read, unless maximised.-->
-<!--# In addition to visually inspecting the variables in terms of distributions and densities, I looked at a more formal approach to identify outliers in the dataset.  I calculated z-scores for each variable using 'scale()'.  -->
-<!--# Then outliers where pulled out - those with a z-score of +/- 3 which is a common threshold.  In a normal distribution - 99.7% of observations fall within 3 standard deviations. -->
-<!--# As was confirmed by visual inspection of IQR, most of the variables appear to be normally distributed although there are a few which are not normal.  The z-score approach suggests that there are 81 'outliers' in the dataset. -->
-<p>Observations * many normal distributions * some which differ across labels, eg. X7-X11</p>
 </section>
+</section>
+<section id="sec-correlation-between-variables" class="level3">
+<h3 class="anchored" data-anchor-id="sec-correlation-between-variables">Correlation between Variables</h3>
+<p>Having explored the <a href="#sec-overall-statistics">overall statistics</a> and <a href="#sec-outliers">outliers</a> above, this section briefly describes relationships between variables.</p>
+<p>Observations * many normal distributions * some which differ across labels, eg. X7-X11</p>
 </section>
 <section id="notes-below" class="level2">
 <h2 class="anchored" data-anchor-id="notes-below">NOTES BELOW</h2>
