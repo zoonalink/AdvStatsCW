@@ -37,8 +37,8 @@ knitr:
     error: true
     fig.align: 'left'
     out.width: '90%'
-    fig.width: 6
-    fig.height: 4
+    # fig.width: 6
+    # fig.height: 4
 ---
 
 <!--# The 'chem_packages.R file installs/loads required packages for this section, sets a seed (for reproducibility) and loads flextable defaults. Check for further details. -->
@@ -53,6 +53,9 @@ source("chem_packages.R")
 
 
 ```
+
+## load scaled data with and without labels
+
 dimension reduction:
 
 PCA - identify principal components, linear combos of original variabes explaining the most variation in the data, plot to see in a lower dimension space t-SNE
@@ -94,7 +97,7 @@ fviz_pca_biplot(pca,repel=T,label="var",axes=c(1,3))
 
 ```{r}
 
-## write your code here 
+## write your code here
 fviz_pca_biplot(pca,
                 repel=T,
                 label="var",

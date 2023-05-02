@@ -1,0 +1,370 @@
+---
+title: "Working file"
+subtitle: "Dimension Reduction"
+author: "Petter Lövehagen"
+date: "08 May 2023"
+
+format: 
+  docx: default
+  html:
+    toc: true
+    toc-depth: 3
+    toc-title: "Contents"
+    toc-location: left
+    code-fold: true
+    code-line-numbers: true
+    theme: spacelab
+    html-math-method: mathjax
+    highlight: "tango"
+    #css: "../data/custom.css"
+prefer-docx: true
+knitr:
+  opts_chunk:
+    include: false
+    tidy: true
+    echo: false
+    warning: false
+    message: false
+    error: true
+    fig.align: 'left'
+    out.width: '90%'
+---
+
+```{r working_packages}
+
+# load/install R packages/libraries
+# set seed
+# load flextable defaults
+
+file <- ""
+source("chem_packages.R")
+
+#"dplyr", 
+#"flextable"
+#"psych"
+#"paran"
+#"ade4"
+#"factoextra"
+#"patchwork"
+#"dendextend"
+#"ggplot2"
+```
+
+```{r}
+# load data from csv
+num_train_scaled_label <- read.csv("../data/num_train_scaled_label.csv")
+num_train_scaled <- num_train_scaled_label[, -21]
+
+summary(num_train_scaled_label)
+```
+
+## Principal Components Analysis
+
+Having established that at least some variables are linearly correlated, we will consider `PCA` which is where the 'underlying structure' within a dataset is reduced to fewer 'components' or 'dimensions.'
+
+Suitability for `PCA` can be established statistically with the `KMO` test. The scaled dataset has an overall `KMO` value of `r KMO_result$MSA` which is greater than the established threshold of 0.6 for `PCA` suitability. Individual MSA values are summarised below in @tbl-kmo - we can see that only variables three variables have a measure of sampling adequacy less than 0.6, with `r colnames(num_train_scaled)[which.min(kmo_result$MSAi)]` having a value of `r round(min(kmo_result$MSAi),2).`
+
+<!--# KMO test (Kaiser-Meyer-Olkin) is a measure / diagnostic tool to assess PCA suitabiltiy statistically.  It measures sampling adequacy of the variables - that is, how well do the variables represent the 'underlying' factors. KMO produces a value between 0 and 1 where 0.6 or greater is considered acceptable for PCA or factor analysis; less than 0.5 suggest that the dataset may not be suitable.  -->
+
+```{r KMO}
+kmo_result <- KMO(num_train_scaled)
+kmo_result$MSA
+#KMO_result$Image
+kmo_result$MSAi
+
+round(min(kmo_result$MSAi),2)
+colnames(num_train_scaled)[which.min(kmo_result$MSAi)]
+
+```
+
+```{r kmo_summary, include=TRUE, echo=FALSE, message = FALSE, tab.align='left', fig.alt="Summary of individual measures of sampling adequacy (MSA)", tbl}
+#| tbl-cap: "Summary of individual measures of sampling adequacy (MSA)"
+#| tbl-cap-location: bottom
+#| tbl-alt: "Summary of individual measures of sampling adequacy (MSA)"
+#| label: tbl-kmo
+
+
+# summary object, pipe through steps to add colnames, msa band
+
+kmo_summary <- num_train_scaled %>% 
+  KMO() %>% 
+  .$MSAi %>% 
+  tibble::enframe() %>% 
+  mutate(name = colnames(num_train_scaled), 
+         MSAi_band = cut(value, 
+                         breaks = c(0, 0.5, 0.6, 0.7, 0.8, 0.9, Inf), 
+                         labels = c("< 0.5", "0.5-0.59", "0.6-0.69", "0.7-0.79", "0.8-0.89", ">= 0.9"))) %>% 
+  dplyr::select(name, MSAi_band)
+
+# suitability tibble with matching msa banding
+suitability <- tibble(
+  MSAi_band = c("< 0.5", "0.5-0.59", "0.6-0.69", "0.7-0.79", "0.8-0.89", ">= 0.9"),
+  Suitability = c("Unsuitable", "Marginal", "Mediocre", "Good", "Excellent", "Excellent")
+)
+
+# summary join
+kmo_summary <- kmo_summary %>% 
+  left_join(suitability, by = "MSAi_band") %>% 
+  group_by(MSAi_band, Suitability) %>% 
+  summarise(Variables = paste(name, collapse = ", ")) 
+
+# reorder by msa
+kmo_summary$MSAi_band <- factor(kmo_summary$MSAi_band, levels = c(">= 0.9", "0.8-0.89", "0.7-0.79", "0.6-0.69", "0.5-0.59", "< 0.5"))
+kmo_summary <- kmo_summary[order(kmo_summary$MSAi_band, decreasing = FALSE), ]
+
+
+# flextable
+flextable(kmo_summary) |>
+  width(j = "Variables", width = 6.5, unit = "cm")
+
+
+
+```
+
+<!--# Scree plots allow us to visually determine how many 'dimensions' are in the underlying data.  Usually the cutoff is at the 'elbow' joint or where eigenvalues are greater than 1.  The plot below suggests four plots for PCA (and 3 for Factor Analysis), after which additional dimensions do not significantly account for the variability in the dataset. -->
+
+```{r scree}
+scree(num_train_scaled)
+```
+
+<!--# Horn's Parallel Analysis has been applied to the dataset, which estimates the number of 'significant' components through the generation of a large number of simulated data sets - in this case 5000.  The resulting eigenvalues are averaged to get a mean estimate of the expected eigenvalues, which are compared to the observed values in order to determine how many 'significant' components to keep. The results below suggest to retain 4 components - based on the eigenvalue being greater than 1. -->
+
+```{r parallel_analysis}
+
+paran(num_train_scaled, iterations = 5000)
+```
+
+<!--# So we do a PCA on the scaled data using dudi from factoextra. By looking at the screeplot of the PCA, it seems that 3 components is more appropriate.  From the 4th component, the contribution to explaining variability is about 5% meaning that each additional component/dimension accounts for approximately an additional 5% of the variability in the dataset.  This is not a lot - so keeping 3 components seems most reasonable.  That said, three components only explain 40% of the variability in the dataset.   -->
+
+```{r pca_plots}
+
+pca_num_train_scaled <- dudi.pca(num_train_scaled,scannf = F, nf=4)
+
+scree <- fviz_screeplot(pca_num_train_scaled)
+eigen <- get_eigenvalue(pca_num_train_scaled)
+
+pca1 <- fviz_pca_biplot(pca_num_train_scaled, label="var",var.lab = TRUE, col.ind = "#D95F02", alpha.ind = 0.4, col.var = "grey30", repel=TRUE)  +
+  ggtitle("PCA Biplots (dimensions 1x2, 2x3) of scaled dataset")
+
+pca2 <- fviz_pca_biplot(pca_num_train_scaled,label="var", col.ind = "#1B9E77", alpha.ind = 0.4, col.var = "grey30", repel=TRUE,axes=c(2,3)) +
+  ggtitle("")
+
+pca3 <- fviz_pca_biplot(pca_num_train_scaled, col.ind="x", col.var = "grey30", label="var", repel=TRUE,axes=c(1,2)) +
+      scale_color_gradient2(low="white", mid="blue",
+      high="red", midpoint=0.6)
+
+pca4 <- fviz_pca_biplot(pca_num_train_scaled,
+                        repel = T,
+                        label = "var",
+                        col.ind = train$label) + 
+  theme(legend.position = "none")
+
+pca5 <- fviz_pca_ind(pca_num_train_scaled,
+                     geom.ind = "point", # show points only (but not "text")
+                     col.ind = num_train_scaled_label$label, # colour by groups
+                     addEllipses = TRUE,
+                     ggtheme = theme_minimal() + 
+                       theme(legend.position = "bottom", 
+                             plot.title = element_text(hjust = 0.5, size = 14)))  +
+  ggtitle("PCA Biplots with Ellipses by Labels") + 
+  theme(legend.position = "bottom", legend.justification = "center", legend.box = "vertical", legend.title = element_text(size = 10), legend.text = element_text(size = 8))
+
+
+scree
+eigen
+
+# pca1
+# pca2
+# pca3
+# pca4
+ pca5
+
+
+
+(pca1 + pca2)
+
+#/ (pca4 + pca5)
+
+```
+
+<!--# Looking at the biplots of the three dimensions, we can see the correlations identified earlier.  Correlations are interpreted by the angles - 0 degree angles have no correlation with each other (e.g. X17, X19), 180 degree angles between variables are strongly negatively correlated (e.g. X17/X19 with X18/X20) and variables with 90 degree angles are uncorrelated (e.g.X8/X10 with X17, X19). The length of the vector indicates the importance of the variable in explaining the variance in the data.    -->
+
+<!--# PCA5 has plotted the individual points grouped by colour with added ellipses around the centres of the groups.  We can see the clustering by label although there is a significant amount of overlayering.  -->
+
+<!--#  The high degree of overlap between groups suggests that there may not be enough information to effectively differentiate between the different groups.  That the first three dimensions only explain 40% of the variance and each subsequent dimension only adds 5% to this indicates that PCA is probably not going to be helpful.-->
+
+<!--# Distance plot below - shows 'pairwise' distances between observations - darker colours indicate larger distances, lighter colours indicate smaller distances. Clusters of similar observations are darker blocks.   -->
+
+```{r euclid_distance}
+# euclidean distance
+dist_euc <-get_dist(num_train_scaled,method="euclidean")
+
+# heatmap
+fviz_dist(dist_euc)
+
+```
+
+```{r clusters}
+# euclidean distance
+dist_euc <- get_dist(num_train_scaled, method = "euclidean")
+
+# hierarchical clustering on distance using ward.D2 link method
+hc <- hclust(dist_euc, method = "ward.D2")
+
+# cuts dendogram to produce five clusters
+res_cluster <- cutree(hc, k = 5)
+
+
+# plot
+cluster_5 <- fviz_cluster(list(data = num_train_scaled, cluster = res_cluster), 
+             palette = c("#00AFBB", "#E7B800", "#FC4E07", "#800080", "#808000")
+, 
+             ggtheme = theme_minimal(), 
+             geom = "point")
+
+
+# cuts dendogram to produce three clusters
+res_cluster <- cutree(hc, k = 3)
+
+
+# plot
+cluster_3 <- fviz_cluster(list(data = num_train_scaled, cluster = res_cluster), 
+             palette = c("#00AFBB", "#E7B800", "#FC4E07")
+, 
+             ggtheme = theme_minimal(), 
+             geom = "point")
+
+cluster_3
+cluster_5
+```
+
+<!--# Clustering plot based on Euclidean distance calculated from the dataset.  Scatterplot of dimensions (1, 2) and a hierarchical clustering algorithm applied. Resulting dendograms are visualisations where x-axis represents individual observations and y-axis represents the distance between them.  The height where two branches merge is the distance between them. -->
+
+```{r hclust_single}
+# nearest neighbour
+NN<-hclust(dist_euc,method="single")
+#plot(NN)
+
+# labels from the original data
+labels <- rownames(num_train_scaled)
+
+# labels to the dendrogram
+NN$labels <- labels
+
+# dendrogram with labels
+plot(NN, cex = 0.8, hang = -1)
+
+
+```
+
+<!--# The above plot is 'single linkage' / nearest neighbour using hclust().  It is a clustering method where distance between two clusters is defined as the shortest distance between any two points in the two clusters.  The unintelligible dendogram shows how the data points are grouped into clusters based on similarity.  The vertical height represents the distance between samples/clusters.  -->
+
+```{r hclust_complete}
+# complete linkage
+comp_clust <-hclust(dist_euc,method="complete")
+
+# labels to the dendrogram
+comp_clust$labels <- labels
+
+plot(comp_clust, cex = 0.8, hang = -1)
+```
+
+<!--# The resulting dendogram from 'complete linkage' method shows more of a tree structure to the clustering.  Complete linkage measures distance between clusters by considering the maximum distance between any two points in the clusters.  The top level splits are easier to visualise. -->
+
+```{r hclust_average}
+# average link method
+AD<-hclust(dist_euc,method="average")
+
+plot(AD)
+```
+
+```{r hclust_wards}
+# wards method
+WC<-hclust(dist_euc,method="ward.D2")
+WC$labels <- labels
+
+plot(WC)
+```
+
+<!--# Clustering with Wards method (minimum variance method with squared Euclidean distance) progressively creates groups based on similarity.  The method tries to minimise sum of squared differences within each cluster - so compact clusters become identifiable.  The above dendrogram is much more useful than earlier dendrograms - there are clear 3-5 groups. -->
+
+```{r Kmeans}
+# k-means
+# run k-means with 3 and 4 clusters
+KM3 <- kmeans(num_train_scaled, 3)
+KM4 <- kmeans(num_train_scaled, 4)
+KM5 <- kmeans(num_train_scaled, 5)
+
+# create a color palette with the same number of colors as clusters
+library(RColorBrewer)
+col3 <- brewer.pal(3, "Set1")
+col4 <- brewer.pal(4, "Set1")
+col5 <- brewer.pal(5, "Set1")
+
+# create scatter plots with colors and symbols based on cluster membership
+par(mfrow = c(1, 3))
+plot(num_train_scaled[, 1:2], col = col3[KM3$cluster], pch = KM3$cluster,
+     xlab = "", ylab = "PC2", main = "k-means (k = 3)")
+plot(num_train_scaled[, 1:2], col = col4[KM4$cluster], pch = KM4$cluster,
+     xlab = "PC1", ylab = "", main = "k-means (k = 4)")
+plot(num_train_scaled[, 1:2], col = col5[KM5$cluster], pch = KM5$cluster,
+     xlab = "", ylab = "", main = "k-means (k = 5)")
+
+```
+
+<!--# K-means clustering is another clustering method which selects initial 'cluster centroids' for the number of specified clusters.  The algorithm iteratively recalculates the means as points are added. It is difficult to see with any clarity the clusters, although there are groupings where they converge.-->
+
+/
+
+```{r tanglegram}
+
+library(dendextend)
+library(ggplot2)
+
+# Create the tanglegram plot
+my_tanglegram <- tanglegram(comp_clust, NN)
+
+# Save the plot as a PNG file
+ggsave("tanglegram.png", my_tanglegram, width = 8, height = 6, dpi = 300)
+
+```
+
+<!--# Like parallel analysis, nbclust is a function to determine how many clusters are in the dataset.  Parallel analysis calculates and plots several clustering validation indices (Calinski-Harabasz, silhouette width and Davies-Bouldin) for differen values of K, summarising and choosing the optimal number of clusters.  Nbclust calculates and plots the `within-cluster sum of squares (WSS) for different values of K (clusters) and uses the elbow method.  The plot below suggests 3 or 4 clusters.-->
+
+```{r wss_clust}
+# within cluster sum of squares
+fviz_nbclust(num_train_scaled,FUN=hcut,method="wss")
+```
+
+<!--# The 'silhouette' method calculates the average silhouette width for different values of k (clusters) and plots it.  The silhouette width measures similarity to a cluster in comparison to other clusters.  A high average silhouettte indicates that data is well-clustered; a low value suggests that there is overlap or misclassification.  The plot below suggests 2 clusters. -->
+
+```{r silhouette_clust}
+fviz_nbclust(num_train_scaled, FUN = hcut, method = "silhouette")
+```
+
+```{r km_wss}
+# how far points within cluster are from centre of cluster - should be minimised
+KM5$withinss
+```
+
+```{r km_tot_wss}
+# sum of wss
+KM5$tot.withinss
+```
+
+```{r km_betweenss}
+# sum of squared distances between cluster centres and overall mean
+# high value indicates more separation between clusters
+KM3$betweenss
+```
+
+```{r km_size}
+# size of each cluster
+KM5$size
+```
+
+```{r cluster_KM}
+fviz_cluster(KM4,data = num_train_scaled, repel = TRUE, geom = "point", label = "none")
+fviz_cluster(KM5, data = num_train_scaled, repel = TRUE, geom = "point", label = "none")
+
+```

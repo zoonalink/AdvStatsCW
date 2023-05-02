@@ -200,7 +200,7 @@ num_train_scaled_label <- cbind(num_train_scaled, label = train$label)
 num_train_scaled_label
 
 #save to csv
-write.csv(train, "../data/num_train_scaled_label.csv", row.names = FALSE)
+write.csv(num_train_scaled_label, "../data/num_train_scaled_label.csv", row.names = FALSE)
 
 
 ```
@@ -249,9 +249,9 @@ palette <- brewer.pal(5, "Dark2")
 
 
 #palette <- c("#FFE2CC", "#FFD1B3", "#FFC299", "#B3C6CC", "#99B3CC", "#A3C4BC")
-palette2 <- c( "#1B9E77", "#D95F02", "#7570B3", "#E7298A", "#66A61E")
+palette2 <- c( "#1B9E77", "C", "#7570B3", "#E7298A", "#66A61E")
 palette3 <- c("#E69F00", "#56B4E9", "#009E73", "#F0E442", "#D55E00")
- # "#1B9E77" "#D95F02" "#7570B3" "#E7298A" "#66A61E" "#E6AB02" "#A6761D" "#666666"
+  "#1B9E77" "#D95F02" "#7570B3" "#E7298A" "#66A61E" "#E6AB02" "#A6761D" "#666666"
 
 ```
 

@@ -3,21 +3,40 @@
 # set a seed for reproducibility
 set.seed(567)
 
+
 # default packages
-default_packages <- c("dplyr", "tidyr", "naniar", "flextable", "ggplot2", "GGally", "knitr", "corrplot", "ade4", "factoextra", "cowplot", "patchwork")
+default_packages <- c("dplyr", # data manipulation
+                      "tidyr", # data manipulation
+                      "naniar", # missing data
+                      "flextable", # table production
+                      "ggplot2", # data visualisation, plotting
+                      "GGally",  # data visualisation
+                      "knitr",  # report production
+                      "corrplot", # correlation
+                      "ggcorrplot", # correlation
+                      "ade4", # EDA
+                      "factoextra", # PCA, visualisation
+                      "cowplot", # plotting
+                      "patchwork", # plotting
+                      "psych", # statistics, PCA
+                      "paran", # parallel analysis
+                      "dendextend"
+                      ) # dendrograms
 
 # assign packages based on file name
 packages <- default_packages
 if (file == "dim_red") {
-  packages <- c("dplyr", "flextable")
+  packages <- c("dplyr", "flextable", "psych", "paran", "ade4", "factoextra", "patchwork")
 } else if (file == "EDA") {
   packages <- c("dplyr", "flextable", "ggplot2", "GGally", "ggcorrplot", "corrplot", "cowplot", "psych", "patchwork")
 } else if (file == "data") {
   packages <- c("dplyr", "flextable", "naniar")
 } else if (file == "intro") {
   packages <- c("flextable")
+} else {
+  packages
 }
-
+ 
 # install and load packages
 cran_repo <- "https://www.stats.bris.ac.uk/R/"
 for (package in packages) {
