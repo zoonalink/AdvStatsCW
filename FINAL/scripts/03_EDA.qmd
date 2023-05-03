@@ -240,7 +240,7 @@ plot_grid(plotlist = plot_list, ncol = 5)
 ```
 
 ```{r colours}
-library(RColorBrewer)
+
 
 
 #RColorBrewer::display.brewer.all()
@@ -307,6 +307,7 @@ binwidth_table <- cbind(variable = names(num_train),
 
 # print the table
 print(binwidth_table)
+
 
 
 ```
@@ -520,7 +521,7 @@ plot_grid(plotlist = boxplots_scale, ncol = 5, align = "h") +
 
 Another approach for exploring outliers is to calculate a statistic (*z-score*) for each variable and extract those which exceed the threshold (+/- 3 standard deviations). In a normal distribution, 99.7% of observations fall within 3 standard deviation, so we identify 0.03% of observations either side of the centre of the variable and consider them as *potential* outliers.
 
-```{r zscore}
+```{r outliers_zscore}
 # calculate z-scores for each variable
 z_scores <- apply(num_train, 2, function(x) scale(x, center = TRUE, scale = TRUE))
 
@@ -536,11 +537,217 @@ outliers_df <- data.frame(
 
 nrow(outliers_df)
 
+
 # get table of outliers by variable
 table_outliers <- table(outliers_df$col_name)
 
 #flextable(as.data.frame(table_outliers))
 plot(table_outliers)
+
+```
+
+<!--# I used two different methods to check for outliers within each variable - the first was using z-scores and values which are either side of 3 standard deviations.  This resulted in 81 outliers, with X8 having the most.  A more robust method is using mean absolute deviation which can be seen below.  This resulted in 119 potential outliers.  The interesting thing is that X8 now has 38 potential outliers.  It could be that X8 has more extreme variables or has more variability - but the client should be made aware.   -->
+
+```{r outliers_mad}
+
+# function to return median absolute deviation (MAD) outliers, default = 3
+
+outliers_mad <- function(df, N =3) {
+  # initialise dataframe to store outliers
+  outliers <- data.frame()
+  
+  # loop through each column 
+  for (col in names(df)) {
+    # check if numeric
+    if (is.numeric(df[[col]])) {
+      # calculate MAD for the column
+      mad <- mad(df[[col]])
+      
+      # identify outliers using MAD and N
+      outliers <- rbind(outliers, data.frame(column = col, value = df[[col]])[abs(df[[col]] - median(df[[col]])) > N * mad, ])
+    }
+  }
+  
+  # return dataframe of outliers
+  return(outliers)
+}
+
+# store outlier results
+mads <- outliers_mad(num_train, 3)
+
+# function to produce count flextable
+outliers_FT <- function(outliers, cap = "") {
+  # count number of outliers per variable
+  counts <- table(outliers$column)
+  # data frame with 'Variable' and 'Count'
+  result_df <- data.frame(Variable = names(counts), Count = as.numeric(counts))
+  # sort by count
+  result_df <- arrange(result_df, desc(Count))
+  # flextable
+  FT <- flextable(result_df) |>
+    set_caption(cap) 
+  
+  return(FT)
+}
+nrow(mads)
+mad_outlier <- outliers_FT(outliers = mads, cap = "Counts of outliers by Variable")
+mad_outlier
+```
+
+```{r mahalanobis}
+
+# function to return multidimensional outliers with mahalanobis distance, default = 3
+
+outliers_mahalanobis <- function(df, N = 3) {
+  # Check for outliers using the Mahalanobis distance for all columns in the dataframe.
+  # Calculate the covariance matrix of the dataframe
+  cov <- cov(df)
+  # Calculate the Mahalanobis distance for each observation
+  distances <- mahalanobis(df, center = colMeans(df), cov = cov)
+  # Identify outliers
+  outliers <- df[distances > N * sqrt(diag(cov)), ]
+  return(outliers)
+}
+
+
+
+
+
+# store outlier results
+maha <- outliers_mahalanobis(num_train, 150)
+
+# function to produce count flextable
+outliers_FT <- function(outliers, cap = "") {
+  # count number of outliers per variable
+  counts <- table(outliers$column)
+  # data frame with 'Variable' and 'Count'
+  result_df <- data.frame(Variable = names(counts), Count = as.numeric(counts))
+  # sort by count
+  result_df <- arrange(result_df, desc(Count))
+  # flextable
+  FT <- flextable(result_df) |>
+    set_caption(cap)
+
+  return(FT)
+}
+
+nrow(maha)
+maha_outlier <- outliers_FT(maha)
+maha_outlier
+
+```
+
+```{r}
+library(assertr)
+
+maha <- maha_dist(num_train)
+#length(maha)
+
+maha_dist(num_train) %>% hist(main="", xlab="")
+
+
+
+
+# Calculate the Mahalanobis distance for each row of the dataset
+maha <- mahalanobis(num_train, center = colMeans(num_train), cov = cov(num_train))
+
+# Identify the rows that are more than N MADs away from the center
+violations <- which(maha > 3 * mad(maha))
+
+# Save the violations to a data frame
+violations_df <- data.frame(Violation = violations, num_train[violations, ])
+nrow(violations)
+#flextable(violations)
+
+violations2 <- num_train %>%
+  insist_rows(maha_dist, within_n_mads(3), dplyr::everything()) %>%
+  as.data.frame()
+
+```
+
+```{r}
+library(assertr)
+
+# define your custom assertion function
+maha_dist_within_n_mads <- function(df, n_mads) {
+  # compute the Mahalanobis distance for each row of the data frame
+  mahadist <- mahalanobis(df, colMeans(df), cov(df))
+  # calculate the number of MADs each row is from the mean Mahalanobis distance
+  nmad <- mad(mahadist)
+  # return a logical vector indicating whether each row is within the specified number of MADs
+  return(nmad <= n_mads)
+}
+
+# apply the assertion function and capture the violations as a data frame
+violations <- num_train %>%
+  assert_rows(maha_dist_within_n_mads, n_mads = 3, error_fun = error_handler_defect_df_return())
+
+# print the violations
+print(violations)
+
+
+```
+
+```{r}
+#Set the error_fun parameter to error_append
+my_defect_df_return <- function(data) {
+  function(errors) {
+    if (length(errors) == 0) {
+      return(data)
+    } else {
+      skipped_rules <- do.call(rbind, lapply(errors, function(e) {
+        data.frame(predicate = e$predicate, column = e$column, index = e$index, value = e$value)
+      }))
+      return(skipped_rules)
+    }
+  }
+}
+
+violations <- num_train %>%
+  insist(maha_dist, within_n_mads(3), dplyr::everything(),
+         error_fun = my_defect_df_return(.), rule_name = "insist_rows")
+
+
+
+#Print the violations dataframe
+violations
+
+```
+
+```{r maha_outliers}
+find_outliers_mahalanobis <- function(df, N) {
+  # Calculate the Mahalanobis distance for each observation
+  distances <- mahalanobis(x = df, center = colMeans(df), cov = cov(df))
+  
+  # Set the cutoff value for distances
+  cutoff <- qchisq(p = 0.95, df = ncol(df))
+  
+  # Identify the observations with distances greater than the cutoff
+  outliers <- df[distances > N * sqrt(cutoff), ]
+  
+  return(outliers)
+}
+
+
+
+# Find outliers using a cutoff value of 3
+outliers <- find_outliers_mahalanobis(num_train, 7)
+nrow(outliers)
+
+```
+
+```{r}
+mahalanobis_outlier <- function(data, alpha = 0.05) {
+  center <- apply(data, 2, mean)
+  cov <- cov(data)
+  distances <- mahalanobis(data, center, cov)
+  cutoff <- qchisq(1-alpha, df = ncol(data))
+  outliers <- data[distances > cutoff, ]
+  return(outliers)
+}
+
+outliers <- mahalanobis_outlier(num_train)
+nrow(outliers)
 
 ```
 

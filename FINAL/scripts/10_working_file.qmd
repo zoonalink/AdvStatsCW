@@ -48,6 +48,7 @@ source("chem_packages.R")
 #"patchwork"
 #"dendextend"
 #"ggplot2"
+#"cluster"
 ```
 
 ```{r}
@@ -366,5 +367,110 @@ KM5$size
 ```{r cluster_KM}
 fviz_cluster(KM4,data = num_train_scaled, repel = TRUE, geom = "point", label = "none")
 fviz_cluster(KM5, data = num_train_scaled, repel = TRUE, geom = "point", label = "none")
+
+```
+
+```{r}
+
+
+# Compute the silhouettes for different k values
+sil <- sapply(2:10, function(k) {
+  km <- kmeans(num_train_scaled, centers = k)
+  avg_sil <- mean(silhouette(km$cluster, dist_euc))
+  return(avg_sil)
+})
+
+# Plot the silhouette values for each k
+plot(2:10, sil, type = "b", xlab = "Number of clusters (k)", ylab = "Average silhouette width")
+
+```
+
+```{r}
+library(factoextra)
+library(cluster)
+
+# Compute within-cluster sum of squares (wss) for different k values
+wss <- sapply(2:10, function(k) {
+  km <- kmeans(num_train_scaled, centers = k)
+  return(km$tot.withinss)
+})
+
+# Plot the wss values for each k
+plot(2:10, wss, type = "b", xlab = "Number of clusters (k)", ylab = "Within-cluster sum of squares (wss)")
+
+# Identify the elbow point using the knee locator function
+fviz_nbclust(num_train_scaled, kmeans, method = "wss") + 
+  geom_vline(xintercept = 3, linetype = "dashed")
+
+```
+
+```{r}
+library(factoextra)
+library(cluster)
+
+# Compute gap statistic for different k values
+gap_stat <- clusGap(num_train_scaled, FUN = kmeans, K.max = 10, B = 50, verbose = FALSE)
+
+# Plot the gap statistic values for each k
+plot(gap_stat, main = "Gap statistic", xlab = "Number of clusters (k)")
+
+# Identify the optimal number of clusters using the gap statistic function
+fviz_gap_stat(gap_stat)
+
+
+```
+
+<!--# Everything in the clustering / PCA analysis - which is about understanding the underlying structure and patterns of the data - suggests that there are 3 or maybe 4 clusters / dimensions.  However, there are 5 according to the client.  This suggests that there may be more nuance or complexity than this analysis is showing.    -->
+
+<!--#  PCA has not really identified any variables to drop as they are all contributing a little.  -->
+
+```{r}
+library(factoextra)
+
+# PCA
+pca <- prcomp(num_train_scaled)
+
+# loadings for all principal components
+loadings <- get_pca_var(pca)
+loadings$contrib
+loadings$cor
+
+# Get variable names with low contributions
+low_contrib <- loadings$contrib[abs(loadings$contrib) < 0.2]
+if (length(low_contrib) == 0) {
+  cat("No variables with contributions less than 0.2\n")
+} else {
+  low_loadings <- names(low_contrib)
+  cat("Variables with low contributions (<0.2):\n")
+  cat(paste(low_loadings, collapse=", "))
+}
+#low_contrib
+
+
+```
+
+```{r}
+
+
+
+
+# create the data frame
+var_contrib <- data.frame(
+  Variable = names(num_train_scaled),
+  Loading = round(loadings$contrib, 2)
+)
+
+
+# create a flextable object
+flextable(var_contrib)
+
+
+
+```
+
+```{r}
+
+
+
 
 ```

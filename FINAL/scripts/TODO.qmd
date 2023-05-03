@@ -1,0 +1,44 @@
+---
+title: "TODO list"
+format: html
+---
+
+## TODO
+
+-   check outlier section with assertr()
+    -   summarise by sd
+    -   summarie by univariate and multivariate outliers
+    -   mahalanobis distance
+    -   assertr
+-   function to return:
+    -   outliers (upper, lower bound violations) - within bounds
+    -   mahalanobis distance violations
+    -   univariate and multivariate violations by specified
+    -   visualising violations
+-   do I care about univariate violations (not so much) but I do care about multivariate violations (maha)
+
+-   save some plots and load to doc instead of rendering fresh??
+
+-   trim down each section
+
+-   look at the whole document - remember the audience
+
+-   fix the code comments
+
+-   add the citations - packages and literature
+
+-   add colour Brewer separate file
+
+-   rework clustering with 5 clusters in mind
+
+-   scaling - pull out sd, mean from training to be reused for the other datasets
+
+-   pca with dudi - remove centre/scale TRUE?
+
+    -   ensure that my scaling parameters (train) are extracted and used for test
+
+    -   extract transformation (PCA) vector and apply to test (li, l1, c1 - probably) - testdata mulitplied by c1 to get new matrix.
+
+-   re do the 'sentence' case when
+
+    -   

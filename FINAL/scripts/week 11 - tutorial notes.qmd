@@ -3,6 +3,39 @@ title: "week 11 - final week tut notes"
 format: html
 ---
 
+week 12
+
+Outliers:
+
+check multivariate outliers
+
+check univariate (already done)
+
+check none are beyond 5 SD
+
+assertr()
+
+assertr() vignette
+
+mahalnovis distance
+
+sd
+
+within_n\_sds
+
+Build function to assert:
+
+1.  check not null
+2.  check mean = 0
+3.  within_n\_sds(3), var)
+4.  dplyr to summarise by n=length(), avg.var, med.var, sd.var
+
+if within_n\_sds(2) violated - the code stops - print message?
+
+```{r}
+
+```
+
 ## Requirements:
 
 Look at FlexTable for tables

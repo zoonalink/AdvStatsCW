@@ -1,0 +1,29 @@
+---
+title: "working - RF"
+format: html
+---
+
+## 
+
+```{r}
+# Split data into training and testing sets
+set.seed(123)
+train_index <- sample(nrow(num_train_scaled), nrow(num_train_scaled) * 0.8)
+train_data <- num_train_scaled[train_index, ]
+test_data <- num_train_scaled[-train_index, ]
+
+# Train the Random Forest model
+library(randomForest)
+rf_model <- randomForest(Group ~ ., data = train_data, importance = TRUE)
+
+# Test the accuracy of the model on the testing data
+rf_pred <- predict(rf_model, newdata = test_data)
+rf_acc <- mean(rf_pred == test_data$Group)
+print(paste("Random Forest Accuracy:", rf_acc))
+
+# Use the model to make predictions on new, unseen data
+new_data <- read.csv("new_data.csv")
+new_data_scaled <- scale(new_data[, -1])
+rf_new_pred <- predict(rf_model, newdata = new_data_scaled)
+
+```

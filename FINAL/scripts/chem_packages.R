@@ -7,6 +7,7 @@ set.seed(567)
 # default packages
 default_packages <- c("dplyr", # data manipulation
                       "tidyr", # data manipulation
+                      "RColorBrewer", # colours
                       "naniar", # missing data
                       "flextable", # table production
                       "ggplot2", # data visualisation, plotting
@@ -20,19 +21,20 @@ default_packages <- c("dplyr", # data manipulation
                       "patchwork", # plotting
                       "psych", # statistics, PCA
                       "paran", # parallel analysis
-                      "dendextend"
-                      ) # dendrograms
+                      "dendextend", # dendrograms
+                      "cluster" # clustering
+                      ) 
 
 # assign packages based on file name
 packages <- default_packages
 if (file == "dim_red") {
   packages <- c("dplyr", "flextable", "psych", "paran", "ade4", "factoextra", "patchwork")
 } else if (file == "EDA") {
-  packages <- c("dplyr", "flextable", "ggplot2", "GGally", "ggcorrplot", "corrplot", "cowplot", "psych", "patchwork")
+  packages <- c("dplyr", "flextable", "RColorBrewer", "ggplot2", "GGally", "ggcorrplot", "corrplot", "cowplot", "psych", "patchwork")
 } else if (file == "data") {
-  packages <- c("dplyr", "flextable", "naniar")
+  packages <- c("dplyr", "flextable", "RColorBrewer", "naniar")
 } else if (file == "intro") {
-  packages <- c("flextable")
+  packages <- c("flextable","RColorBrewer")
 } else {
   packages
 }
