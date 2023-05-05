@@ -6,15 +6,19 @@ format: html
 ## TODO
 
 -   check outlier section with assertr()
+
     -   summarise by sd
     -   summarie by univariate and multivariate outliers
     -   mahalanobis distance
     -   assertr
+
 -   function to return:
+
     -   outliers (upper, lower bound violations) - within bounds
     -   mahalanobis distance violations
     -   univariate and multivariate violations by specified
     -   visualising violations
+
 -   do I care about univariate violations (not so much) but I do care about multivariate violations (maha)
 
 -   save some plots and load to doc instead of rendering fresh??

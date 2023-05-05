@@ -125,7 +125,11 @@ flextable(kmo_summary) |>
 <!--# Scree plots allow us to visually determine how many 'dimensions' are in the underlying data.  Usually the cutoff is at the 'elbow' joint or where eigenvalues are greater than 1.  The plot below suggests four plots for PCA (and 3 for Factor Analysis), after which additional dimensions do not significantly account for the variability in the dataset. -->
 
 ```{r scree}
-scree(num_train_scaled)
+
+```
+
+```{r}
+
 ```
 
 <!--# Horn's Parallel Analysis has been applied to the dataset, which estimates the number of 'significant' components through the generation of a large number of simulated data sets - in this case 5000.  The resulting eigenvalues are averaged to get a mean estimate of the expected eigenvalues, which are compared to the observed values in order to determine how many 'significant' components to keep. The results below suggest to retain 4 components - based on the eigenvalue being greater than 1. -->
@@ -292,11 +296,11 @@ plot(WC)
 ```{r Kmeans}
 # k-means
 # run k-means with 3 and 4 clusters
-KM3 <- kmeans(num_train_scaled, 3)
-KM4 <- kmeans(num_train_scaled, 4)
+#KM3 <- kmeans(num_train_scaled, 3)
+#KM4 <- kmeans(num_train_scaled, 4)
 KM5 <- kmeans(num_train_scaled, 5)
 
-# create a color palette with the same number of colors as clusters
+# create a colour palette with the same number of colors as clusters
 library(RColorBrewer)
 col3 <- brewer.pal(3, "Set1")
 col4 <- brewer.pal(4, "Set1")

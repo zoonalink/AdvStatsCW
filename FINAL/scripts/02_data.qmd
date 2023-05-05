@@ -41,7 +41,11 @@ knitr:
     fig.height: 4
 ---
 
-<!--# The 'chem_packages.R file installs/loads required packages for this section, sets a seed (for reproducibility) and loads flextable defaults. Check for further details. -->
+<!--# The 'chem_packages.R file installs/loads required packages for the section, sets a seed (for reproducibility) and loads flextable defaults. -->
+
+<!--# It uses conditional logic to only load packages needed for the section.  This is to enable updating and knitting sections separately, as stand-alone output.  -->
+
+<!--# Refer to the R script for additional details. -->
 
 ```{r data_packages}
 # load/install R packages/libraries
@@ -54,25 +58,6 @@ source("chem_packages.R")
 # library(dplyr)
 # library(flextable)
 # library(naniar)
-
-```
-
-```{r flextable_defaults}
-# 
-# set_flextable_defaults(
-#   font.family = "Arial",
-#   font.size = 10, 
-#   font.color = "#333333",
-#   border.color = "gray", 
-#   background.color = "#FAFAFA",
-#   table.layout= "autofit",
-#   theme_fun = theme_vanilla,
-#   padding.top = 3, padding.bottom = 3,
-#   padding.left = 4, padding.right = 4,
-#   na_str = "<na>", 
-#   digits = 2
-#   )
-
 
 ```
 

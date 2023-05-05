@@ -3,14 +3,685 @@ title: "working - RF"
 format: html
 ---
 
-## 
+## <!--# starting off with pulling in default packages--> {#sec----starting-off-with-pulling-in-default-packages--}
 
 ```{r}
-# Split data into training and testing sets
-set.seed(123)
-train_index <- sample(nrow(num_train_scaled), nrow(num_train_scaled) * 0.8)
-train_data <- num_train_scaled[train_index, ]
-test_data <- num_train_scaled[-train_index, ]
+# load/install R packages/libraries
+# set seed
+# load flextable defaults
+
+file <- ""
+source("chem_packages.R")
+
+# make scale data using train script available
+source("scale_data_using_train_stats.R")
+
+```
+
+## <!--# then need to pull in datasets and apply relevant transformations -->
+
+```{r train_scale_data}
+train_label <- read.csv("../data/chem_train.csv")
+train <- train_label[,-21]
+train_scaled_label <- read.csv("../data/num_train_scaled_label.csv")
+train_scaled <- train_scaled_label[, -21]
+
+#summary(train_scaled_label)
+```
+
+```{r validate_scale_data}
+# read in test dataset
+valid_label <- read.csv("../data/chem_valid.csv")
+#num_test_label
+
+# remove label from test data
+valid <- valid_label[,-21]
+#num_test
+
+# calculate train means and sds for scaling function
+train_means <- colMeans(train)
+train_sds <- apply(train, 2, sd)
+
+# scale based on train stats
+valid_scaled <- scale_data_using_train(valid, train_means = num_train_means, train_sds = num_train_sds)
+valid_scaled
+```
+
+## <!--# PCA  -->
+
+<!--# to consider underlying structure and whether reducing to 'principal components' is worthwhile -->
+
+<!--# check if PCA is worth doing with visual inspection see corrplots in EDA-->
+
+<!--# kmo samplying adequacy - >0.6 -->
+
+```{r}
+kmo_result <- KMO(train_scaled)
+kmo_result$MSA
+#KMO_result$Image
+kmo_result$MSAi
+
+round(min(kmo_result$MSAi),2)
+colnames(train_scaled)[which.min(kmo_result$MSAi)]
+```
+
+<!--# Bartlett's test of sphericity - hypothesis thata correlation matrix is an identity matrix; significant p-value indicates PCA is appropriate -->
+
+```{r bartlett}
+cortest.bartlett(train_scaled)
+```
+
+<!--# dataset is suitable for PCA based on kmo, bartlett, vis inspection, so proceed to check how many components are suitable -->
+
+### <!--# How many components -->
+
+<!--# check with scree plot - suggets 3 or 4.  interesting observation is that the remaining components are a horizontal line - suggesting that they are all contributing to the explanation of variability, about the same amount but not very much.  this could be problematic -->
+
+```{r}
+scree(train_scaled)
+```
+
+<!--# check with paran - paran is go go go! -->
+
+```{r}
+paran(train_scaled, iterations = 5000)
+```
+
+<!--# PCA is appropriate - 3 or 4 components. decided to keep three but it is clear looking at the contributions to components from each variable that they all contribute a little to each.-->
+
+```{r}
+#install.packages("factoextra")
+library(factoextra)
+
+pca_loadings <- get_pca_var(prcomp(train_scaled))
+#pca_loadings$contrib
+#pca_loadings$cor
+
+# Get variable names with low contributions
+# low_contrib <- pca_loadings$contrib[abs(pca_loadings$contrib) < 20]
+# if (length(low_contrib) == 0) {
+#   cat("No variables with contributions less than 20\n")
+# } else {
+#   low_loadings <- names(low_contrib)
+#   cat("Variables with low contributions (<0.2):\n")
+#   cat(paste(low_loadings, collapse=", "))
+# }
+
+library(ggplot2)
+library(forcats)
+
+# Get the contribution of each variable to the first three principal components
+contrib <- pca_loadings$contrib[, 1:6]
+
+# Convert the `contrib` data frame to a data frame
+contrib <- as.data.frame(contrib)
+
+# Add a column called `variable` to the `contrib` data frame
+contrib$variable <- rownames(contrib)
+
+# PC1 <- ggplot(contrib, aes(x = reorder(variable, contrib[, 1]), y = contrib[, 1], fill = contrib[, 2])) +
+#   geom_bar(stat = "identity") +
+#   coord_flip() +
+#   labs(x = "Variable", y = "", fill = "Contribution to PC1") +
+#    theme(legend.position = "none")
+
+# Plot the contribution of each variable
+PC1 <- ggplot(contrib, aes(x = fct_inorder(rev(variable)), y = contrib[, 1], fill = contrib[, 1])) +
+  geom_bar(stat = "identity") +
+  coord_flip() +
+  labs(x = "Variable", y = "", fill = "blue") +
+   theme(legend.position = "none")
+
+PC2 <- ggplot(contrib, aes(x = fct_inorder(rev(variable)), y = contrib[, 2], fill = contrib[, 2])) +
+  geom_bar(stat = "identity") +
+  coord_flip() +
+  labs(x = "", y = "Contribution by variable", fill = "blue") +
+   theme(legend.position = "none")
+
+PC3 <- ggplot(contrib, aes(x = fct_inorder(rev(variable)), y = contrib[, 3], fill = contrib[, 3])) +
+  geom_bar(stat = "identity") +
+  coord_flip() +
+  labs(x = "", y = "", fill = "blue") +
+   theme(legend.position = "none")
+
+(PC1 + PC2 + PC3) + theme(legend.position = "none")
+
+PC4 <- ggplot(contrib, aes(x = fct_inorder(rev(variable)), y = contrib[, 4], fill = contrib[, 4])) +
+  geom_bar(stat = "identity") +
+  coord_flip() +
+  labs(x = "Variable", y = "", fill = "blue") +
+   theme(legend.position = "none")
+
+PC5 <- ggplot(contrib, aes(x = fct_inorder(rev(variable)), y = contrib[, 5], fill = contrib[, 5])) +
+  geom_bar(stat = "identity") +
+  coord_flip() +
+  labs(x = "", y = "Contribution by variable", fill = "blue") +
+   theme(legend.position = "none")
+
+PC6 <- ggplot(contrib, aes(x = fct_inorder(rev(variable)), y = contrib[, 6], fill = contrib[, 6])) +
+  geom_bar(stat = "identity") +
+  coord_flip() +
+  labs(x = "", y = "", fill = "blue") +
+   theme(legend.position = "none")
+
+(PC4 + PC5 + PC6) + theme(legend.position = "none")
+
+```
+
+```{r}
+pca4 <- pca(train_scaled, nfactors = 4)
+pca4
+
+
+
+```
+
+<!--# mean item complexity - measure of how complex the items are in the data.  average number of componenets that each variable loads onto - on average, each item in the data loads onto 1.4 components which means that there is clear structure in the data - so 46% variability may be enough? -->
+
+<!--# rmsr - difference between the actual and predicted value.  smaller values are better - indicate a better fit.  predicted values are 0.07 units away from actual values - so a reasonably good fit?? -->
+
+```{r}
+# pca without scaling, centring
+train_scaled_pca <- dudi.pca(train_scaled, center = FALSE, scale = FALSE, scannf = F, nf=3)
+
+scree <- fviz_screeplot(train_scaled_pca)
+eigen <- get_eigenvalue(train_scaled_pca)
+
+pca1 <- fviz_pca_biplot(train_scaled_pca, label="var",var.lab = TRUE, col.ind = "#D95F02", alpha.ind = 0.4, col.var = "grey30", repel=TRUE)  +
+  ggtitle("PCA Biplots (dimensions 1x2, 2x3) of scaled dataset")
+
+pca2 <- fviz_pca_biplot(train_scaled_pca,label="var", col.ind = "#1B9E77", alpha.ind = 0.4, col.var = "grey30", repel=TRUE,axes=c(2,3)) +
+  ggtitle("")
+
+pca3 <- fviz_pca_biplot(train_scaled_pca, col.ind="x", col.var = "grey30", label="var", repel=TRUE,axes=c(1,2)) +
+      scale_color_gradient2(low="white", mid="blue",
+      high="red", midpoint=0.6)
+
+pca4 <- fviz_pca_biplot(train_scaled_pca,
+                        repel = T,
+                        label = "var",
+                        col.ind = train_label$label) + 
+  theme(legend.position = "none")
+
+pca5 <- fviz_pca_ind(train_scaled_pca,
+                     geom.ind = "point", # show points only (but not "text")
+                     col.ind = train_scaled_label$label, # colour by groups
+                     addEllipses = TRUE,
+                     ggtheme = theme_minimal() + 
+                       theme(legend.position = "bottom", 
+                             plot.title = element_text(hjust = 0.5, size = 14)))  +
+  ggtitle("PCA Biplots with Ellipses by Labels") + 
+  theme(legend.position = "bottom", legend.justification = "center", legend.box = "vertical", legend.title = element_text(size = 10), legend.text = element_text(size = 8))
+
+
+scree
+eigen
+
+# pca1
+# pca2
+# pca3
+# pca4
+ pca5
+
+
+
+(pca1 + pca2)
+ 
+ 
+ # save as dataframe for use below
+ train_scaled_pca_df <- as.data.frame(train_scaled_pca$li)
+```
+
+```{r}
+summary(train_scaled_pca)
+
+#train_scaled_pca$li
+```
+
+<!--# apply PCA scaling to 'validate' subset, using predict() -->
+
+<!--# now have four datasets train with/without pca; validate with/without pca -->
+
+```{r applyPCAtoValid}
+
+# Apply PCA transformation to validate dataset
+valid_scaled_pca <- predict(train_scaled_pca, newdata = valid_scaled)
+
+
+summary(valid_scaled_pca)
+
+```
+
+<!--# systematic checking of clustering algorithms and distances -->
+
+```{r distances}
+
+
+# distance matrices - train
+train_scaled_dist_euc <- dist(train_scaled, method = "euclidean")
+train_scaled_dist_man <- dist(train_scaled, method = "manhattan")
+train_scaled_pca_dist_euc <- dist(train_scaled_pca_df, method = "euclidean")
+train_scaled_pca_dist_man <- dist(train_scaled_pca_df, method = "manhattan")
+
+is.dist(train_scaled_dist_euc)
+
+# # distance matrices - valid
+# valid_dist_euc <- dist(valid_scaled, method = "euclidean")
+# valid_dist_man <- dist(valid_scaled, method = "manhattan")
+# valid_pca_dist_euc <- dist(valid_scaled_pca, method = "euclidean")
+# valid_pca_dist_man <- dist(valid_scaled_pca, method = "manhattan")
+
+```
+
+```{r}
+fviz_dist(train_scaled_dist_euc)
+fviz_dist(train_scaled_dist_man)
+#fviz_dist(valid_dist_euc)
+#fviz_dist()
+```
+
+<!--# I am going to use Euclidean distance as the default - it is a good starter, more accurate than manhattan but more computationally expensive for larger datasets (variables) -->
+
+```{r clustering}
+
+library(factoextra)
+
+# Perform hierarchical clustering for train dataset with euclidean distance
+train_hclust_euc_single <- hclust(train_dist_euc, method = "single")
+train_hclust_euc_complete <- hclust(train_dist_euc, method = "complete")
+train_hclust_euc_average <- hclust(train_dist_euc, method = "average")
+train_hclust_euc_ward <- hclust(train_dist_euc, method = "ward.D2")
+
+
+
+# # Perform hierarchical clustering for train dataset with manhattan distance
+# train_hclust_man_single <- hclust(train_dist_man, method = "single")
+# train_hclust_man_complete <- hclust(train_dist_man, method = "complete")
+# train_hclust_man_average <- hclust(train_dist_man, method = "average")
+# train_hclust_man_ward <- hclust(train_dist_man, method = "ward.D2")
+
+# Perform hierarchical clustering for train with pca dataset with euclidean distance
+train_pca_hclust_euc_single <- hclust(train_scaled_pca_dist_euc, method = "single")
+train_pca_hclust_euc_complete <- hclust(train_scaled_pca_dist_euc, method = "complete")
+train_pca_hclust_euc_average <- hclust(train_scaled_pca_dist_euc, method = "average")
+train_pca_hclust_euc_ward <- hclust(train_scaled_pca_dist_euc, method = "ward.D2")
+
+# # Perform hierarchical clustering for train with pca dataset with manhattan distance
+# train_pca_hclust_man_single <- hclust(train_scaled_pca_dist_man, method = "single")
+# train_pca_hclust_man_complete <- hclust(train_scaled_pca_dist_man, method = "complete")
+# train_pca_hclust_man_average <- hclust(train_scaled_pca_dist_man, method = "average")
+# train_pca_hclust_man_ward <- hclust(train_scaled_pca_dist_man, method = "ward.D2")
+
+# Perform hierarchical clustering for valid dataset with euclidean distance
+valid_hclust_euc_single <- hclust(valid_dist_euc, method = "single")
+valid_hclust_euc_complete <- hclust(valid_dist_euc, method = "complete")
+valid_hclust_euc_average <- hclust(valid_dist_euc, method = "average")
+valid_hclust_euc_ward <- hclust(valid_dist_euc, method = "ward.D2")
+
+# # Perform hierarchical clustering for valid dataset with manhattan distance
+# valid_hclust_man_single <- hclust(valid_dist_man, method = "single")
+# valid_hclust_man_complete <- hclust(valid_dist_man, method = "complete")
+# valid_hclust_man_average <- hclust(valid_dist_man, method = "average")
+# valid_hclust_man_ward <- hclust(valid_dist_man, method = "ward.D2")
+
+# Perform hierarchical clustering for valid with pca dataset with euclidean distance
+valid_pca_hclust_euc_single <- hclust(valid_pca_dist_euc, method = "single")
+valid_pca_hclust_euc_complete <- hclust(valid_pca_dist_euc, method = "complete")
+valid_pca_hclust_euc_average <- hclust(valid_pca_dist_euc, method = "average")
+valid_pca_hclust_euc_ward <- hclust(valid_pca_dist_euc, method = "ward.D2")
+
+# # Perform hierarchical clustering for valid with pca dataset with manhattan distance
+# valid_pca_hclust_man_single <- hclust(valid_pca_dist_man, method = "single")
+# valid_pca_hclust_man_complete <- hclust(valid_pca_dist_man, method = "complete")
+# valid_pca_hclust_man_average <- hclust(valid_pca_dist_man, method = "average")
+# valid_pca_hclust_man_ward <- hclust(valid_pca_dist_man, method = "ward.D2")
+
+
+# Perform K-means clustering 
+train_kmeans <- kmeans(train_scaled, centers = 5, nstart = 25)
+train_pca_kmeans <- kmeans(train_scaled_pca_df, centers = 5, nstart = 25)
+valid_kmeans <- kmeans(valid_scaled, centers = 5, nstart = 25)
+valid_pca_kmeans <- kmeans(valid_scaled_pca, centers = 5, nstart = 25)
+
+
+```
+
+```{r}
+# plotting wards pca v non-pca
+res_cluster <- cutree(train_pca_hclust_euc_ward, k = 5)
+res_cluster <- cutree(train_hclust_euc_ward, k = 5)
+
+  
+# Create a title
+title <- "Five clusters with Wards linkage, Euclidean distance"
+
+# Create a subtitle for the first plot
+subtitle_1 <- "PCA"
+
+# Create a subtitle for the second plot
+subtitle_2 <- "no PCA"
+
+# Add the titles and subtitles to the plots
+cluster_scale_PCA <- fviz_cluster(
+  list(data = train_scaled_pca_df, cluster = res_cluster), 
+  palette = c("#00AFBB", "#E7B800", "#FC4E07", "#800080", "#808000"), 
+  ggtheme = theme_minimal(), 
+  geom = "point"
+) + 
+  theme(legend.position = "none") + 
+  ggtitle("") + 
+  labs(subtitle = subtitle_1)
+
+cluster_scale <- fviz_cluster(
+  list(data = train_scaled, cluster = res_cluster), 
+  palette = c("#00AFBB", "#E7B800", "#FC4E07", "#800080", "#808000"), 
+  ggtheme = theme_minimal(), 
+  geom = "point"
+) + 
+  ggtitle("") + 
+  labs(subtitle = subtitle_2)
+
+# Combine the plots
+(cluster_scale_PCA + cluster_scale)
+
+```
+
+<!--# silouhette scores to decide whether pca is worth doing -->
+
+```{r}
+library(cluster)
+library(factoextra)
+
+# Calculate silhouette scores for train dataset with k-means clustering
+train_kmeans_sil <- silhouette(train_kmeans$cluster, dist(train_scaled))
+
+# Visualize the silhouette scores using fviz_silhouette
+fviz_silhouette(train_kmeans_sil)
+
+# Calculate silhouette scores for train with pca dataset with k-means clustering
+train_pca_kmeans_sil <- silhouette(train_pca_kmeans$cluster, dist(train_scaled_pca_df))
+
+# Visualize the silhouette scores using fviz_silhouette
+fviz_silhouette(train_pca_kmeans_sil)
+
+```
+
+```{r}
+# # Import the packages
+# library(cluster)
+# library(graphics)
+# 
+# # Create the cluster labels
+# cluster_labels <- cutree(valid_pca_hclust_man_single, k = 5)
+# 
+# # Calculate the silhouette scores
+# silhouette_scores <- silhouette(cluster_labels, valid_pca_dist_man)
+# 
+# # Plot the silhouette scores
+# plot(silhouette_scores)
+
+```
+
+```{=html}
+<!--# comparing silhouette scores is a way of understanding performance which measures how similar an object is to its own cluster compared to other clusters. a higher score indicates a better performance.
+-->
+```
+```{r}
+library(cluster)
+library(factoextra)
+
+
+
+
+# Compute silhouette scores for each hierarchical clustering solution
+train_hclust_euc_single <- hclust(train_scaled_dist_euc, method = "single")
+train_hclust_euc_complete <- hclust(train_scaled_dist_euc, method = "complete")
+train_hclust_euc_average <- hclust(train_scaled_dist_euc, method = "average")
+train_hclust_euc_ward <- hclust(train_scaled_dist_euc, method = "ward.D2")
+
+library(factoextra)
+
+# Calculate the silhouette width for each clustering method
+train_hclust_euc_single_sil <- silhouette(cutree(train_hclust_euc_single, k = 5), train_scaled_dist_euc)
+train_hclust_euc_complete_sil <- silhouette(cutree(train_hclust_euc_complete, k = 5), train_scaled_dist_euc)
+train_hclust_euc_average_sil <- silhouette(cutree(train_hclust_euc_average, k = 5), train_scaled_dist_euc)
+train_hclust_euc_ward_sil <- silhouette(cutree(train_hclust_euc_ward, k = 5), train_scaled_dist_euc)
+train_pca_hclust_euc_single_sil <- silhouette(cutree(train_pca_hclust_euc_single, k = 5), train_scaled_pca_dist_euc)
+train_pca_hclust_euc_complete_sil <- silhouette(cutree(train_pca_hclust_euc_complete, k = 5), train_scaled_pca_dist_euc)
+train_pca_hclust_euc_average_sil <- silhouette(cutree(train_pca_hclust_euc_average, k = 5), train_scaled_pca_dist_euc)
+train_pca_hclust_euc_ward_sil <- silhouette(cutree(train_pca_hclust_euc_ward, k = 5), train_scaled_pca_dist_euc)
+
+# Plot the silhouette widths
+par(mfrow = c(2, 4))
+fviz_silhouette(train_hclust_euc_single_sil)
+fviz_silhouette(train_hclust_euc_complete_sil)
+fviz_silhouette(train_hclust_euc_average_sil)
+fviz_silhouette(train_hclust_euc_ward_sil)
+fviz_silhouette(train_pca_hclust_euc_single_sil)
+fviz_silhouette(train_pca_hclust_euc_complete_sil)
+fviz_silhouette(train_pca_hclust_euc_average_sil)
+fviz_silhouette(train_pca_hclust_euc_ward_sil)
+
+
+
+
+```
+
+<!--# silhouette plots - what have we learned.  In terms of clustering, Kmeans with 5 cluster performed the best when comparing 5 clusters.  It has the highest silhouette score of 0.27, with very few values lower than 0, although a lot near 0.  In terms of clustering, Wards linkage followed by complete linkage; and PCA data over non-PCA data.  -->
+
+<!--# want to see higher average widths - meaning that objects in each cluster are moe similar to each other and even groups indicating no bias.   -->
+
+```{r silhouette_score_kmeans}
+library(cluster)
+
+# K-means clustering without PCA
+train_silhouette <- silhouette(train_kmeans$cluster, dist(train_scaled))
+mean(train_silhouette[,3])
+fviz_silhouette(train_silhouette)
+
+# K-means clustering with PCA
+train_pca_silhouette <- silhouette(train_pca_kmeans$cluster, dist(train_scaled_pca_df))
+mean(train_pca_silhouette[,3])
+fviz_silhouette(train_pca_silhouette)
+
+```
+
+```{r}
+# Compute the silhouettes for different k values
+sil <- sapply(2:20, function(k) {
+  km <- kmeans(train_scaled, centers = k)
+  avg_sil <- mean(silhouette(km$cluster, train_scaled_dist_euc))
+  return(avg_sil)
+})
+
+# Plot the silhouette values for each k
+plot(2:20, sil, type = "b", xlab = "Number of clusters (k)", ylab = "Average silhouette width")
+
+sil_pca <- sapply(2:20, function(k) {
+  km <- kmeans(train_scaled_pca_df, centers = k)
+  avg_sil <- mean(silhouette(km$cluster, train_scaled_pca_dist_euc))
+  return(avg_sil)
+})
+
+# Plot the silhouette values for each k
+plot(2:20, sil_pca, type = "b", xlab = "Number of clusters (k)", ylab = "Average silhouette width")
+
+```
+
+<!--# the silhouette by K seems to be going up and up, suggesting that there may not be any well-defined clusters in the data; increasing the number of clusters may not improve classificatoin-->
+
+<!--# check wss and gap next -->
+
+```{r}
+library(cluster)
+library(factoextra)
+
+#Define the distance metrics to use
+distances <- c("euclidean", "manhattan")
+
+#Define the clustering algorithms to use
+clustering_algorithms <- list(
+hclust_single = function(data, metric) hclust(dist(data, method = metric), method = "single"),
+hclust_complete = function(data, metric) hclust(dist(data, method = metric), method = "complete"),
+hclust_average = function(data, metric) hclust(dist(data, method = metric), method = "average"),
+hculst_ward = function(data, metric) hclust(dist(data, method = metric), method = "ward.D2"),
+kmeans = function(data, metric) kmeans(data, 5)
+)
+
+#Create a list to store the results
+results <- list()
+
+#Create a list to store the silhouette scores
+silhouette_scores <- list()
+
+#Loop over distance metrics
+for (distance in distances) {
+
+#Compute distances on the scaled dataframes
+train_distance <- dist(train_scaled, method = distance)
+valid_distance <- dist(valid_scaled, method = distance)
+
+#Compute distances on the PCA transformed dataframes
+train_pca_distance <- dist(train_scaled_pca_df, method = distance)
+valid_pca_distance <- dist(valid_scaled_pca, method = distance)
+
+#Loop over clustering algorithms
+for (algorithm_name in names(clustering_algorithms)) {
+# Extract the algorithm function from the list
+algorithm_function <- clustering_algorithms[[algorithm_name]]
+
+# Cluster the data using the algorithm and distance metric
+train_clusters <- algorithm_function(train_scaled, distance)
+valid_clusters <- algorithm_function(valid_scaled, distance)
+train_PCA_clusters <- algorithm_function(train_scaled_pca_df, distance)
+valid_PCA_clusters <- algorithm_function(valid_scaled_pca, distance)
+
+# Calculate silhouettes for each of the four dataframes
+train_silhouette <- fviz_nbclust(train_scaled, FUN = hcut, method = "silhouette")$data
+valid_silhouette <- fviz_nbclust(valid_scaled, FUN = hcut, method = "silhouette")$data
+train_pca_silhouette <- fviz_nbclust(train_scaled_pca_df, FUN = hcut, method = "silhouette")$data
+valid_pca_silhouette <- fviz_nbclust(valid_scaled_pca, FUN = hcut, method = "silhouette")$data
+
+# Store the silhouette scores in the list
+silhouette_scores[[length(silhouette_scores) + 1]] <- list(
+  distance = distance,
+  algorithm = algorithm_name,
+  train_silhouette = train_silhouette,
+  valid_silhouette = valid_silhouette,
+  train_pca_silhouette = train_pca_silhouette,
+  valid_pca_silhouette = valid_pca_silhouette
+)
+
+# Store the clustering results in the list
+result <- list(
+  distance = distance,
+  algorithm = algorithm_name,
+  train_clusters = train_clusters,
+  valid_clusters = valid_clusters,
+  train_PCA_clusters = train_PCA_clusters,
+  valid_PCA_clusters = valid_PCA_clusters
+)
+
+results[[length(results) + 1]] <- result
+}
+}
+
+
+
+
+# Script to calculate clustering combinations for train (pca/no pca) and valid (pca, no pca)
+# Loops through distances (euclidean and manhattan) and clustering algorithms (hclust - single, complete, average, wards.D2 linkages and kmeans) and stores output, including silhouettes in 'results'
+# Args:
+#   - data: data frame to scale
+# Returns:
+#   - Scaled data frame
+
+# Load required libraries
+library(cluster)
+library(factoextra)
+
+# Define the distance metrics to use
+distances <- c("euclidean", "manhattan")
+
+# Define the clustering algorithms to use
+clustering_algorithms <- list(
+  hclust_single = function(data, metric) hclust(dist(data, method = metric), method = "single"),
+  hclust_complete = function(data, metric) hclust(dist(data, method = metric), method = "complete"),
+  hclust_average = function(data, metric) hclust(dist(data, method = metric), method = "average"),
+  hculst_ward = function(data, metric) hclust(dist(data, method = metric), method = "ward.D2"),
+  kmeans = function(data, metric) kmeans(data, 5)
+)
+
+# Create a list to store the results
+results <- list()
+
+# Create a list to store the silhouette scores
+silhouette_scores <- list()
+
+# Loop over distance metrics
+for (distance in distances) {
+  
+  # Compute distances on the scaled dataframes
+  train_distance <- dist(train_scaled, method = distance)
+  valid_distance <- dist(valid_scaled, method = distance)
+  
+  # Compute distances on the PCA transformed dataframes
+  train_pca_distance <- dist(train_scaled_pca_df, method = distance)
+  valid_pca_distance <- dist(valid_scaled_pca, method = distance)
+  
+  # Loop over clustering algorithms
+  for (algorithm_name in names(clustering_algorithms)) {
+    
+    # Extract the algorithm function from the list
+    algorithm_function <- clustering_algorithms[[algorithm_name]]
+    
+    # Cluster the data using the algorithm and distance metric
+    train_clusters <- algorithm_function(train_scaled, distance)
+    valid_clusters <- algorithm_function(valid_scaled, distance)
+    train_PCA_clusters <- algorithm_function(train_scaled_pca_df, distance)
+    valid_PCA_clusters <- algorithm_function(valid_scaled_pca, distance)
+    
+    # Calculate silhouettes for each of the four dataframes
+    train_silhouette <- fviz_nbclust(train_scaled, FUN = hcut, method = "silhouette")$data
+    valid_silhouette <- fviz_nbclust(valid_scaled, FUN = hcut, method = "silhouette")$data
+    train_pca_silhouette <- fviz_nbclust(train_scaled_pca_df, FUN = hcut, method = "silhouette")$data
+    valid_pca_silhouette <- fviz_nbclust(valid_scaled_pca, FUN = hcut, method = "silhouette")$data
+    
+    # Store the silhouette scores in the list
+    silhouette_scores[[length(silhouette_scores) + 1]] <- list(
+      distance = distance,
+      algorithm = algorithm_name,
+      train_silhouette = train_silhouette,
+      valid_silhouette = valid_silhouette,
+      train_pca_silhouette = train_pca_silhouette,
+      valid_pca_silhouette = valid_pca_silhouette
+    )
+    
+    # Store the clustering results in the list
+    result <- list(
+      distance = distance,
+      algorithm = algorithm_name,
+      train_clusters = train_clusters,
+      valid_clusters = valid_clusters,
+      train_PCA_clusters = train_PCA_clusters,
+      valid_PCA_clusters = valid_PCA_clusters
+    )
+    
+    results[[length(results) + 1]] <- result
+  }
+}
+
+# Print the silhouette scores
+str(silhouette_scores)
+
+
+```
+
+```{r}
+
+```
+
+```{r}
 
 # Train the Random Forest model
 library(randomForest)

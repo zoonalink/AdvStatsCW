@@ -1,4 +1,4 @@
-# R script to load packages required by separate quarto files
+# R script to load packages required by separate quarto files / sections
 
 # set a seed for reproducibility
 set.seed(567)
@@ -25,22 +25,29 @@ default_packages <- c("dplyr", # data manipulation
                       "cluster" # clustering
                       ) 
 
-# assign packages based on file name
+# assign packages based on file name, set at beginning of each quarto file
 packages <- default_packages
+
 if (file == "dim_red") {
   packages <- c("dplyr", "flextable", "psych", "paran", "ade4", "factoextra", "patchwork")
+  
 } else if (file == "EDA") {
   packages <- c("dplyr", "flextable", "RColorBrewer", "ggplot2", "GGally", "ggcorrplot", "corrplot", "cowplot", "psych", "patchwork")
+  
 } else if (file == "data") {
   packages <- c("dplyr", "flextable", "RColorBrewer", "naniar")
+  
 } else if (file == "intro") {
   packages <- c("flextable","RColorBrewer")
+  
 } else {
   packages
 }
  
-# install and load packages
+# set repo url
 cran_repo <- "https://www.stats.bris.ac.uk/R/"
+
+# install and load packages
 for (package in packages) {
   if (!require(package, character.only = TRUE)) {
     if (package == "citr") {
@@ -51,6 +58,21 @@ for (package in packages) {
     library(package, character.only = TRUE)
   }
 }
+
+# flextable defaults
+set_flextable_defaults(
+  font.family = "Helvetica",
+  font.size = 12, 
+  font.color = "#333333",
+  border.color = "navy",
+  background.color = "white",
+  table.layout = "fixed",
+  theme_fun = theme_vanilla,
+  padding.top = 5, padding.bottom = 5,
+  padding.left = 6, padding.right = 6,
+  na_str = "NA", 
+  digits = 3
+)
 
 # set_flextable_defaults(
 #   font.family = "Arial",
@@ -66,19 +88,7 @@ for (package in packages) {
 #   digits = 2
 # )
 
-set_flextable_defaults(
-  font.family = "Helvetica",
-  font.size = 12, 
-  font.color = "#333333",
-  border.color = "navy",
-  background.color = "white",
-  table.layout = "fixed",
-  theme_fun = theme_vanilla,
-  padding.top = 5, padding.bottom = 5,
-  padding.left = 6, padding.right = 6,
-  na_str = "NA", 
-  digits = 3
-)
+
 
 
 #font.color = "#333333",
