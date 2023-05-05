@@ -384,6 +384,75 @@ cluster_scale <- fviz_cluster(
 # Combine the plots
 (cluster_scale_PCA + cluster_scale)
 
+
+```
+
+```{r}
+plot(train_hclust_euc_single) 
+plot(train_hclust_euc_complete)
+plot(train_hclust_euc_average) 
+plot(train_hclust_euc_ward) 
+
+
+plot(train_pca_hclust_euc_single) 
+plot(train_pca_hclust_euc_complete) 
+plot(train_pca_hclust_euc_average) 
+plot(train_pca_hclust_euc_ward) 
+```
+
+```{r}
+# Plot dendrogram with cutree for k=5
+plot(cutree(train_hclust_euc_single, k = 5), col = "blue")
+plot(train_hclust_euc_single, main = "Single linkage with k=5")
+
+# Plot dendrogram with cutree for k=5
+plot(cutree(train_hclust_euc_complete, k = 5), col = "blue")
+plot(train_hclust_euc_complete, main = "Complete linkage with k=5")
+
+# Plot dendrogram with cutree for k=5
+plot(cutree(train_hclust_euc_average, k = 5), col = "blue")
+plot(train_hclust_euc_average, main = "Average linkage with k=5")
+
+# Plot dendrogram with cutree for k=5
+plot(cutree(train_hclust_euc_ward, k = 5), col = "blue")
+plot(train_hclust_euc_ward, main = "Ward linkage with k=5")
+
+# Plot dendrogram with cutree for k=5
+plot(cutree(train_pca_hclust_euc_single, k = 5), col = "blue")
+plot(train_pca_hclust_euc_single, main = "PCA Single linkage with k=5")
+
+# Plot dendrogram with cutree for k=5
+plot(cutree(train_pca_hclust_euc_complete, k = 5), col = "blue")
+plot(train_pca_hclust_euc_complete, main = "PCA Complete linkage with k=5")
+
+# Plot dendrogram with cutree for k=5
+plot(cutree(train_pca_hclust_euc_average, k = 5), col = "blue")
+plot(train_pca_hclust_euc_average, main = "PCA Average linkage with k=5")
+
+# Plot dendrogram with cutree for k=5
+plot(cutree(train_pca_hclust_euc_ward, k = 5), col = "blue")
+plot(train_pca_hclust_euc_ward, main = "PCA Ward linkage with k=5")
+rect.hclust(train_pca_hclust_euc_ward, k = 5, border = "red")
+
+```
+
+```{r}
+
+# Extract the cluster assignments for k = 5
+clusters <- cutree(train_hclust_euc_ward, k = 5)
+
+# Examine the characteristics of the data in each cluster
+train_clusters <- cbind(train_scaled, cluster = clusters)
+
+aggregate(train_clusters, by = list(cluster = train_clusters$cluster), FUN = mean)
+
+# Extract the cluster assignments for k = 5
+clusters <- cutree(train_pca_hclust_euc_ward, k = 5)
+
+# Examine the characteristics of the data in each cluster
+train_pca_clusters <- cbind(train_scaled_pca_df, cluster = clusters)
+
+aggregate(train_pca_clusters, by = list(cluster = train_pca_clusters$cluster), FUN = mean)
 ```
 
 <!--# silouhette scores to decide whether pca is worth doing -->
@@ -465,6 +534,8 @@ fviz_silhouette(train_pca_hclust_euc_ward_sil)
 
 
 
+
+
 ```
 
 <!--# silhouette plots - what have we learned.  In terms of clustering, Kmeans with 5 cluster performed the best when comparing 5 clusters.  It has the highest silhouette score of 0.27, with very few values lower than 0, although a lot near 0.  In terms of clustering, Wards linkage followed by complete linkage; and PCA data over non-PCA data.  -->
@@ -510,171 +581,78 @@ plot(2:20, sil_pca, type = "b", xlab = "Number of clusters (k)", ylab = "Average
 
 <!--# the silhouette by K seems to be going up and up, suggesting that there may not be any well-defined clusters in the data; increasing the number of clusters may not improve classificatoin-->
 
+```{r}
+#plot different clusters
+
+
+```
+
 <!--# check wss and gap next -->
 
 ```{r}
-library(cluster)
 library(factoextra)
-
-#Define the distance metrics to use
-distances <- c("euclidean", "manhattan")
-
-#Define the clustering algorithms to use
-clustering_algorithms <- list(
-hclust_single = function(data, metric) hclust(dist(data, method = metric), method = "single"),
-hclust_complete = function(data, metric) hclust(dist(data, method = metric), method = "complete"),
-hclust_average = function(data, metric) hclust(dist(data, method = metric), method = "average"),
-hculst_ward = function(data, metric) hclust(dist(data, method = metric), method = "ward.D2"),
-kmeans = function(data, metric) kmeans(data, 5)
-)
-
-#Create a list to store the results
-results <- list()
-
-#Create a list to store the silhouette scores
-silhouette_scores <- list()
-
-#Loop over distance metrics
-for (distance in distances) {
-
-#Compute distances on the scaled dataframes
-train_distance <- dist(train_scaled, method = distance)
-valid_distance <- dist(valid_scaled, method = distance)
-
-#Compute distances on the PCA transformed dataframes
-train_pca_distance <- dist(train_scaled_pca_df, method = distance)
-valid_pca_distance <- dist(valid_scaled_pca, method = distance)
-
-#Loop over clustering algorithms
-for (algorithm_name in names(clustering_algorithms)) {
-# Extract the algorithm function from the list
-algorithm_function <- clustering_algorithms[[algorithm_name]]
-
-# Cluster the data using the algorithm and distance metric
-train_clusters <- algorithm_function(train_scaled, distance)
-valid_clusters <- algorithm_function(valid_scaled, distance)
-train_PCA_clusters <- algorithm_function(train_scaled_pca_df, distance)
-valid_PCA_clusters <- algorithm_function(valid_scaled_pca, distance)
-
-# Calculate silhouettes for each of the four dataframes
-train_silhouette <- fviz_nbclust(train_scaled, FUN = hcut, method = "silhouette")$data
-valid_silhouette <- fviz_nbclust(valid_scaled, FUN = hcut, method = "silhouette")$data
-train_pca_silhouette <- fviz_nbclust(train_scaled_pca_df, FUN = hcut, method = "silhouette")$data
-valid_pca_silhouette <- fviz_nbclust(valid_scaled_pca, FUN = hcut, method = "silhouette")$data
-
-# Store the silhouette scores in the list
-silhouette_scores[[length(silhouette_scores) + 1]] <- list(
-  distance = distance,
-  algorithm = algorithm_name,
-  train_silhouette = train_silhouette,
-  valid_silhouette = valid_silhouette,
-  train_pca_silhouette = train_pca_silhouette,
-  valid_pca_silhouette = valid_pca_silhouette
-)
-
-# Store the clustering results in the list
-result <- list(
-  distance = distance,
-  algorithm = algorithm_name,
-  train_clusters = train_clusters,
-  valid_clusters = valid_clusters,
-  train_PCA_clusters = train_PCA_clusters,
-  valid_PCA_clusters = valid_PCA_clusters
-)
-
-results[[length(results) + 1]] <- result
-}
-}
-
-
-
-
-# Script to calculate clustering combinations for train (pca/no pca) and valid (pca, no pca)
-# Loops through distances (euclidean and manhattan) and clustering algorithms (hclust - single, complete, average, wards.D2 linkages and kmeans) and stores output, including silhouettes in 'results'
-# Args:
-#   - data: data frame to scale
-# Returns:
-#   - Scaled data frame
-
-# Load required libraries
 library(cluster)
+
+# Compute within-cluster sum of squares (wss) for different k values
+wss <- sapply(2:10, function(k) {
+  km <- kmeans(train_scaled, centers = k)
+  return(km$tot.withinss)
+})
+
+# Plot the wss values for each k
+plot(2:10, wss, type = "b", xlab = "Number of clusters (k)", ylab = "Within-cluster sum of squares (wss)")
+
+# Identify the elbow point using the knee locator function
+fviz_nbclust(train_scaled, kmeans, method = "wss") + 
+  geom_vline(xintercept = 3, linetype = "dashed") + geom_vline(xintercept = 4, linetype = "dotted", colour = "red")
+```
+
+```{r}
+# Compute within-cluster sum of squares (wss) for different k values
+wss_pca <- sapply(2:10, function(k) {
+  km_pca <- kmeans(train_scaled_pca_df, centers = k)
+  return(km_pca$tot.withinss)
+})
+
+# Plot the wss values for each k
+plot(2:10, wss_pca, type = "b", xlab = "", ylab = "")
+
+# Identify the elbow point using the knee locator function
+fviz_nbclust(train_scaled_pca_df, kmeans, method = "wss") + 
+  geom_vline(xintercept = 3, linetype = "dashed") + geom_vline(xintercept = 4, linetype = "dotted", colour = "red")
+```
+
+```{r}
 library(factoextra)
+library(cluster)
 
-# Define the distance metrics to use
-distances <- c("euclidean", "manhattan")
+# Compute gap statistic for different k values
+gap_stat <- clusGap(train_scaled, FUN = kmeans, K.max = 10, B = 50, verbose = FALSE)
 
-# Define the clustering algorithms to use
-clustering_algorithms <- list(
-  hclust_single = function(data, metric) hclust(dist(data, method = metric), method = "single"),
-  hclust_complete = function(data, metric) hclust(dist(data, method = metric), method = "complete"),
-  hclust_average = function(data, metric) hclust(dist(data, method = metric), method = "average"),
-  hculst_ward = function(data, metric) hclust(dist(data, method = metric), method = "ward.D2"),
-  kmeans = function(data, metric) kmeans(data, 5)
-)
+# Plot the gap statistic values for each k
+plot(gap_stat, main = "Gap statistic", xlab = "Number of clusters (k)")
 
-# Create a list to store the results
-results <- list()
+# Identify the optimal number of clusters using the gap statistic function
+fviz_gap_stat(gap_stat)
+```
 
-# Create a list to store the silhouette scores
-silhouette_scores <- list()
+```{r}
 
-# Loop over distance metrics
-for (distance in distances) {
-  
-  # Compute distances on the scaled dataframes
-  train_distance <- dist(train_scaled, method = distance)
-  valid_distance <- dist(valid_scaled, method = distance)
-  
-  # Compute distances on the PCA transformed dataframes
-  train_pca_distance <- dist(train_scaled_pca_df, method = distance)
-  valid_pca_distance <- dist(valid_scaled_pca, method = distance)
-  
-  # Loop over clustering algorithms
-  for (algorithm_name in names(clustering_algorithms)) {
-    
-    # Extract the algorithm function from the list
-    algorithm_function <- clustering_algorithms[[algorithm_name]]
-    
-    # Cluster the data using the algorithm and distance metric
-    train_clusters <- algorithm_function(train_scaled, distance)
-    valid_clusters <- algorithm_function(valid_scaled, distance)
-    train_PCA_clusters <- algorithm_function(train_scaled_pca_df, distance)
-    valid_PCA_clusters <- algorithm_function(valid_scaled_pca, distance)
-    
-    # Calculate silhouettes for each of the four dataframes
-    train_silhouette <- fviz_nbclust(train_scaled, FUN = hcut, method = "silhouette")$data
-    valid_silhouette <- fviz_nbclust(valid_scaled, FUN = hcut, method = "silhouette")$data
-    train_pca_silhouette <- fviz_nbclust(train_scaled_pca_df, FUN = hcut, method = "silhouette")$data
-    valid_pca_silhouette <- fviz_nbclust(valid_scaled_pca, FUN = hcut, method = "silhouette")$data
-    
-    # Store the silhouette scores in the list
-    silhouette_scores[[length(silhouette_scores) + 1]] <- list(
-      distance = distance,
-      algorithm = algorithm_name,
-      train_silhouette = train_silhouette,
-      valid_silhouette = valid_silhouette,
-      train_pca_silhouette = train_pca_silhouette,
-      valid_pca_silhouette = valid_pca_silhouette
-    )
-    
-    # Store the clustering results in the list
-    result <- list(
-      distance = distance,
-      algorithm = algorithm_name,
-      train_clusters = train_clusters,
-      valid_clusters = valid_clusters,
-      train_PCA_clusters = train_PCA_clusters,
-      valid_PCA_clusters = valid_PCA_clusters
-    )
-    
-    results[[length(results) + 1]] <- result
-  }
-}
+# Compute gap statistic for different k values
+gap_stat_pca <- clusGap(train_scaled_pca_df, FUN = kmeans, K.max = 10, B = 50, verbose = FALSE)
 
-# Print the silhouette scores
-str(silhouette_scores)
+# Plot the gap statistic values for each k
+plot(gap_stat_pca, main = "Gap statistic", xlab = "Number of clusters (k)")
 
+# Identify the optimal number of clusters using the gap statistic function
+fviz_gap_stat(gap_stat_pca)
+```
 
+## next steps
+
+trying out different models and comparing them...with train_pca, train_nopca
+
+```{}
 ```
 
 ```{r}
