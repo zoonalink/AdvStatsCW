@@ -53,10 +53,10 @@ source("chem_packages.R")
 
 ```{r}
 # load data from csv
-num_train_scaled_label <- read.csv("../data/num_train_scaled_label.csv")
-num_train_scaled <- num_train_scaled_label[, -21]
+train_scaled_label <- read.csv("../data/train_scaled_label.csv")
+train_scaled <- train_scaled_label[, -21]
 
-summary(num_train_scaled_label)
+summary(train_scaled_label)
 ```
 
 ## Principal Components Analysis
@@ -68,13 +68,13 @@ Suitability for `PCA` can be established statistically with the `KMO` test. The 
 <!--# KMO test (Kaiser-Meyer-Olkin) is a measure / diagnostic tool to assess PCA suitabiltiy statistically.  It measures sampling adequacy of the variables - that is, how well do the variables represent the 'underlying' factors. KMO produces a value between 0 and 1 where 0.6 or greater is considered acceptable for PCA or factor analysis; less than 0.5 suggest that the dataset may not be suitable.  -->
 
 ```{r KMO}
-kmo_result <- KMO(num_train_scaled)
+kmo_result <- KMO(train_scaled)
 kmo_result$MSA
 #KMO_result$Image
 kmo_result$MSAi
 
 round(min(kmo_result$MSAi),2)
-colnames(num_train_scaled)[which.min(kmo_result$MSAi)]
+colnames(train_scaled)[which.min(kmo_result$MSAi)]
 
 ```
 
@@ -87,11 +87,11 @@ colnames(num_train_scaled)[which.min(kmo_result$MSAi)]
 
 # summary object, pipe through steps to add colnames, msa band
 
-kmo_summary <- num_train_scaled %>% 
+kmo_summary <- train_scaled %>% 
   KMO() %>% 
   .$MSAi %>% 
   tibble::enframe() %>% 
-  mutate(name = colnames(num_train_scaled), 
+  mutate(name = colnames(train_scaled), 
          MSAi_band = cut(value, 
                          breaks = c(0, 0.5, 0.6, 0.7, 0.8, 0.9, Inf), 
                          labels = c("< 0.5", "0.5-0.59", "0.6-0.69", "0.7-0.79", "0.8-0.89", ">= 0.9"))) %>% 
@@ -136,37 +136,37 @@ flextable(kmo_summary) |>
 
 ```{r parallel_analysis}
 
-paran(num_train_scaled, iterations = 5000)
+paran(train_scaled, iterations = 5000)
 ```
 
 <!--# So we do a PCA on the scaled data using dudi from factoextra. By looking at the screeplot of the PCA, it seems that 3 components is more appropriate.  From the 4th component, the contribution to explaining variability is about 5% meaning that each additional component/dimension accounts for approximately an additional 5% of the variability in the dataset.  This is not a lot - so keeping 3 components seems most reasonable.  That said, three components only explain 40% of the variability in the dataset.   -->
 
 ```{r pca_plots}
 
-pca_num_train_scaled <- dudi.pca(num_train_scaled,scannf = F, nf=4)
+pca_train_scaled <- dudi.pca(train_scaled,scannf = F, nf=4)
 
-scree <- fviz_screeplot(pca_num_train_scaled)
-eigen <- get_eigenvalue(pca_num_train_scaled)
+scree <- fviz_screeplot(pca_train_scaled)
+eigen <- get_eigenvalue(pca_train_scaled)
 
-pca1 <- fviz_pca_biplot(pca_num_train_scaled, label="var",var.lab = TRUE, col.ind = "#D95F02", alpha.ind = 0.4, col.var = "grey30", repel=TRUE)  +
+pca1 <- fviz_pca_biplot(pca_train_scaled, label="var",var.lab = TRUE, col.ind = "#D95F02", alpha.ind = 0.4, col.var = "grey30", repel=TRUE)  +
   ggtitle("PCA Biplots (dimensions 1x2, 2x3) of scaled dataset")
 
-pca2 <- fviz_pca_biplot(pca_num_train_scaled,label="var", col.ind = "#1B9E77", alpha.ind = 0.4, col.var = "grey30", repel=TRUE,axes=c(2,3)) +
+pca2 <- fviz_pca_biplot(pca_train_scaled,label="var", col.ind = "#1B9E77", alpha.ind = 0.4, col.var = "grey30", repel=TRUE,axes=c(2,3)) +
   ggtitle("")
 
-pca3 <- fviz_pca_biplot(pca_num_train_scaled, col.ind="x", col.var = "grey30", label="var", repel=TRUE,axes=c(1,2)) +
+pca3 <- fviz_pca_biplot(pca_train_scaled, col.ind="x", col.var = "grey30", label="var", repel=TRUE,axes=c(1,2)) +
       scale_color_gradient2(low="white", mid="blue",
       high="red", midpoint=0.6)
 
-pca4 <- fviz_pca_biplot(pca_num_train_scaled,
+pca4 <- fviz_pca_biplot(pca_train_scaled,
                         repel = T,
                         label = "var",
                         col.ind = train$label) + 
   theme(legend.position = "none")
 
-pca5 <- fviz_pca_ind(pca_num_train_scaled,
+pca5 <- fviz_pca_ind(pca_train_scaled,
                      geom.ind = "point", # show points only (but not "text")
-                     col.ind = num_train_scaled_label$label, # colour by groups
+                     col.ind = pca_train_scaled$label, # colour by groups
                      addEllipses = TRUE,
                      ggtheme = theme_minimal() + 
                        theme(legend.position = "bottom", 
@@ -202,7 +202,7 @@ eigen
 
 ```{r euclid_distance}
 # euclidean distance
-dist_euc <-get_dist(num_train_scaled,method="euclidean")
+dist_euc <-get_dist(train_scaled,method="euclidean")
 
 # heatmap
 fviz_dist(dist_euc)
@@ -211,7 +211,7 @@ fviz_dist(dist_euc)
 
 ```{r clusters}
 # euclidean distance
-dist_euc <- get_dist(num_train_scaled, method = "euclidean")
+dist_euc <- get_dist(train_scaled, method = "euclidean")
 
 # hierarchical clustering on distance using ward.D2 link method
 hc <- hclust(dist_euc, method = "ward.D2")
@@ -221,7 +221,7 @@ res_cluster <- cutree(hc, k = 5)
 
 
 # plot
-cluster_5 <- fviz_cluster(list(data = num_train_scaled, cluster = res_cluster), 
+cluster_5 <- fviz_cluster(list(data = train_scaled, cluster = res_cluster), 
              palette = c("#00AFBB", "#E7B800", "#FC4E07", "#800080", "#808000")
 , 
              ggtheme = theme_minimal(), 
@@ -251,7 +251,7 @@ NN<-hclust(dist_euc,method="single")
 #plot(NN)
 
 # labels from the original data
-labels <- rownames(num_train_scaled)
+labels <- rownames(train_scaled)
 
 # labels to the dendrogram
 NN$labels <- labels
@@ -296,9 +296,9 @@ plot(WC)
 ```{r Kmeans}
 # k-means
 # run k-means with 3 and 4 clusters
-#KM3 <- kmeans(num_train_scaled, 3)
-#KM4 <- kmeans(num_train_scaled, 4)
-KM5 <- kmeans(num_train_scaled, 5)
+#KM3 <- kmeans(train_scaled, 3)
+#KM4 <- kmeans(train_scaled, 4)
+KM5 <- kmeans(nrain_scaled, 5)
 
 # create a colour palette with the same number of colors as clusters
 library(RColorBrewer)
@@ -308,11 +308,11 @@ col5 <- brewer.pal(5, "Set1")
 
 # create scatter plots with colors and symbols based on cluster membership
 par(mfrow = c(1, 3))
-plot(num_train_scaled[, 1:2], col = col3[KM3$cluster], pch = KM3$cluster,
+plot(train_scaled[, 1:2], col = col3[KM3$cluster], pch = KM3$cluster,
      xlab = "", ylab = "PC2", main = "k-means (k = 3)")
-plot(num_train_scaled[, 1:2], col = col4[KM4$cluster], pch = KM4$cluster,
+plot(train_scaled[, 1:2], col = col4[KM4$cluster], pch = KM4$cluster,
      xlab = "PC1", ylab = "", main = "k-means (k = 4)")
-plot(num_train_scaled[, 1:2], col = col5[KM5$cluster], pch = KM5$cluster,
+plot(train_scaled[, 1:2], col = col5[KM5$cluster], pch = KM5$cluster,
      xlab = "", ylab = "", main = "k-means (k = 5)")
 
 ```
@@ -338,13 +338,13 @@ ggsave("tanglegram.png", my_tanglegram, width = 8, height = 6, dpi = 300)
 
 ```{r wss_clust}
 # within cluster sum of squares
-fviz_nbclust(num_train_scaled,FUN=hcut,method="wss")
+fviz_nbclust(train_scaled,FUN=hcut,method="wss")
 ```
 
 <!--# The 'silhouette' method calculates the average silhouette width for different values of k (clusters) and plots it.  The silhouette width measures similarity to a cluster in comparison to other clusters.  A high average silhouettte indicates that data is well-clustered; a low value suggests that there is overlap or misclassification.  The plot below suggests 2 clusters. -->
 
 ```{r silhouette_clust}
-fviz_nbclust(num_train_scaled, FUN = hcut, method = "silhouette")
+fviz_nbclust(train_scaled, FUN = hcut, method = "silhouette")
 ```
 
 ```{r km_wss}
@@ -369,8 +369,8 @@ KM5$size
 ```
 
 ```{r cluster_KM}
-fviz_cluster(KM4,data = num_train_scaled, repel = TRUE, geom = "point", label = "none")
-fviz_cluster(KM5, data = num_train_scaled, repel = TRUE, geom = "point", label = "none")
+fviz_cluster(KM4,data = train_scaled, repel = TRUE, geom = "point", label = "none")
+fviz_cluster(KM5, data = train_scaled, repel = TRUE, geom = "point", label = "none")
 
 ```
 
@@ -379,7 +379,7 @@ fviz_cluster(KM5, data = num_train_scaled, repel = TRUE, geom = "point", label =
 
 # Compute the silhouettes for different k values
 sil <- sapply(2:10, function(k) {
-  km <- kmeans(num_train_scaled, centers = k)
+  km <- kmeans(train_scaled, centers = k)
   avg_sil <- mean(silhouette(km$cluster, dist_euc))
   return(avg_sil)
 })
@@ -395,7 +395,7 @@ library(cluster)
 
 # Compute within-cluster sum of squares (wss) for different k values
 wss <- sapply(2:10, function(k) {
-  km <- kmeans(num_train_scaled, centers = k)
+  km <- kmeans(train_scaled, centers = k)
   return(km$tot.withinss)
 })
 
@@ -403,7 +403,7 @@ wss <- sapply(2:10, function(k) {
 plot(2:10, wss, type = "b", xlab = "Number of clusters (k)", ylab = "Within-cluster sum of squares (wss)")
 
 # Identify the elbow point using the knee locator function
-fviz_nbclust(num_train_scaled, kmeans, method = "wss") + 
+fviz_nbclust(train_scaled, kmeans, method = "wss") + 
   geom_vline(xintercept = 3, linetype = "dashed")
 
 ```
@@ -413,7 +413,7 @@ library(factoextra)
 library(cluster)
 
 # Compute gap statistic for different k values
-gap_stat <- clusGap(num_train_scaled, FUN = kmeans, K.max = 10, B = 50, verbose = FALSE)
+gap_stat <- clusGap(train_scaled, FUN = kmeans, K.max = 10, B = 50, verbose = FALSE)
 
 # Plot the gap statistic values for each k
 plot(gap_stat, main = "Gap statistic", xlab = "Number of clusters (k)")
@@ -432,7 +432,7 @@ fviz_gap_stat(gap_stat)
 library(factoextra)
 
 # PCA
-pca <- prcomp(num_train_scaled)
+pca <- prcomp(train_scaled)
 
 # loadings for all principal components
 loadings <- get_pca_var(pca)
@@ -460,7 +460,7 @@ if (length(low_contrib) == 0) {
 
 # create the data frame
 var_contrib <- data.frame(
-  Variable = names(num_train_scaled),
+  Variable = names(train_scaled),
   Loading = round(loadings$contrib, 2)
 )
 

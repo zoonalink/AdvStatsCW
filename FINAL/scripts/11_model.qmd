@@ -23,7 +23,7 @@ source("scale_data_using_train_stats.R")
 ```{r train_scale_data}
 train_label <- read.csv("../data/chem_train.csv")
 train <- train_label[,-21]
-train_scaled_label <- read.csv("../data/num_train_scaled_label.csv")
+train_scaled_label <- read.csv("../data/train_scaled_label.csv")
 train_scaled <- train_scaled_label[, -21]
 
 #summary(train_scaled_label)
@@ -45,6 +45,10 @@ train_sds <- apply(train, 2, sd)
 # scale based on train stats
 valid_scaled <- scale_data_using_train(valid, train_means = num_train_means, train_sds = num_train_sds)
 valid_scaled
+
+# write to csv
+write.csv(valid_scaled, "../data/valid_scaled.csv", row.names = FALSE)
+
 ```
 
 ## <!--# PCA  -->
@@ -184,6 +188,8 @@ pca4
 # pca without scaling, centring
 train_scaled_pca <- dudi.pca(train_scaled, center = FALSE, scale = FALSE, scannf = F, nf=3)
 
+
+
 scree <- fviz_screeplot(train_scaled_pca)
 eigen <- get_eigenvalue(train_scaled_pca)
 
@@ -228,28 +234,34 @@ eigen
 (pca1 + pca2)
  
  
- # save as dataframe for use below
+# save as dataframe for use below
  train_scaled_pca_df <- as.data.frame(train_scaled_pca$li)
+ 
+ write.csv(train_scaled_pca_df, "../data/train_scaled_pca_df.csv", row.names = FALSE)
+ 
 ```
 
 ```{r}
+
 summary(train_scaled_pca)
 
 #train_scaled_pca$li
+
 ```
 
 <!--# apply PCA scaling to 'validate' subset, using predict() -->
 
 <!--# now have four datasets train with/without pca; validate with/without pca -->
 
-```{r applyPCAtoValid}
+```{r}
 
-# Apply PCA transformation to validate dataset
-valid_scaled_pca <- predict(train_scaled_pca, newdata = valid_scaled)
+#apply PCA transformation to validate dataset
+valid_scaled_pca_df <- predict(train_scaled_pca, newdata = valid_scaled)
+
+write.csv(valid_scaled_pca_df, "../data/valid_scaled_pca_df.csv", row.names = FALSE)
 
 
-summary(valid_scaled_pca)
-
+summary(valid_scaled_pca_df)
 ```
 
 <!--# systematic checking of clustering algorithms and distances -->
@@ -652,27 +664,12 @@ fviz_gap_stat(gap_stat_pca)
 
 trying out different models and comparing them...with train_pca, train_nopca
 
+```         
+```
+
+```{r}
+
+```
+
 ```{}
-```
-
-```{r}
-
-```
-
-```{r}
-
-# Train the Random Forest model
-library(randomForest)
-rf_model <- randomForest(Group ~ ., data = train_data, importance = TRUE)
-
-# Test the accuracy of the model on the testing data
-rf_pred <- predict(rf_model, newdata = test_data)
-rf_acc <- mean(rf_pred == test_data$Group)
-print(paste("Random Forest Accuracy:", rf_acc))
-
-# Use the model to make predictions on new, unseen data
-new_data <- read.csv("new_data.csv")
-new_data_scaled <- scale(new_data[, -1])
-rf_new_pred <- predict(rf_model, newdata = new_data_scaled)
-
 ```

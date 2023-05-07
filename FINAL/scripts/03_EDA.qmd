@@ -200,7 +200,7 @@ num_train_scaled_label <- cbind(num_train_scaled, label = train$label)
 num_train_scaled_label
 
 #save to csv
-write.csv(num_train_scaled_label, "../data/num_train_scaled_label.csv", row.names = FALSE)
+write.csv(num_train_scaled_label, "../data/train_scaled_label.csv", row.names = FALSE)
 
 
 ```

@@ -22,7 +22,14 @@ default_packages <- c("dplyr", # data manipulation
                       "psych", # statistics, PCA
                       "paran", # parallel analysis
                       "dendextend", # dendrograms
-                      "cluster" # clustering
+                      "cluster", # clustering
+                      "kableExtra", # tables
+                      "glue", # text work
+                      "class", # knn model
+                      "mclust", # cluster, discriminant analysis
+                      "e1071", # support vector machine
+                      "rpart", # trees
+                      "randomForest" # forests
                       ) 
 
 # assign packages based on file name, set at beginning of each quarto file

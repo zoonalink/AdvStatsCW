@@ -1,0 +1,1470 @@
+---
+title: "classifiers"
+format: html
+---
+
+## <!--# Install packages -->
+
+```{r}
+
+# load/install R packages/libraries
+# set seed
+# load flextable defaults
+
+file <- ""
+source("chem_packages.R")
+
+library(class) #knn
+library(kableExtra) #tables
+library(ggplot2) # plots
+library(mclust) # modelling
+library(glue) # text
+library(e1071) # svm
+library(rpart) # trees
+library(randomForest) # forests
+
+
+# # make scale data using train script available
+# source("scale_data_using_train_stats.R")
+
+```
+
+<!--# pull in datasets -->
+
+```{r train_data}
+# load in train dataset from csv files
+
+# scaled train with labels
+train_scaled_label <- read.csv("../data/train_scaled_label.csv")
+train_label_vec <- train_scaled_label$label
+
+# scaled train without labels 
+train_scaled <- train_scaled_label[, -21]
+
+# scaled train pca df
+train_scaled_pca_df <- read.csv("../data/train_scaled_pca_df.csv")
+
+
+```
+
+```{r validate_data}
+# load in validate datasets from csv files
+
+# read in valid dataset
+valid_label <- read.csv("../data/chem_valid.csv")
+valid_label_vec <- valid_label$label
+
+# scaled validate without labels 
+valid_scaled <- read.csv("../data/valid_scaled.csv")
+
+# scaled validate with labels
+valid_scaled_label <- cbind(valid_scaled, valid_label[21])
+
+# scaled validate pca df
+valid_scaled_pca_df <- read.csv("../data/valid_scaled_pca_df.csv")
+
+
+
+```
+
+<!--# first try knn for a baseline model -->
+
+```{r knn_base_model}
+# create baseline KNN model with low K
+
+
+# fit knn with k=3
+sc_knn_3<-knn(train=train_scaled, test=valid_scaled, cl=train_label_vec, k = 3, prob=TRUE)
+
+# confusion matrix
+sc_knn_3_tbl <- table(truth = valid_label_vec, predicted=sc_knn_3[1:length(valid_label_vec)])
+
+#sc_knn_3_tbl
+
+#  kable table
+kbl(sc_knn_3_tbl)|>kable_classic(full_width = F, html_font = "Cambria")
+
+
+  
+```
+
+<!--# this baseline knn model is not great, especially for predicting class E wich are spread over all groups. good at predicting A, OK at B, C, D but terrible at E -->
+
+<!--# common to check k neighbours up to squareroot of number of observations - 35. -->
+
+<!--# it is clear looking at the many knn tables that classifying chemical E is not getting any cleaerer.  the others are reasonable, with some misclassification, but E is not converging.  Perhaps it is not a group - perhaps there is something else going on with E. can this be looked at differently - comparing tables can be tiring.  -->
+
+```{r knn_loop}
+
+# loop through k, print confusion matrix and store accuracies
+
+# square root N of dataset to get upper K
+K = sqrt(length(train_scaled[,1]))
+
+k_values <- 4:K
+# empty vectors to store results
+accuracies <- rep(0, length(k_values))
+
+# loop over different values of K, storing accuracies
+for (i in seq_along(k_values)) {
+  k <- k_values[i]
+  # pull each each knn
+  pull <- knn(train=train_scaled, test=valid_scaled, cl=train_label_vec, k=k, prob=TRUE)[1:length(valid_label_vec)]
+  
+  # create kable table
+  tab <- kbl(table(truth=valid_label_vec,predicted=pull)) |>
+    kable_classic(full_width = F, html_font = "Cambria")
+  # print each
+  print(tab)
+  
+  # store each accuracy = predict == actual/total
+  acc <- sum(pull == valid_label_vec) / length(valid_label_vec)
+  accuracies[i] <- acc
+}
+
+# create a df of results
+knn_accuracies <- data.frame(K=k_values, Accuracy=accuracies)
+
+
+#knn_accuracies
+
+```
+
+<!--# plotting the accuracies below, can see that the accuracy actually gets worse with more K - best K is 7, with accuracy of 82% -->
+
+```{r best_knn_accuracy}
+
+# max accuracy
+max_accuracy <- max(knn_accuracies$Accuracy)
+
+# associated k 
+best_k <- knn_accuracies$K[which.max(knn_accuracies$Accuracy)]
+
+# print
+cat("Best accuracy:\n")
+max_accuracy
+cat("K for best accuracy:\n")
+best_k
+
+```
+
+```{r plot_knn_accuracy}
+
+# create a plot
+ggplot(knn_accuracies, aes(x=K, y=Accuracy)) +
+  geom_line() +
+  geom_point() +
+  labs(x="K", y="Accuracy", title="KNN Classifier Accuracy for Different K Values, Scaled")
+
+```
+
+<!--# how about for pca transformed data -->
+
+```{r knn_pca_loop}
+
+# loop through k, print confusion matrix and store accuracies for PCA transformed data
+
+# square root N of dataset to get upper K
+K = sqrt(length(train_scaled[,1]))
+
+k_values <- 4:K
+# empty vectors to store results
+accuracies <- rep(0, length(k_values))
+
+# loop over different values of K, storing accuracies
+for (i in seq_along(k_values)) {
+  k <- k_values[i]
+  # pull each each knn
+  pull <- knn(train=train_scaled_pca_df, test=valid_scaled_pca_df, cl=train_label_vec, k=k, prob=TRUE)[1:length(valid_label_vec)]
+  
+  # create kable table
+  tab <- kbl(table(truth=valid_label_vec,predicted=pull)) |>
+    kable_classic(full_width = F, html_font = "Cambria")
+  # print each
+  print(tab)
+  
+  # store each accuracy = predict == actual/total
+  acc <- sum(pull == valid_label_vec) / length(valid_label_vec)
+  accuracies[i] <- acc
+}
+
+# create a df of results
+knn_pca_accuracies <- data.frame(K=k_values, Accuracy=accuracies)
+
+
+```
+
+```{r plot_knn_pca_accuracy}
+# create a data frame of results
+knn_pca_accuracies <- data.frame(K=k_values, Accuracy=accuracies)
+
+# create a plot
+ggplot(knn_pca_accuracies, aes(x=K, y=Accuracy)) +
+  geom_line() +
+  geom_point() +
+  labs(x="K", y="Accuracy", title="KNN Classifier Accuracy for Different K Values, PCA Transformed")
+```
+
+```{r best_knn_pca}
+# max pca accuracy
+max_pca_accuracy <- max(knn_pca_accuracies$Accuracy)
+# associated k value
+best_pca_k <- knn_pca_accuracies$K[which.max(knn_pca_accuracies$Accuracy)]
+
+# print
+cat("Best accuracy:\n")
+max_pca_accuracy
+cat("K for best accuracy:\n")
+best_pca_k
+```
+
+<!--# PCA is a lot worse - best acc is 0.72 and needs 18 neighbours for this...too much information is lost with PCA.-->
+
+<!--#  -->
+
+```{r model_DA}
+
+# fit discriminant analysis model on non-pca data
+MBDA_sc <- MclustDA(data=train_scaled, class=train_label_vec,verbose=FALSE)
+
+# save summary
+MBDA_sc_sum <-summary(MBDA_sc, parameters = TRUE)
+
+# print summary
+MBDA_sc_sum
+
+```
+
+```{r plot_DA}
+# pair plot
+plot(MBDA_sc, what = "classification")
+# plot x1, x2
+plot(MBDA_sc, what = "classification", dimens = c(1,2))
+ # plot x18, x19 - linear
+plot(MBDA_sc, what = "classification", dimens = c(18,19))
+
+```
+
+```{r density_plot}
+# dens_train_sc <- densityMclust(train_scaled, verbose = FALSE)
+# 
+# plot(dens_train_sc, what ="BIC")
+```
+
+<!--# mclust - model-based clustering and classification method which assumes that the data comes from a finite mixture of multivariate Gaussian distributions.  Discriminant analysis using Mclust is supervised learning -->
+
+<!--# models are XXX 1 and EEI 3  -->
+
+<!--# xxx means that no valid model was identified to explain the data...so it defaults to basic univariate model - that is one variable at a time adn assigns classes base on the marginal probability of each variable.  assues variables are independent and have equal variance -->
+
+<!--# xxx ellipsoidal multivariate normal -->
+
+<!--# class prior probs - estimated proportion of observations in each class based on the input data.  represent expeted distribution of classes in population -->
+
+<!--# confusion matrix - how well the model did loads better than knn, 2 misclassified in A, 4 wrong in B, 8 wrong in C, 2 wrong in D.  Again it is class E which is problematic.  there are 18 which were predicted to belong to other classes than the true class (e).  All of the missclassifications for the other classes where in E. -->
+
+<!--# classification error - sum of off-diagonal elements / total obs.  0.0278 has high accurcy in predicting. -->
+
+<!--# brier score - measure of accuracy of probabilistic predictions - taking into account correctness and confidence of model's predictions.  perfect model has brier score of 0, 1 is completely inaccurate.  0.024 - good model accuracy. -->
+
+<!--# E may have similarities making it difficult to distinguish - again, is it a real class? But still 218/ 236 is quite good.  -->
+
+<!--# higher log-likelihood means better fitting model.  BIC is bayesian information criterion - measure of model fit taking into account log-likelihood and df - lower BIC values are better models. BIC value is relatively low - model fits data; parsimonious (not overly complex).  -->
+
+<!--# accuracy is 1203/1225 = 0.982 -->
+
+```{r MBDA_sc_accuracy}
+# make predictions on the validation set
+valid_preds <- predict(MBDA_sc, newdata = valid_scaled)
+valid_preds <- valid_preds$classification
+  # calculate accuracy of predictions
+accuracy <- sum(valid_preds == valid_label_vec)/ length(valid_label_vec)
+
+cat("Best accuracy (DA):\n")  
+accuracy
+```
+
+```{r model_DA_valid}
+# fit and store DA validate dataset 
+sum_MBDA_sc<-summary(MBDA_sc, newdata = valid_scaled, newclass = valid_label_vec)
+
+# print results
+sum_MBDA_sc
+
+
+#$brier.newdata
+```
+
+<!--# valid set confirms model's quality.  0.0359 classification error - 3.6% of samples were misclassified.  brier score of 0.0311 is good.   -->
+
+<!--# the issue is still E, same pattern - is there room for improvement?  -->
+
+```{r}
+summary(MBDA_sc)
+```
+
+```{r model_DA_output}
+
+
+#MBDA_sc$models$
+# model name for A group
+#MBDA_sc$models[[1]]$modelName
+
+# model names for each group
+MBDA_sc_names<-unlist(lapply(MBDA_sc$models,function(x){x$modelName}))
+
+# Gs for each group
+MBDA_sc_G<-unlist(lapply(MBDA_sc$models,function(x){x$G}))
+
+# glue into output
+glue_collapse(names(MBDA_sc_names),sep=", ",last=" and ")
+glue_collapse(MBDA_sc_names,sep=", ",last=" and ")
+glue_collapse(MBDA_sc_G,sep=", ",last=" and ")
+```
+
+<!--# XXX 1 model (A, B, D, E) - these are spherical GMM (Gaussian Mixture Model ) with equal volume and orientation. the '1' means that a single component GMM was used. (more components mean more flexibility but increase risk of overfitting).  EEI (C) model has an ellipsoidal GMM with different volumes and orientations for each component.  the '3' means 3 components.-->
+
+<!--# how about on pca-transformed data -->
+
+```{r model_DA_pca}
+
+# fit model DA on pca transformed data
+MBDA_pca <- MclustDA(data=train_scaled_pca_df, class=train_label_vec,verbose=FALSE)
+
+# print output
+summary(MBDA_pca, parameters = TRUE)
+```
+
+<!--# the pca results are nowhere near as good as the full dataset.  the classification error is 0.28 - 28% error; the brier score is 0.1958.  the confusion matrix has a lot of misclassifications across all classes - class A is best butover all they are poor with class E again begin the most problematic.  There are more misclassified than correct 62/118.  conclusion - PCA loses too much variability, information. -->
+
+<!--# comparing two models - no_pca has higher log-likelihood but also higher bic and higher df; but pca has lower log-likelihood, also lower bic and df. but it isn't a good model...maybe more components will be better? -->
+
+```{r MBDA_pca_accuracy}
+# make predictions on the validation set
+valid_pca_preds <- predict(MBDA_pca, newdata = valid_scaled_pca_df)
+valid_pca_preds <- valid_pca_preds$classification
+  # calculate accuracy of predictions
+accuracy <- sum(valid_pca_preds == valid_label_vec)/ length(valid_label_vec)
+
+cat("Best accuracy (PCA):\n")  
+accuracy
+```
+
+```{r plot_DA_pca}
+# DA pca plots
+plot(MBDA_pca, what = "classification")
+plot(MBDA_pca, what = "classification", dimens = c(1,2))
+```
+
+```{r mclust_dim_red}
+# store mclust dimension reduction
+#pca_result <- MclustDR(MBDA_sc)
+
+# plot dim red 
+#plot(pca_result)
+```
+
+<!--# hypertuning mclust with scaled only data -->
+
+```{r mclust_tune1}
+
+
+# number of mixture components
+
+#n.components <- c(2, 3, 4, 5, 6, 7, 8, 9, 10)
+
+#n.components <- c(10, 12, 14, 16, 18, 20)
+#n.components <- c(20, 22, 24, 26, 28, 30)
+n.components <- c(36)
+# grid to search
+hyperparameters <- expand.grid(n.components=n.components)
+
+# initialise the best
+best.model <- NULL
+best.bic <- Inf
+
+# loop over grid 
+for (i in 1:nrow(hyperparameters)) {
+
+  # train_scaled to a numeric matrix
+  data <- as.matrix(train_scaled)
+
+  # fit mclust model 
+  model <- MclustDA(data=data, class=train_label_vec, G=hyperparameters$n.components[i], verbose=FALSE)
+  
+  # bic
+  sum <- summary(model)
+  bic <- sum$bic
+
+  # better bic, saved
+  if (bic < best.bic) {
+    best.model <- model
+    best.bic <- bic
+  }
+}
+
+# best model
+sum_best_model <- summary(best.model, newdata = valid_scaled, newclass = valid_label_vec)
+
+# best bic
+cat("Best bic:\n")
+print(sum_best_model$bic)
+cat("\nModel with best bic:\n")
+print(sum_best_model)
+
+
+# make predictions on the validation set
+valid_preds <- predict(best.model, newdata = valid_scaled)
+valid_preds <- valid_preds$classification
+  # calculate accuracy of predictions
+accuracy <- sum(valid_preds == valid_label_vec)/ length(valid_label_vec)
+
+cat("\nBest accuracy (DA):\n")  
+accuracy
+
+```
+
+<!--# the test accuracy keeps increasing (overfitting) as does the bic score, as the n.components are increased...but the test accuracy peaks at n.components = 36. given size of dataset this is way too many, and clearly overfitting-->
+
+```{r mclust_tune2}
+
+
+# hyperparameters to search
+#n.components <- c(2, 3, 4, 5, 6)
+n.components <- c(3, 4)
+diagonal <- c(TRUE, FALSE)
+modelName <- c("VEV", "EII", "VII", "EEE", "VVV", "EEI", "VEI", "EVI", "VVI", "VEE", "EVE", "VVE", "EEV", "VEV", "EVV"  )
+
+
+# grid to search
+hyperparameters <- expand.grid(n.components = n.components,
+                               diagonal = diagonal,
+                               modelName = modelName
+                               )
+
+# initialise the best
+best.model <- NULL
+best.bic <- Inf
+
+# loop over grid 
+for (i in 1:nrow(hyperparameters)) {
+
+  # train_scaled to a numeric matrix
+  data <- as.matrix(train_scaled)
+
+  # fit mclust model 
+  model <- MclustDA(data = data,
+                    class = train_label_vec,
+                    G = hyperparameters$n.components[i],
+                    diagonal = hyperparameters$diagonal[i],
+                    modelName = hyperparameters$modelName[i],
+                    verbose = FALSE)
+  
+  # bic
+  sum <- summary(model)
+  bic <- sum$bic
+
+  # better bic, saved
+  if (bic < best.bic) {
+    best.model <- model
+    best.bic <- bic
+  }
+}
+
+# best model
+sum_best_model2 <- summary(best.model, newdata = valid_scaled, newclass = valid_label_vec)
+
+# results
+cat("Best BIC:\n")
+print(sum_best_model2$bic)
+cat("Model with best BIC:\n")
+print(sum_best_model2)
+
+# make predictions on the validation set
+valid_preds2 <- predict(best.model, newdata = valid_scaled)
+valid_preds2 <- valid_preds2$classification
+
+# calculate accuracy of predictions
+accuracy2 <- sum(valid_preds2 == valid_label_vec)/ length(valid_label_vec)
+
+cat("Best accuracy (DA):\n")  
+accuracy2
+
+```
+
+<!--# interestingly...first tuned model has a better validate performance than the second model, which performs better on the train dataset, suggesting that the second is overfitting ever so slightly and that the first generalises better, ever so slightly.  -->
+
+<!--# model1 has 3 components, with EE1 covariance; model two has 6 components with VEV covariance.  second model has much better BIC, lower class error, etc. but corresponding test error is higher and brier higher - so overfitting -->
+
+<!--# if you keep adding components the model fits better (overfitting), but the validate accuracy peaks at a point. for loop1 -> 36 components! -->
+
+<!--# QDA with mclust - just because -->
+
+```{r}
+# hyperparameters to search
+n.components <- c(2, 3, 4, 5, 6)
+modelName <- "EII"  # QDA only supports "EII" model
+hyperparameters <- expand.grid(n.components = n.components, modelName = modelName)
+
+# initialise the best
+best.model <- NULL
+best.bic <- Inf
+
+# loop over grid 
+for (i in 1:nrow(hyperparameters)) {
+
+  # train_scaled to a numeric matrix
+  data <- as.matrix(train_scaled)
+
+  # fit mclust model 
+  model <- MclustDA(data = data,
+                    class = train_label_vec,
+                    G = hyperparameters$n.components[i],
+                    modelName = hyperparameters$modelName[i],
+                    verbose = FALSE)
+  
+  # bic
+  sum <- summary(model)
+  bic <- sum$bic
+
+  # better bic, saved
+  if (bic < best.bic) {
+    best.model <- model
+    best.bic <- bic
+  }
+}
+
+# best model
+sum_best_model <- summary(best.model, newdata = valid_scaled, newclass = valid_label_vec)
+
+# results
+cat("Best BIC:\n")
+print(sum_best_model$bic)
+cat("Model with best BIC:\n")
+print(sum_best_model)
+
+# make predictions on the validation set
+valid_preds <- predict(best.model, newdata = valid_scaled)
+valid_preds <- valid_preds$classification
+
+# calculate accuracy of predictions
+accuracy <- sum(valid_preds == valid_label_vec) / length(valid_label_vec)
+
+cat("\nBest accuracy (QDA):\n")  
+accuracy
+
+```
+
+```{r svm_model}
+
+# svm model with linear kernel
+svm_model <- svm(as.factor(train_label_vec) ~ ., data = train_scaled, kernel = "linear")
+
+# predictions on the valid set
+valid_preds <- predict(svm_model, valid_scaled)
+
+# accuracy of the predictions
+accuracy <- sum(valid_preds == valid_label_vec) / length(valid_label_vec)
+
+cat("Best accuracy (SVM):\n")
+accuracy
+
+
+```
+
+<!--# svm has accuracy of 0.91 with scaled data and 0.71 with pca data.  pca performs worse with svm by a lot  -->
+
+```{r}
+# Define the SVM model with a linear kernel
+svm_model_pca <- svm(as.factor(train_label_vec) ~ ., data = train_scaled_pca_df, kernel = "linear")
+
+# Make predictions on the training set
+valid_preds <- predict(svm_model_pca, valid_scaled_pca_df)
+
+# Calculate the accuracy of the predictions
+accuracy <- sum(valid_preds == valid_label_vec) / length(valid_label_vec)
+
+cat("Best accuracy - pca (SVM):\n")
+accuracy
+```
+
+<!--# ready to abandon the PCA data in favour of scaled only.  still need to see if any variaables can be dropped. -->
+
+<!--# tuning svm with hyperparameters, checking cost and kernel-->
+
+```{r tune_svm}
+
+# use gridsearch method to check across hyperparameters, to get best svm for scaled only data
+
+# range of hyperparameters to check
+hyperparameters <- expand.grid(C = c(0.01, 0.1, 1, 10, 100),
+                               kernel = c("linear", "polynomial", "radial", "sigmoid"))
+
+# initialise variables for best
+best_accuracy <- 0
+best_model <- NULL
+
+# grid search
+for (i in 1:nrow(hyperparameters)) {
+  # train SVM model hyperparameters - cost, kernel
+  svm_model <- svm(as.factor(train_label_vec) ~ ., data = train_scaled, 
+                   kernel = hyperparameters$kernel[i], 
+                   cost = hyperparameters$C[i])
+  
+  # predict on validation data
+  valid_preds <- predict(svm_model, valid_scaled)
+  
+  # accuracy of predictions
+  accuracy <- sum(valid_preds == valid_label_vec) / length(valid_label_vec)
+  
+  # update best model if higher accuracy
+  if (accuracy > best_accuracy) {
+    best_accuracy <- accuracy
+    best_model <- svm_model
+  }
+}
+
+# print information about best model
+cat("Best model:\n")
+print(best_model)
+cat("Accuracy:", best_accuracy, "\n")
+
+```
+
+<!--# best svm is 95.5% accurate; it is svm with radial kernal and cost of 10 -->
+
+<!--# look at trees and forests -->
+
+```{r}
+#train_scaled
+#train_scaled_pca_df
+#train_label_vec
+#train_scaled_label
+#valid_scaled
+#valid_scaled_pca_df
+#valid_label_vec
+```
+
+```{r single_tree_train}
+library(rpart)
+tree_train <- rpart(label~., data = train_scaled_label)
+print(tree_train, digits = 2)
+plot(tree_train)
+text(tree_train, xpd=TRUE)
+```
+
+```{r}
+tree_train_max<-rpart(label~., data = train_scaled_label,
+               minsplit=2,cp=0)
+plot(tree_train_max)
+tree_train_max$cptable
+plotcp(tree_train_max)
+#View(tree_train_max$cptable)
+```
+
+<!--# looking at cp plot above - want to identify where the relative error is lowest in relation to the complexity -->
+
+```{r}
+# optimal complexity
+opt_complex<-tree_train_max$cptable[which.min(tree_train_max$cptable[,4]),1]
+opt_complex
+
+# finding split of optimal complexity
+split_tree<-tree_train_max$cptable[which.min(tree_train_max$cptable[,4]),2]
+split_tree
+
+# finding best place to prune programmatically
+opt_tree<-prune(tree_train_max,cp=opt_complex)
+plot(opt_tree)
+text(opt_tree,xpd=TRUE,cex=.5)
+```
+
+```{r}
+#threshhold + 1 standard error 
+threshold_1SE<-sum(tree_train_max$cptable[which.min(tree_train_max$cptable[,4]),4:5])
+
+#which statement identifies which are within our threshold, min takes smallest of that and stores in cp1SE
+
+complex_1SE<-tree_train_max$cptable[min(which(tree_train_max$cptable[,4]<=threshold_1SE)),1]
+
+
+tree_1SE<-prune(tree_train_max,cp=complex_1SE)
+plot(tree_1SE)
+text(tree_1SE,xpd=TRUE,cex=.75)
+```
+
+<!--# as previously observed, E is challenging to classify - it is spread everywhere.  A is easiest to id, only requires one variable. -->
+
+```{r missclassification_trees}
+
+
+#  unpruned tree
+err_tree_valid_max <- mean(predict(tree_train_max, valid_scaled, type = "class") != valid_scaled_label$label)
+err_tree_train_max <- mean(predict(tree_train_max, train_scaled_label, type = "class") != train_scaled_label$label)
+
+# optimal tree 
+err_tree_valid_opt <- mean(predict(opt_tree, valid_scaled, type = "class") != valid_scaled_label$label)
+err_tree_train_opt <- mean(predict(opt_tree, train_scaled_label, type = "class") != train_scaled_label$label)
+
+# pruned tree with 1SD complexity
+err_tree_valid_max_1SE <- mean(predict(tree_1SE, valid_scaled, type = "class") != valid_scaled_label$label)
+err_tree_train_max1SE <- mean(predict(tree_1SE, train_scaled_label, type = "class") != train_scaled_label$label)
+
+
+```
+
+```{r}
+cat("Misscalculation error rate for validate (unpruned):\n")
+err_tree_valid_max
+cat("\nMisscalculation error rate for train (unpruned):\n")
+err_tree_train_max
+
+cat("\nMisscalculation error rate for validate (optimal):\n")
+err_tree_valid_opt
+cat("\nMisscalculation error rate for train (optimal):\n")
+err_tree_train_opt
+
+cat("\nMisscalculation error rate for validate (pruned - 1SD complexity):\n")
+err_tree_valid_max_1SE
+cat("\nMisscalculation error rate for train (pruned- 1SD complexity):\n")
+err_tree_train_max1SE
+```
+
+<!--# unpruned tree - maximum complexity - overfit on training data, poor at generalising.  optimal complexity - lowest cross-validation error chop.  this tree will have better generalisation because it is less complex, and less overfit.  Chopped to 1SD complexity - preempts overfitting, but retains predictive power. -->
+
+```{r}
+# complexity parameter at the first split
+cp1split <- tree_train_max$cptable[2, 1]
+
+# prune using the cp value at the first split
+tree1split <- prune(tree_train_max, cp = cp1split)
+
+# visualise 
+plot(tree1split)
+text(tree1split, xpd = TRUE, cex = 0.75)
+
+# calculate misclassification error rate on train and valid
+errTestTree1split <- mean(predict(tree1split, valid_scaled, type = "class") != valid_scaled_label$type)
+errTrainTree1split <- mean(predict(tree1split, train_scaled_label, type = "class") != train_scaled_label$type)
+
+# visualise the variable importance plot
+
+barplot(tree_train_max$variable.importance, las = 2, cex.names = 0.6)
+
+
+
+```
+
+<!--# so variable importance - we could use this to try modelling with less data to see what impact it has on the predictive power.  at a glance, I would like to try modelling with only X9, X7, X8, X10.  and then add X3, X1, and then add X2, X13 - it looks like the rest are not going to have a massive impact. -->
+
+<!--# bootstrapping trees and comparing allows to evaluate stability and variability.  it indicates how much the classification accuracy can vary between different trees - if low and consistent, then model is stable and good predictive power.  if not, then it won't generalise well.   -->
+
+```{r}
+## bootstrap samples.
+
+
+train_boot1 <- train_scaled_label[sample(1:nrow(train_scaled_label),                          nrow(train_scaled_label),replace=TRUE),]
+tree_boot1 <- rpart(label~., data=trainBoot1)
+
+
+
+train_boot2 <- train_scaled_label[sample(1:nrow(train_scaled_label),                          nrow(train_scaled_label),replace=TRUE),]
+tree_boot2 <- rpart(label~., data=trainBoot2)
+
+mean(predict(tree_boot1,valid_scaled,type="class")!=
+       predict(tree_boot2,valid_scaled,type="class"))
+
+```
+
+<!--# 0.14 suggests model is unstable as the error difference between the two boot trees is quite high. let's do it properly-->
+
+```{r}
+
+#Create a vector to store the bootstrapped accuracy for each tree
+boot_accuracy <- vector()
+
+#Iterate over the number of trees
+for (i in 1:100) {
+
+  #Create a bootstrapped training dataset
+  train_boot <- train_scaled_label[sample(1:nrow(train_scaled_label), nrow(train_scaled_label), replace = TRUE), ]
+
+  #Create a decision tree from the bootstrapped training dataset
+  tree_boot <- rpart(label ~ ., data = train_boot)
+
+  #Predict the class labels of the validation dataset using the decision tree
+  pred_boot <- predict(tree_boot, valid_scaled, type = "class")
+
+  #Calculate the accuracy of the decision tree on the validation dataset
+  boot_accuracy[i] <- mean(pred_boot == valid_scaled_label$label)
+}
+
+#Print the mean bootstrapped accuracy
+print(mean(boot_accuracy))
+
+
+
+```
+
+```{r}
+# Set the number of bootstrap samples and trees.
+nBoot <- 10
+nTrees <- 5
+
+# Initialize the classification error matrix.
+err_matrix <- matrix(NA, nrow=nBoot, ncol=nTrees)
+
+# Bootstrap resampling loop.
+for (i in 1:nBoot) {
+  # Create a bootstrap sample.
+  trainBoot <- train_scaled_label[sample(1:nrow(train_scaled_label), nrow(train_scaled_label),replace=TRUE),]
+  
+  # Train multiple decision trees on the sample.
+  for (j in 1:nTrees) {
+    treeBoot <- rpart(label ~ ., data=trainBoot)
+    err_matrix[i,j] <- mean(predict(treeBoot, valid_scaled, type="class") != valid_scaled_label$label)
+  }
+}
+
+# Compute the mean classification error across trees for each bootstrap sample.
+errMean <- apply(err_matrix, 1, mean)
+
+# Compute the standard deviation of the classification error across trees for each bootstrap sample.
+errSD <- apply(err_matrix, 1, sd)
+
+# Compute the overall mean classification error and standard deviation across bootstrap samples and trees.
+errOverall <- mean(errMean)
+errSDOverall <- sd(errMean)
+
+
+```
+
+```{r}
+cat("Overall error:\n")
+errOverall 
+cat("Overall SD error:\n")
+errSDOverall 
+```
+
+<!--# on average missclassifying 15%, correct 85% -->
+
+<!--# forest -->
+
+```{r first_forest}
+
+# number of splits, max is number of variables
+mtry = ncol(train_scaled_label)-1
+
+bagging<- randomForest(as.factor(label)~.,data = train_scaled_label,
+                       mtry=mtry)
+bagging
+```
+
+<!--# class E class error is poor both in terms of false positives and true negatives -->
+
+```{r}
+
+# misclassification on validation
+err_valid_bagging<-mean(predict(bagging,valid_scaled)!=valid_scaled_label$label)
+
+# misclassification on train
+err_train_bagging<-mean(predict(bagging,train_scaled)!=train_scaled_label$label)
+
+cat("Misclassification error on validation:\n")
+err_valid_bagging
+cat("Misclassification error on train:\n")
+err_train_bagging
+```
+
+<!--#  oob is 9.88% - which is an estimate of the generalisable performance-->
+
+```{r}
+# out of box, default tree
+
+rf_default <-randomForest(as.factor(label)~.,data = train_scaled_label)
+rf_default
+
+errValid_rf_default<-mean(predict(rf_default,valid_scaled)!=valid_scaled_label$label)
+
+
+
+errTrain_rf_default<-mean(predict(rf_default,train_scaled)!=train_scaled_label$label)
+
+cat("\nMisclassification Error (Valid)\n")
+errValid_rf_default
+cat("Misclassification Error (Train)\n")
+errTrain_rf_default
+
+
+plot(rf_default)
+
+
+
+
+```
+
+```{r}
+rf_default <- randomForest(as.factor(label) ~ ., data = train_scaled_label)
+
+# Get predictions on validation set
+pred_valid <- predict(rf_default, valid_scaled)
+
+# Calculate accuracy
+accuracy_rf_default <- sum(pred_valid == valid_scaled_label$label) / nrow(valid_scaled_label)
+
+# Print accuracy
+cat("Accuracy of random forest (default):", accuracy_rf_default, "\n")
+
+```
+
+<!--#  default tree - oob estimate 8.33%; class E is difficult-->
+
+```{r}
+
+rf_imp <-randomForest(as.factor(label)~.,data = train_scaled_label, importance = TRUE)
+
+varImpPlot(rf_imp,type=1,scale=FALSE,
+           n.var=ncol(train_scaled),cex=.5,
+           main="Variable Importance")
+
+
+varImpPlot(rf_imp,type=1,scale=FALSE,
+           n.var=20,cex=.75,
+           main="Variable Importance")
+
+par(mar=c(4,2,2,1)+.1)
+
+varImpPlot(rf_imp,type=1,scale=FALSE,
+           n.var=15,cex=1,
+           main="Variable Importance")
+```
+
+<!--# as before the variables to keep = 9, 7, 8, 10; then 11, 3 -->
+
+```{r}
+#attributes(rf_imp)
+#rf_imp$forest$bestvar[,491:500]
+#rf_imp$votes
+
+RFprob<-predict(object=rf_imp, newdata = valid_scaled, type = "prob")
+
+#head(RFprob)
+
+BrierScore(z=RFprob, class=valid_scaled_label$label)
+
+
+```
+
+<!--# test on reduced dataset -->
+
+```{r}
+
+#train_scaled_label
+
+train_1 <- train_scaled_label[, c("X7", "X8", "X9", "X10")]
+train_2 <- cbind(train_1, train_scaled_label[, c("X3", "X1")])
+train_3 <- cbind(train_1, train_scaled_label[, c("X3", "X11")])
+train_4 <- cbind(train_2, train_scaled_label[, c("X2", "X13")])
+train_5 <- cbind(train_3, train_scaled_label[["X16"]])
+colnames(train_5)[ncol(train_5)] <- "X16"
+
+colnames(train_scaled_label)
+# valid_scaled
+
+valid_1 <- valid_scaled_label[, c("X7", "X8", "X9", "X10")]
+valid_2 <- cbind(valid_1, valid_scaled_label[, c("X3", "X1")])
+valid_3 <- cbind(valid_1, valid_scaled_label[, c("X3", "X11")])
+valid_4 <- cbind(valid_2, valid_scaled_label[, c("X2", "X13")])
+valid_5 <- cbind(valid_3, valid_scaled_label[["X16"]])
+colnames(valid_5)[ncol(valid_5)] <- "X16"
+
+```
+
+<!--# models with fewer variables -->
+
+```{r knn_reduced_set1}
+
+# loop through k, print confusion matrix and store accuracies
+
+
+# square root N of dataset to get upper K
+K = sqrt(length(train_1[,1]))
+
+k_values <- 1:K
+# empty vectors to store results
+accuracies <- rep(0, length(k_values))
+
+# loop over different values of K, storing accuracies
+for (i in seq_along(k_values)) {
+  k <- k_values[i]
+  # pull each each knn
+  pull <- knn(train=train_1, test=valid_1, cl=train_label_vec, k=k, prob=TRUE)[1:length(valid_label_vec)]
+  
+  # create kable table
+  # tab <- kbl(table(truth=valid_label_vec,predicted=pull)) |>
+  #   kable_classic(full_width = F, html_font = "Cambria")
+  # # print each
+  # print(tab)
+  
+  # store each accuracy = predict == actual/total
+  acc <- sum(pull == valid_label_vec) / length(valid_label_vec)
+  accuracies[i] <- acc
+}
+
+# create a df of results
+knn_accuracies <- data.frame(K=k_values, Accuracy=accuracies)
+
+```
+
+```{r}
+
+
+# max accuracy
+max_accuracy <- max(knn_accuracies$Accuracy)
+
+# associated k 
+best_k <- knn_accuracies$K[which.max(knn_accuracies$Accuracy)]
+
+# print
+cat("Best accuracy:\n")
+max_accuracy
+cat("K for best accuracy:\n")
+best_k
+```
+
+```{r}
+# create a plot
+ggplot(knn_accuracies, aes(x=K, y=Accuracy)) +
+  geom_line() +
+  geom_point() +
+  labs(x="K", y="Accuracy", title="KNN Classifier Accuracy for Different K Values, Scaled, Feature Reduced Set 1")
+```
+
+```{r}
+# define a list of data frames
+train_dfs <- list(train_1, train_2, train_3, train_4, train_5)
+valid_dfs <- list(valid_1, valid_2, valid_3, valid_4, valid_5)
+
+# loop over each data frame
+for (j in seq_along(train_dfs)) {
+  train_df <- train_dfs[[j]]
+  valid_df <- valid_dfs[[j]]
+  
+  # loop through k, print confusion matrix and store accuracies
+  
+  # square root N of dataset to get upper K
+  K = sqrt(length(train_df[,1]))
+  
+  k_values <- 1:K
+  # empty vectors to store results
+  accuracies <- rep(0, length(k_values))
+  
+  # loop over different values of K, storing accuracies
+  for (i in seq_along(k_values)) {
+    k <- k_values[i]
+    # pull each each knn
+    pull <- knn(train=train_df, test=valid_df, cl=train_label_vec, k=k, prob=TRUE)[1:length(valid_label_vec)]
+    
+    # create kable table
+    # tab <- kbl(table(truth=valid_label_vec,predicted=pull)) |>
+    #   kable_classic(full_width = F, html_font = "Cambria")
+    # # print each
+    # print(tab)
+    
+    # store each accuracy = predict == actual/total
+    acc <- sum(pull == valid_label_vec) / length(valid_label_vec)
+    accuracies[i] <- acc
+  }
+  
+  # create a df of results
+  knn_accuracies <- data.frame(K=k_values, Accuracy=accuracies)
+  
+  # max accuracy
+  max_accuracy <- max(knn_accuracies$Accuracy)
+  
+  # associated k 
+  best_k <- knn_accuracies$K[which.max(knn_accuracies$Accuracy)]
+
+  # print
+  cat(paste0("\nBest accuracy for valid_", j, ":\n"))
+  print(max_accuracy)
+  cat(paste0("K for best accuracy for valid_", j, ":\n"))
+  print(best_k)
+
+
+
+}
+
+```
+
+<!--# set 3 ("X7", "X8", "X9", "X10", "X3", "X11") has the best accuracy in knn with 1 neighbour -->
+
+```{r}
+# define a list of data frames
+train_dfs <- list(train_1, train_2, train_3, train_4, train_5)
+valid_dfs <- list(valid_1, valid_2, valid_3, valid_4, valid_5)
+
+# loop over each data frame
+for (j in seq_along(train_dfs)) {
+  train_df <- train_dfs[[j]]
+  valid_df <- valid_dfs[[j]]
+  
+  # loop through k, print confusion matrix and store accuracies
+  
+  # square root N of dataset to get upper K
+  K = sqrt(length(train_df[,1]))
+  
+  k_values <- 1:K
+  # empty vectors to store results
+  train_accuracies <- rep(0, length(k_values))
+  valid_accuracies <- rep(0, length(k_values))
+  
+  # loop over different values of K, storing accuracies
+  for (i in seq_along(k_values)) {
+    k <- k_values[i]
+    # pull each each knn
+    pull_train <- knn(train=train_df, test=train_df, cl=train_label_vec, k=k, prob=TRUE)[1:length(train_label_vec)]
+    pull_valid <- knn(train=train_df, test=valid_df, cl=train_label_vec, k=k, prob=TRUE)[1:length(valid_label_vec)]
+    
+    # create kable table
+    # tab <- kbl(table(truth=valid_label_vec,predicted=pull)) |>
+    #   kable_classic(full_width = F, html_font = "Cambria")
+    # # print each
+    # print(tab)
+    
+    # store each accuracy = predict == actual/total
+    train_acc <- sum(pull_train == train_label_vec) / length(train_label_vec)
+    train_accuracies[i] <- train_acc
+    
+    valid_acc <- sum(pull_valid == valid_label_vec) / length(valid_label_vec)
+    valid_accuracies[i] <- valid_acc
+  }
+  
+  # create a df of results
+  knn_accuracies <- data.frame(K=k_values, Train_Accuracy=train_accuracies, Valid_Accuracy=valid_accuracies)
+  
+  # max accuracy for train set
+  max_train_accuracy <- max(knn_accuracies$Train_Accuracy)
+  
+  # associated k for train set
+  best_train_k <- knn_accuracies$K[which.max(knn_accuracies$Train_Accuracy)]
+  
+  # max accuracy for valid set
+  max_valid_accuracy <- max(knn_accuracies$Valid_Accuracy)
+  
+  # associated k for valid set
+  best_valid_k <- knn_accuracies$K[which.max(knn_accuracies$Valid_Accuracy)]
+
+  # print
+  cat(paste0("\nBest accuracy for train_", j, ":\n"))
+  print(max_train_accuracy)
+  cat(paste0("K for best accuracy for train_", j, ":\n"))
+  print(best_train_k)
+  
+  cat(paste0("\nBest accuracy for valid_", j, ":\n"))
+  print(max_valid_accuracy)
+  cat(paste0("K for best accuracy for valid_", j, ":\n"))
+  print(best_valid_k)
+}
+
+```
+
+<!--# got suspicious of results - so added train prediction - this is useless. -->
+
+<!--# try mclustda now - that was  -->
+
+```{r mclust_reduced_tune2}
+
+
+# hyperparameters to search
+n.components <- c(2, 3, 4, 5, 6)
+#n.components <- c(3, 4)
+diagonal <- c(TRUE, FALSE)
+modelName <- c("VEV", "EII", "VII", "EEE", "VVV", "EEI", "VEI", "EVI", "VVI", "VEE", "EVE", "VVE", "EEV", "VEV", "EVV"  )
+
+
+# grid to search
+hyperparameters <- expand.grid(n.components = n.components,
+                               diagonal = diagonal,
+                               modelName = modelName
+                               )
+
+# initialise the best
+best.model <- NULL
+best.bic <- Inf
+
+# loop over grid 
+for (i in 1:nrow(hyperparameters)) {
+
+  # train_scaled to a numeric matrix
+  data <- as.matrix(train_1)
+
+  # fit mclust model 
+  model <- MclustDA(data = data,
+                    class = train_label_vec,
+                    G = hyperparameters$n.components[i],
+                    diagonal = hyperparameters$diagonal[i],
+                    modelName = hyperparameters$modelName[i],
+                    verbose = FALSE)
+  
+  # bic
+  sum <- summary(model)
+  bic <- sum$bic
+
+  # better bic, saved
+  if (bic < best.bic) {
+    best.model <- model
+    best.bic <- bic
+  }
+}
+
+# best model
+sum_best_model2 <- summary(best.model, newdata = valid_1, newclass = valid_label_vec)
+
+# results
+cat("Best BIC:\n")
+print(sum_best_model2$bic)
+cat("Model with best BIC:\n")
+print(sum_best_model2)
+
+# make predictions on the validation set
+valid_preds2 <- predict(best.model, newdata = valid_1)
+valid_preds2 <- valid_preds2$classification
+
+# calculate accuracy of predictions
+accuracy2 <- sum(valid_preds2 == valid_label_vec)/ length(valid_label_vec)
+
+cat("Best accuracy (DA):\n")  
+accuracy2
+```
+
+<!--# early indications suggest that a reduced data set (variable wise) will be equally as good.  let's check the others and amend the above to look at best accuracy not best bic. -->
+
+```{r loop throug best bics and datasets}
+# # create a list of dataframes
+# train_list <- list(train_1, train_2, train_3, train_4, train_5)
+# valid_list <- list(valid_1, valid_2, valid_3, valid_4, valid_5)
+# 
+# # initialise the best models and bic for each dataframe
+# best.models <- list()
+# best.bics <- rep(Inf, length(train_list))
+# 
+# # loop over dataframes
+# for (j in 1:length(train_list)) {
+# 
+#   # loop over grid 
+#   for (i in 1:nrow(hyperparameters)) {
+# 
+#     # train_scaled to a numeric matrix
+#     data <- as.matrix(train_list[[j]])
+# 
+#     # fit mclust model 
+#     model <- MclustDA(data = data,
+#                       class = train_label_vec,
+#                       G = hyperparameters$n.components[i],
+#                       diagonal = hyperparameters$diagonal[i],
+#                       modelName = hyperparameters$modelName[i],
+#                       verbose = FALSE)
+# 
+#     # bic
+#     sum <- summary(model)
+#     bic <- sum$bic
+# 
+#     # better bic, saved
+#     if (bic < best.bics[j]) {
+#       best.models[[j]] <- model
+#       best.bics[j] <- bic
+#     }
+#   }
+# }
+# 
+# # loop over best models for each dataframe
+# for (j in 1:length(train_list)) {
+#   
+#   # best model
+#   sum_best_model2 <- summary(best.models[[j]], newdata = valid_list[[j]], newclass = valid_label_vec)
+# 
+#   # results
+#   cat("Best BIC for dataframe ", j, ":\n")
+#   print(sum_best_model2$bic)
+#   cat("Model with best BIC for dataframe ", j, ":\n")
+#   print(sum_best_model2)
+# 
+#   # make predictions on the validation set
+#   valid_preds2 <- predict(best.models[[j]], newdata = valid_list[[j]])
+#   valid_preds2 <- valid_preds2$classification
+# 
+#   # calculate accuracy of predictions
+#   accuracy2 <- sum(valid_preds2 == valid_label_vec)/ length(valid_label_vec)
+# 
+#   cat("Best accuracy (DA) for dataframe ", j, ":\n")  
+#   accuracy2
+# }
+
+
+```
+
+```{r loopthroughbestaccuracy}
+# hyperparameters to search
+n.components <- c(2, 3, 4, 5, 6)
+diagonal <- c(TRUE, FALSE)
+modelName <- c("VEV", "EII", "VII", "EEE", "VVV", "EEI", "VEI", "EVI", "VVI", "VEE", "EVE", "VVE", "EEV", "VEV", "EVV")
+
+# grid to search
+hyperparameters <- expand.grid(n.components = n.components,
+                               diagonal = diagonal,
+                               modelName = modelName)
+
+# initialise the best
+best.model <- NULL
+best.accuracy <- 0
+
+# loop over grid 
+for (i in 1:nrow(hyperparameters)) {
+
+  # train_scaled to a numeric matrix
+  data <- as.matrix(train_1)
+
+  # fit mclust model 
+  model <- MclustDA(data = data,
+                    class = train_label_vec,
+                    G = hyperparameters$n.components[i],
+                    diagonal = hyperparameters$diagonal[i],
+                    modelName = hyperparameters$modelName[i],
+                    verbose = FALSE)
+  
+  # make predictions on the validation set
+  valid_preds <- predict(model, newdata = valid_1)
+  valid_preds <- valid_preds$classification
+
+  # calculate accuracy of predictions
+  accuracy <- sum(valid_preds == valid_label_vec)/length(valid_label_vec)
+
+  # better accuracy, save model
+  if (accuracy > best.accuracy) {
+    best.model <- model
+    best.accuracy <- accuracy
+  }
+}
+
+# best model
+sum_best_model <- summary(best.model, newdata = valid_1, newclass = valid_label_vec)
+
+# print results
+cat("Best accuracy (DA):\n")  
+print(best.accuracy)
+cat("Model with best accuracy:\n")
+print(sum_best_model)
+
+# make predictions on the validation set
+valid_preds <- predict(best.model, newdata = valid_1)
+valid_preds <- valid_preds$classification
+
+# calculate accuracy of predictions
+accuracy <- sum(valid_preds == valid_label_vec)/ length(valid_label_vec)
+
+cat("Accuracy of predictions on validation set (DA):\n")
+accuracy
+
+```
+
+```{r loopthrough accuracy for each variable set}
+# hyperparameters to search
+n.components <- c(2, 3, 4, 5, 6)
+diagonal <- c(TRUE, FALSE)
+modelName <- c("VEV", "EII", "VII", "EEE", "VVV", "EEI", "VEI", "EVI", "VVI", "VEE", "EVE", "VVE", "EEV", "VEV", "EVV")
+
+# grid to search
+hyperparameters <- expand.grid(n.components = n.components,
+                               diagonal = diagonal,
+                               modelName = modelName)
+
+# initialise the best
+best.model <- NULL
+best.accuracy <- 0
+best.df <- 0
+
+# create a list of dataframes
+train_list <- list(train_1, train_2, train_3, train_4, train_5)
+valid_list <- list(valid_1, valid_2, valid_3, valid_4, valid_5)
+
+# loop over dataframes
+for (j in 1:length(train_list)) {
+
+  # loop over grid 
+  for (i in 1:nrow(hyperparameters)) {
+
+    # train_scaled to a numeric matrix
+    data <- as.matrix(train_list[[j]])
+
+    # fit mclust model 
+    model <- MclustDA(data = data,
+                      class = train_label_vec,
+                      G = hyperparameters$n.components[i],
+                      diagonal = hyperparameters$diagonal[i],
+                      modelName = hyperparameters$modelName[i],
+                      verbose = FALSE)
+  
+    # make predictions on the validation set
+    valid_preds <- predict(model, newdata = valid_list[[j]])
+    valid_preds <- valid_preds$classification
+
+    # calculate accuracy of predictions
+    accuracy <- sum(valid_preds == valid_label_vec)/length(valid_label_vec)
+
+    # better accuracy, save model and dataframe index
+    if (accuracy > best.accuracy) {
+      best.model <- model
+      best.accuracy <- accuracy
+      best.df <- j
+    }
+  }
+}
+
+# best model
+sum_best_model <- summary(best.model, newdata = valid_list[[best.df]], newclass = valid_label_vec)
+
+# print results
+cat("Best accuracy (DA) for dataframe ", best.df, ":\n")  
+print(best.accuracy)
+cat("Model with best accuracy for dataframe ", best.df, ":\n")
+print(sum_best_model)
+
+# make predictions on the validation set
+valid_preds <- predict(best.model, newdata = valid_list[[best.df]])
+valid_preds <- valid_preds$classification
+
+# calculate accuracy of predictions
+accuracy <- sum(valid_preds == valid_label_vec)/ length(valid_label_vec)
+
+cat("Accuracy of predictions on validation set (DA) for dataframe ", best.df, ":\n")
+accuracy
+
+```
+
+<!--# best model - 0.97 validation using dataset3.  class error 0.0294 (train) and 0.0278 (valid) and brier - 0.0228 and 0.0256.  this is the one! -->
+
+```{r}
+
+
+```
+
+```{r}
+for (i in 1:length(train_list)) {
+  train <- train_list[[i]]
+  valid <- valid_list[[i]]
+  
+  # Train model
+  rf_default <- randomForest(as.factor(label) ~ ., data = train)
+  
+  # Get predictions on validation set
+  pred_valid <- predict(rf_default, valid)
+  
+  # Calculate accuracy
+  accuracy_rf_default <- sum(pred_valid == valid$label) / nrow(valid)
+  
+  # Print accuracy
+  cat(paste0("Accuracy of random forest (default) on variable set ", i, ": ", round(accuracy_rf_default,3), "\n"))
+}
+
+```
