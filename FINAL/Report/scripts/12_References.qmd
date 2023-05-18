@@ -1,0 +1,12 @@
+---
+title: ""
+bibliography: "../data/AS_CW_References.bib"
+csl: "../data/harvard-university-of-the-west-of-england.csl"
+format: 
+  docx: default
+nocite: |
+  @*
+
+---
+
+### Bibliography

@@ -139,7 +139,7 @@ flextable(kmo_summary) |>
 paran(train_scaled, iterations = 5000)
 ```
 
-<!--# So we do a PCA on the scaled data using dudi from factoextra. By looking at the screeplot of the PCA, it seems that 3 components is more appropriate.  From the 4th component, the contribution to explaining variability is about 5% meaning that each additional component/dimension accounts for approximately an additional 5% of the variability in the dataset.  This is not a lot - so keeping 3 components seems most reasonable.  That said, three components only explain 40% of the variability in the dataset.   -->
+
 
 ```{r pca_plots}
 

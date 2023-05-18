@@ -1,0 +1,490 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en-GB" xml:lang="en-GB"><head>
+
+<meta charset="utf-8">
+<meta name="generator" content="quarto-1.3.296">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+
+<meta name="author" content="Petter Lövehagen">
+<meta name="dcterms.date" content="2023-05-09">
+
+<title>Chemical Sample Classification Report</title>
+<style>
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+div.columns{display: flex; gap: min(4vw, 1.5em);}
+div.column{flex: auto; overflow-x: auto;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+ul.task-list li input[type="checkbox"] {
+  width: 0.8em;
+  margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
+  vertical-align: middle;
+}
+</style>
+
+
+<script src="02_Data_files/libs/clipboard/clipboard.min.js"></script>
+<script src="02_Data_files/libs/quarto-html/quarto.js"></script>
+<script src="02_Data_files/libs/quarto-html/popper.min.js"></script>
+<script src="02_Data_files/libs/quarto-html/tippy.umd.min.js"></script>
+<script src="02_Data_files/libs/quarto-html/anchor.min.js"></script>
+<link href="02_Data_files/libs/quarto-html/tippy.css" rel="stylesheet">
+<link href="02_Data_files/libs/quarto-html/quarto-syntax-highlighting.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<script src="02_Data_files/libs/bootstrap/bootstrap.min.js"></script>
+<link href="02_Data_files/libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
+<link href="02_Data_files/libs/bootstrap/bootstrap.min.css" rel="stylesheet" id="quarto-bootstrap" data-mode="light">
+<link href="02_Data_files/libs/tabwid-1.1.3/tabwid.css" rel="stylesheet">
+<script src="02_Data_files/libs/tabwid-1.1.3/tabwid.js"></script>
+
+
+</head>
+
+<body>
+
+<div id="quarto-content" class="page-columns page-rows-contents page-layout-article toc-left">
+<div id="quarto-sidebar-toc-left" class="sidebar toc-left">
+  <nav id="TOC" role="doc-toc" class="toc-active">
+    <h2 id="toc-title">Contents</h2>
+   
+  <ul>
+  <li><a href="#sec-data" id="toc-sec-data" class="nav-link active" data-scroll-target="#sec-data">Data</a>
+  <ul class="collapse">
+  <li><a href="#sec-missing-data" id="toc-sec-missing-data" class="nav-link" data-scroll-target="#sec-missing-data">Missing data</a></li>
+  <li><a href="#splitting-data" id="toc-splitting-data" class="nav-link" data-scroll-target="#splitting-data">Splitting data</a></li>
+  </ul></li>
+  </ul>
+<div class="quarto-alternate-formats"><h2>Other Formats</h2><ul><li><a href="02_Data.docx"><i class="bi bi-file-word"></i>MS Word</a></li></ul></div></nav>
+</div>
+<div id="quarto-margin-sidebar" class="sidebar margin-sidebar">
+</div>
+<main class="content" id="quarto-document-content">
+
+<header id="title-block-header" class="quarto-title-block default">
+<div class="quarto-title">
+<h1 class="title">Chemical Sample Classification Report</h1>
+<p class="subtitle lead">Data Preparation</p>
+</div>
+
+
+
+<div class="quarto-title-meta">
+
+    <div>
+    <div class="quarto-title-meta-heading">Author</div>
+    <div class="quarto-title-meta-contents">
+             <p>Petter Lövehagen </p>
+          </div>
+  </div>
+    
+    <div>
+    <div class="quarto-title-meta-heading">Published</div>
+    <div class="quarto-title-meta-contents">
+      <p class="date">9 May 2023</p>
+    </div>
+  </div>
+  
+    
+  </div>
+  
+
+</header>
+
+<section id="sec-data" class="level2">
+<h2 class="anchored" data-anchor-id="sec-data">Data</h2>
+<p>The supplied dataset contains 2500 samples, each with 20 measurements.</p>
+<p>The analysis team was not supplied with information about the data, e.g.:</p>
+<ul>
+<li>what is measured</li>
+<li>variable importance, interactions</li>
+<li>measurement information: scale, units, reliability</li>
+</ul>
+<p>Therefore, variables are treated equally and without bias. Decisions are made on statistical grounds and stated assumptions.</p>
+<p><br> <br></p>
+<div class="callout callout-style-default callout-tip callout-titled">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+Tip
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<p>Additional domain-specific contextual information about the data could result in alternative modelling decisions and outcomes.</p>
+</div>
+</div>
+<p><br> <br></p>
+<section id="sec-missing-data" class="level3">
+<h3 class="anchored" data-anchor-id="sec-missing-data">Missing data</h3>
+<p>Before proceeding with <a href="#sec-exploratory-data-analysis">Exploratory Data Analysis</a>, it is important to explore <code>missingness</code>. Some classification models assume <strong>no</strong> missing data, and depending on the amount, prevalence and pattern, different assumptions and techniques are appropriate.</p>
+<p>Data is assumed to be ‘missing at random’ (MAR) - that is, the probability of <code>missingness</code> only depends on <em>observed</em> variables.</p>
+<!--# Missingness may require additional analysis as a future datasets may not be suited to discarding rows with missing values.  It is assumed that the dataset is 'missing at random although this should be confirmed to ensure that assumptions hold.  -->
+<!--# The mcar_test() from the `naniar` package has been run and it leads us to reject the null hypothesis that the data is `missing completely at random`.  Additional tests and explorations could be employed to check`missing at random` -->
+<p>The sample has 49 rows with at least one missing value, which is 0.09% of the entire dataset. Given the minute amount, rows with missing values will be removed.</p>
+<!--# If the missing data is not MAR - that is, it depends on *unobserved* variables, there are more appropriate  methods like maximum likelihood imputation. 
+
+Unobserved influences for these measurements could include sample purity/quality, sample handling, or   measurement/equipment discrepancies.
+
+*Imputation* often introduces bias into the analysis by violating method assumptions, or the imputed values differ significantly from true missing values. -->
+<p><br></p>
+<div class="callout callout-style-default callout-caution callout-titled">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+Caution
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<p>The client should consider:</p>
+<ul>
+<li>Concerns regarding missing data</li>
+<li>Consistency measurements (equipment, staff, facilities, chemicals, etc.)</li>
+<li>Reasons for missing data? Mitigation?</li>
+<li>Can missing data be collected retrospectively?</li>
+<li>Likely amount of missing data in the future?</li>
+</ul>
+</div>
+</div>
+<p><br></p>
+<section id="sec-missing-value-details-by-class-and-variable" class="level4">
+<h4 class="anchored" data-anchor-id="sec-missing-value-details-by-class-and-variable">Missing value details by class and variable</h4>
+<p>This dataset has 18 variables with missing data. The five variables with the most missing data are:</p>
+<div class="cell tbl-cap-location-bottom" data-layout-align="left" data-tbl-alt="Table with top five variables with most missing data" data-tab.id="tbl-top5missing">
+<div class="cell-output-display">
+
+<div class="tabwid tabwid-caption-bottom"><style>.cl-e440c9ba{}.cl-e43920de{font-family:'Helvetica';font-size:12pt;font-weight:bold;font-style:normal;text-decoration:none;color:rgba(51, 51, 51, 1.00);background-color:transparent;}.cl-e43920f2{font-family:'Helvetica';font-size:12pt;font-weight:normal;font-style:normal;text-decoration:none;color:rgba(51, 51, 51, 1.00);background-color:transparent;}.cl-e43c980e{margin:0;text-align:left;border-bottom: 0 solid rgba(0, 0, 0, 1.00);border-top: 0 solid rgba(0, 0, 0, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);padding-bottom:5pt;padding-top:5pt;padding-left:6pt;padding-right:6pt;line-height: 1;background-color:transparent;}.cl-e43c980f{margin:0;text-align:right;border-bottom: 0 solid rgba(0, 0, 0, 1.00);border-top: 0 solid rgba(0, 0, 0, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);padding-bottom:5pt;padding-top:5pt;padding-left:6pt;padding-right:6pt;line-height: 1;background-color:transparent;}.cl-e43ca81c{width:0.971in;background-color:rgba(255, 255, 255, 1.00);vertical-align: middle;border-bottom: 1.5pt solid rgba(0, 0, 128, 1.00);border-top: 1.5pt solid rgba(0, 0, 128, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);margin-bottom:0;margin-top:0;margin-left:0;margin-right:0;}.cl-e43ca81d{width:0.804in;background-color:rgba(255, 255, 255, 1.00);vertical-align: middle;border-bottom: 1.5pt solid rgba(0, 0, 128, 1.00);border-top: 1.5pt solid rgba(0, 0, 128, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);margin-bottom:0;margin-top:0;margin-left:0;margin-right:0;}.cl-e43ca826{width:1.221in;background-color:rgba(255, 255, 255, 1.00);vertical-align: middle;border-bottom: 1.5pt solid rgba(0, 0, 128, 1.00);border-top: 1.5pt solid rgba(0, 0, 128, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);margin-bottom:0;margin-top:0;margin-left:0;margin-right:0;}.cl-e43ca827{width:0.971in;background-color:rgba(255, 255, 255, 1.00);vertical-align: middle;border-bottom: 0.75pt solid rgba(0, 0, 128, 1.00);border-top: 0 solid rgba(0, 0, 0, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);margin-bottom:0;margin-top:0;margin-left:0;margin-right:0;}.cl-e43ca828{width:0.804in;background-color:rgba(255, 255, 255, 1.00);vertical-align: middle;border-bottom: 0.75pt solid rgba(0, 0, 128, 1.00);border-top: 0 solid rgba(0, 0, 0, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);margin-bottom:0;margin-top:0;margin-left:0;margin-right:0;}.cl-e43ca829{width:1.221in;background-color:rgba(255, 255, 255, 1.00);vertical-align: middle;border-bottom: 0.75pt solid rgba(0, 0, 128, 1.00);border-top: 0 solid rgba(0, 0, 0, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);margin-bottom:0;margin-top:0;margin-left:0;margin-right:0;}.cl-e43ca830{width:0.971in;background-color:rgba(255, 255, 255, 1.00);vertical-align: middle;border-bottom: 0.75pt solid rgba(0, 0, 128, 1.00);border-top: 0.75pt solid rgba(0, 0, 128, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);margin-bottom:0;margin-top:0;margin-left:0;margin-right:0;}.cl-e43ca831{width:0.804in;background-color:rgba(255, 255, 255, 1.00);vertical-align: middle;border-bottom: 0.75pt solid rgba(0, 0, 128, 1.00);border-top: 0.75pt solid rgba(0, 0, 128, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);margin-bottom:0;margin-top:0;margin-left:0;margin-right:0;}.cl-e43ca832{width:1.221in;background-color:rgba(255, 255, 255, 1.00);vertical-align: middle;border-bottom: 0.75pt solid rgba(0, 0, 128, 1.00);border-top: 0.75pt solid rgba(0, 0, 128, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);margin-bottom:0;margin-top:0;margin-left:0;margin-right:0;}.cl-e43ca833{width:0.971in;background-color:rgba(255, 255, 255, 1.00);vertical-align: middle;border-bottom: 1.5pt solid rgba(0, 0, 128, 1.00);border-top: 0.75pt solid rgba(0, 0, 128, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);margin-bottom:0;margin-top:0;margin-left:0;margin-right:0;}.cl-e43ca834{width:0.804in;background-color:rgba(255, 255, 255, 1.00);vertical-align: middle;border-bottom: 1.5pt solid rgba(0, 0, 128, 1.00);border-top: 0.75pt solid rgba(0, 0, 128, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);margin-bottom:0;margin-top:0;margin-left:0;margin-right:0;}.cl-e43ca83a{width:1.221in;background-color:rgba(255, 255, 255, 1.00);vertical-align: middle;border-bottom: 1.5pt solid rgba(0, 0, 128, 1.00);border-top: 0.75pt solid rgba(0, 0, 128, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);margin-bottom:0;margin-top:0;margin-left:0;margin-right:0;}</style><table data-quarto-disable-processing="true" class="cl-e440c9ba"><caption><p>Top 5 Variables with missing data, by count</p></caption><thead><tr style="overflow-wrap:break-word;"><th class="cl-e43ca81c"><p class="cl-e43c980e"><span class="cl-e43920de">Variable</span></p></th><th class="cl-e43ca81d"><p class="cl-e43c980f"><span class="cl-e43920de">Count</span></p></th><th class="cl-e43ca826"><p class="cl-e43c980f"><span class="cl-e43920de">Percentage</span></p></th></tr></thead><tbody><tr style="overflow-wrap:break-word;"><td class="cl-e43ca827"><p class="cl-e43c980e"><span class="cl-e43920de">X9</span></p></td><td class="cl-e43ca828"><p class="cl-e43c980f"><span class="cl-e43920f2">6</span></p></td><td class="cl-e43ca829"><p class="cl-e43c980f"><span class="cl-e43920f2">0.24</span></p></td></tr><tr style="overflow-wrap:break-word;"><td class="cl-e43ca830"><p class="cl-e43c980e"><span class="cl-e43920de">X18</span></p></td><td class="cl-e43ca831"><p class="cl-e43c980f"><span class="cl-e43920f2">5</span></p></td><td class="cl-e43ca832"><p class="cl-e43c980f"><span class="cl-e43920f2">0.20</span></p></td></tr><tr style="overflow-wrap:break-word;"><td class="cl-e43ca830"><p class="cl-e43c980e"><span class="cl-e43920de">X1</span></p></td><td class="cl-e43ca831"><p class="cl-e43c980f"><span class="cl-e43920f2">4</span></p></td><td class="cl-e43ca832"><p class="cl-e43c980f"><span class="cl-e43920f2">0.16</span></p></td></tr><tr style="overflow-wrap:break-word;"><td class="cl-e43ca830"><p class="cl-e43c980e"><span class="cl-e43920de">X6</span></p></td><td class="cl-e43ca831"><p class="cl-e43c980f"><span class="cl-e43920f2">4</span></p></td><td class="cl-e43ca832"><p class="cl-e43c980f"><span class="cl-e43920f2">0.16</span></p></td></tr><tr style="overflow-wrap:break-word;"><td class="cl-e43ca833"><p class="cl-e43c980e"><span class="cl-e43920de">X15</span></p></td><td class="cl-e43ca834"><p class="cl-e43c980f"><span class="cl-e43920f2">4</span></p></td><td class="cl-e43ca83a"><p class="cl-e43c980f"><span class="cl-e43920f2">0.16</span></p></td></tr></tbody></table></div>
+</div>
+</div>
+<p>Variable X9 has the most missing values with 6, accounting for 0.24% of this variable’s data.</p>
+<p>No single sample has more than 1 missing value(s). This means that, at most, a sample is missing 4.76% of its data.</p>
+<!--# The upset plot below shows the five variables with the most missing values and confirms that no sample is missing data from more than one variable.-->
+<div class="cell" data-layout-align="left" data-tab.align="left">
+<div class="cell-output-display">
+<div id="fig-upsetplot" class="quarto-figure quarto-figure-left anchored">
+<figure class="figure">
+<p><img src="02_Data_files/figure-html/fig-upsetplot-1.png" class="quarto-discovered-preview-image img-fluid figure-img" style="width:90.0%" alt="Upset plot of missing data"></p>
+<p></p><figcaption class="figure-caption">Figure&nbsp;1: Upset plot of missing data</figcaption><p></p>
+</figure>
+</div>
+</div>
+</div>
+<p>Label E has the most missing data with 0.52%.</p>
+<div class="cell tbl-cap-location-bottom" data-layout-align="left" data-tbl-alt="Table with missing data, grouped by chemical class" data-tab.id="tbl-missingbylabel">
+<div class="cell-output-display">
+
+<div class="tabwid tabwid-caption-bottom"><style>.cl-e46ebc94{}.cl-e467bc0a{font-family:'Helvetica';font-size:12pt;font-weight:bold;font-style:normal;text-decoration:none;color:rgba(51, 51, 51, 1.00);background-color:transparent;}.cl-e467bc14{font-family:'Helvetica';font-size:12pt;font-weight:normal;font-style:normal;text-decoration:none;color:rgba(51, 51, 51, 1.00);background-color:transparent;}.cl-e46a3854{margin:0;text-align:left;border-bottom: 0 solid rgba(0, 0, 0, 1.00);border-top: 0 solid rgba(0, 0, 0, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);padding-bottom:5pt;padding-top:5pt;padding-left:6pt;padding-right:6pt;line-height: 1;background-color:transparent;}.cl-e46a385e{margin:0;text-align:right;border-bottom: 0 solid rgba(0, 0, 0, 1.00);border-top: 0 solid rgba(0, 0, 0, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);padding-bottom:5pt;padding-top:5pt;padding-left:6pt;padding-right:6pt;line-height: 1;background-color:transparent;}.cl-e46a4858{width:0.758in;background-color:rgba(255, 255, 255, 1.00);vertical-align: middle;border-bottom: 1.5pt solid rgba(0, 0, 128, 1.00);border-top: 1.5pt solid rgba(0, 0, 128, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);margin-bottom:0;margin-top:0;margin-left:0;margin-right:0;}.cl-e46a4862{width:0.804in;background-color:rgba(255, 255, 255, 1.00);vertical-align: middle;border-bottom: 1.5pt solid rgba(0, 0, 128, 1.00);border-top: 1.5pt solid rgba(0, 0, 128, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);margin-bottom:0;margin-top:0;margin-left:0;margin-right:0;}.cl-e46a4863{width:1.221in;background-color:rgba(255, 255, 255, 1.00);vertical-align: middle;border-bottom: 1.5pt solid rgba(0, 0, 128, 1.00);border-top: 1.5pt solid rgba(0, 0, 128, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);margin-bottom:0;margin-top:0;margin-left:0;margin-right:0;}.cl-e46a486c{width:0.758in;background-color:rgba(255, 255, 255, 1.00);vertical-align: middle;border-bottom: 0.75pt solid rgba(0, 0, 128, 1.00);border-top: 0 solid rgba(0, 0, 0, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);margin-bottom:0;margin-top:0;margin-left:0;margin-right:0;}.cl-e46a486d{width:0.804in;background-color:rgba(255, 255, 255, 1.00);vertical-align: middle;border-bottom: 0.75pt solid rgba(0, 0, 128, 1.00);border-top: 0 solid rgba(0, 0, 0, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);margin-bottom:0;margin-top:0;margin-left:0;margin-right:0;}.cl-e46a486e{width:1.221in;background-color:rgba(255, 255, 255, 1.00);vertical-align: middle;border-bottom: 0.75pt solid rgba(0, 0, 128, 1.00);border-top: 0 solid rgba(0, 0, 0, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);margin-bottom:0;margin-top:0;margin-left:0;margin-right:0;}.cl-e46a486f{width:0.758in;background-color:rgba(255, 255, 255, 1.00);vertical-align: middle;border-bottom: 0.75pt solid rgba(0, 0, 128, 1.00);border-top: 0.75pt solid rgba(0, 0, 128, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);margin-bottom:0;margin-top:0;margin-left:0;margin-right:0;}.cl-e46a4870{width:0.804in;background-color:rgba(255, 255, 255, 1.00);vertical-align: middle;border-bottom: 0.75pt solid rgba(0, 0, 128, 1.00);border-top: 0.75pt solid rgba(0, 0, 128, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);margin-bottom:0;margin-top:0;margin-left:0;margin-right:0;}.cl-e46a4876{width:1.221in;background-color:rgba(255, 255, 255, 1.00);vertical-align: middle;border-bottom: 0.75pt solid rgba(0, 0, 128, 1.00);border-top: 0.75pt solid rgba(0, 0, 128, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);margin-bottom:0;margin-top:0;margin-left:0;margin-right:0;}.cl-e46a4877{width:0.758in;background-color:rgba(255, 255, 255, 1.00);vertical-align: middle;border-bottom: 0.75pt solid rgba(0, 0, 128, 1.00);border-top: 0.75pt solid rgba(0, 0, 128, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);margin-bottom:0;margin-top:0;margin-left:0;margin-right:0;}.cl-e46a4878{width:0.804in;background-color:rgba(255, 255, 255, 1.00);vertical-align: middle;border-bottom: 0.75pt solid rgba(0, 0, 128, 1.00);border-top: 0.75pt solid rgba(0, 0, 128, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);margin-bottom:0;margin-top:0;margin-left:0;margin-right:0;}.cl-e46a4879{width:1.221in;background-color:rgba(255, 255, 255, 1.00);vertical-align: middle;border-bottom: 0.75pt solid rgba(0, 0, 128, 1.00);border-top: 0.75pt solid rgba(0, 0, 128, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);margin-bottom:0;margin-top:0;margin-left:0;margin-right:0;}.cl-e46a4880{width:0.758in;background-color:rgba(255, 255, 255, 1.00);vertical-align: middle;border-bottom: 1.5pt solid rgba(0, 0, 128, 1.00);border-top: 0.75pt solid rgba(0, 0, 128, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);margin-bottom:0;margin-top:0;margin-left:0;margin-right:0;}.cl-e46a4881{width:0.804in;background-color:rgba(255, 255, 255, 1.00);vertical-align: middle;border-bottom: 1.5pt solid rgba(0, 0, 128, 1.00);border-top: 0.75pt solid rgba(0, 0, 128, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);margin-bottom:0;margin-top:0;margin-left:0;margin-right:0;}.cl-e46a4882{width:1.221in;background-color:rgba(255, 255, 255, 1.00);vertical-align: middle;border-bottom: 1.5pt solid rgba(0, 0, 128, 1.00);border-top: 0.75pt solid rgba(0, 0, 128, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);margin-bottom:0;margin-top:0;margin-left:0;margin-right:0;}</style><table data-quarto-disable-processing="true" class="cl-e46ebc94"><caption><p>Missing data, grouped by chemical class (label)</p></caption><thead><tr style="overflow-wrap:break-word;"><th class="cl-e46a4858"><p class="cl-e46a3854"><span class="cl-e467bc0a">Label</span></p></th><th class="cl-e46a4862"><p class="cl-e46a385e"><span class="cl-e467bc0a">Count</span></p></th><th class="cl-e46a4863"><p class="cl-e46a385e"><span class="cl-e467bc0a">Percentage</span></p></th></tr></thead><tbody><tr style="overflow-wrap:break-word;"><td class="cl-e46a486c"><p class="cl-e46a3854"><span class="cl-e467bc0a">A</span></p></td><td class="cl-e46a486d"><p class="cl-e46a385e"><span class="cl-e467bc14">10</span></p></td><td class="cl-e46a486e"><p class="cl-e46a385e"><span class="cl-e467bc14">0.40</span></p></td></tr><tr style="overflow-wrap:break-word;"><td class="cl-e46a486f"><p class="cl-e46a3854"><span class="cl-e467bc0a">B</span></p></td><td class="cl-e46a4870"><p class="cl-e46a385e"><span class="cl-e467bc14">6</span></p></td><td class="cl-e46a4876"><p class="cl-e46a385e"><span class="cl-e467bc14">0.24</span></p></td></tr><tr style="overflow-wrap:break-word;"><td class="cl-e46a4877"><p class="cl-e46a3854"><span class="cl-e467bc0a">C</span></p></td><td class="cl-e46a4878"><p class="cl-e46a385e"><span class="cl-e467bc14">10</span></p></td><td class="cl-e46a4879"><p class="cl-e46a385e"><span class="cl-e467bc14">0.40</span></p></td></tr><tr style="overflow-wrap:break-word;"><td class="cl-e46a486f"><p class="cl-e46a3854"><span class="cl-e467bc0a">D</span></p></td><td class="cl-e46a4870"><p class="cl-e46a385e"><span class="cl-e467bc14">10</span></p></td><td class="cl-e46a4876"><p class="cl-e46a385e"><span class="cl-e467bc14">0.40</span></p></td></tr><tr style="overflow-wrap:break-word;"><td class="cl-e46a4880"><p class="cl-e46a3854"><span class="cl-e467bc0a">E</span></p></td><td class="cl-e46a4881"><p class="cl-e46a385e"><span class="cl-e467bc14">13</span></p></td><td class="cl-e46a4882"><p class="cl-e46a385e"><span class="cl-e467bc14">0.52</span></p></td></tr></tbody></table></div>
+</div>
+</div>
+<p>Patterns of <code>missingness</code> are apparent for sequential variables:</p>
+<div class="cell" data-layout-align="left">
+<div class="cell-output-display">
+<div id="fig-heatmapMiss" class="quarto-figure quarto-figure-left anchored">
+<figure class="figure">
+<p><img src="02_Data_files/figure-html/fig-heatmapMiss-1.png" class="img-fluid figure-img" style="width:90.0%" alt="Heatmap of missing data per variable, grouped by Chemical class (label)"></p>
+<p></p><figcaption class="figure-caption">Figure&nbsp;2: Heatmap of missing data per variable, grouped by Chemical class</figcaption><p></p>
+</figure>
+</div>
+</div>
+</div>
+<div class="callout callout-style-default callout-caution callout-titled">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+Caution
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<p><code>Missingness</code> by variables for labels:</p>
+<ul>
+<li>X1-X4 is <em>only</em> missing for label A</li>
+<li>X6, X8 are <em>only</em> missing for label B</li>
+<li>X9-X12 is <em>only</em> missing for label C</li>
+<li>X13-X16 are <em>only</em> missing for label D</li>
+<li>X17-X19 are <em>only</em> missing for label E</li>
+</ul>
+<p>Is there a relationship?</p>
+</div>
+</div>
+<p><br> <br></p>
+</section>
+</section>
+<section id="splitting-data" class="level3">
+<h3 class="anchored" data-anchor-id="splitting-data">Splitting data</h3>
+<p>In order to avoid introducing bias into the process, the data is divided into subsets. Insights from analysis are solely from the training data.</p>
+<p>As the data is not <em>perfectly</em> balanced between labels, it is split with ‘stratification’ ensuring that each partition has a representative proportion of labels.</p>
+<div class="cell tbl-cap-location-bottom" data-layout-align="left" data-tbl-alt="Frequency table grouped by chemical class" data-tab.id="tbl-freqbyclass">
+<div class="cell-output-display">
+
+<div class="tabwid tabwid-caption-bottom"><style>.cl-e49d37d6{}.cl-e4962eb4{font-family:'Helvetica';font-size:12pt;font-weight:bold;font-style:normal;text-decoration:none;color:rgba(51, 51, 51, 1.00);background-color:transparent;}.cl-e4962ebe{font-family:'Helvetica';font-size:12pt;font-weight:normal;font-style:normal;text-decoration:none;color:rgba(51, 51, 51, 1.00);background-color:transparent;}.cl-e4985fea{margin:0;text-align:left;border-bottom: 0 solid rgba(0, 0, 0, 1.00);border-top: 0 solid rgba(0, 0, 0, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);padding-bottom:5pt;padding-top:5pt;padding-left:6pt;padding-right:6pt;line-height: 1;background-color:transparent;}.cl-e4985feb{margin:0;text-align:right;border-bottom: 0 solid rgba(0, 0, 0, 1.00);border-top: 0 solid rgba(0, 0, 0, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);padding-bottom:5pt;padding-top:5pt;padding-left:6pt;padding-right:6pt;line-height: 1;background-color:transparent;}.cl-e4986c88{width:0.702in;background-color:rgba(255, 255, 255, 1.00);vertical-align: middle;border-bottom: 1.5pt solid rgba(0, 0, 128, 1.00);border-top: 1.5pt solid rgba(0, 0, 128, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);margin-bottom:0;margin-top:0;margin-left:0;margin-right:0;}.cl-e4986c92{width:1.165in;background-color:rgba(255, 255, 255, 1.00);vertical-align: middle;border-bottom: 1.5pt solid rgba(0, 0, 128, 1.00);border-top: 1.5pt solid rgba(0, 0, 128, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);margin-bottom:0;margin-top:0;margin-left:0;margin-right:0;}.cl-e4986c93{width:0.934in;background-color:rgba(255, 255, 255, 1.00);vertical-align: middle;border-bottom: 1.5pt solid rgba(0, 0, 128, 1.00);border-top: 1.5pt solid rgba(0, 0, 128, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);margin-bottom:0;margin-top:0;margin-left:0;margin-right:0;}.cl-e4986c9c{width:0.702in;background-color:rgba(255, 255, 255, 1.00);vertical-align: middle;border-bottom: 0.75pt solid rgba(0, 0, 128, 1.00);border-top: 0 solid rgba(0, 0, 0, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);margin-bottom:0;margin-top:0;margin-left:0;margin-right:0;}.cl-e4986c9d{width:1.165in;background-color:rgba(255, 255, 255, 1.00);vertical-align: middle;border-bottom: 0.75pt solid rgba(0, 0, 128, 1.00);border-top: 0 solid rgba(0, 0, 0, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);margin-bottom:0;margin-top:0;margin-left:0;margin-right:0;}.cl-e4986c9e{width:0.934in;background-color:rgba(255, 255, 255, 1.00);vertical-align: middle;border-bottom: 0.75pt solid rgba(0, 0, 128, 1.00);border-top: 0 solid rgba(0, 0, 0, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);margin-bottom:0;margin-top:0;margin-left:0;margin-right:0;}.cl-e4986c9f{width:0.702in;background-color:rgba(255, 255, 255, 1.00);vertical-align: middle;border-bottom: 0.75pt solid rgba(0, 0, 128, 1.00);border-top: 0.75pt solid rgba(0, 0, 128, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);margin-bottom:0;margin-top:0;margin-left:0;margin-right:0;}.cl-e4986ca0{width:1.165in;background-color:rgba(255, 255, 255, 1.00);vertical-align: middle;border-bottom: 0.75pt solid rgba(0, 0, 128, 1.00);border-top: 0.75pt solid rgba(0, 0, 128, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);margin-bottom:0;margin-top:0;margin-left:0;margin-right:0;}.cl-e4986ca6{width:0.934in;background-color:rgba(255, 255, 255, 1.00);vertical-align: middle;border-bottom: 0.75pt solid rgba(0, 0, 128, 1.00);border-top: 0.75pt solid rgba(0, 0, 128, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);margin-bottom:0;margin-top:0;margin-left:0;margin-right:0;}.cl-e4986ca7{width:0.702in;background-color:rgba(255, 255, 255, 1.00);vertical-align: middle;border-bottom: 0.75pt solid rgba(0, 0, 128, 1.00);border-top: 0.75pt solid rgba(0, 0, 128, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);margin-bottom:0;margin-top:0;margin-left:0;margin-right:0;}.cl-e4986ca8{width:1.165in;background-color:rgba(255, 255, 255, 1.00);vertical-align: middle;border-bottom: 0.75pt solid rgba(0, 0, 128, 1.00);border-top: 0.75pt solid rgba(0, 0, 128, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);margin-bottom:0;margin-top:0;margin-left:0;margin-right:0;}.cl-e4986ca9{width:0.934in;background-color:rgba(255, 255, 255, 1.00);vertical-align: middle;border-bottom: 0.75pt solid rgba(0, 0, 128, 1.00);border-top: 0.75pt solid rgba(0, 0, 128, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);margin-bottom:0;margin-top:0;margin-left:0;margin-right:0;}.cl-e4986caa{width:0.702in;background-color:rgba(255, 255, 255, 1.00);vertical-align: middle;border-bottom: 1.5pt solid rgba(0, 0, 128, 1.00);border-top: 0.75pt solid rgba(0, 0, 128, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);margin-bottom:0;margin-top:0;margin-left:0;margin-right:0;}.cl-e4986cab{width:1.165in;background-color:rgba(255, 255, 255, 1.00);vertical-align: middle;border-bottom: 1.5pt solid rgba(0, 0, 128, 1.00);border-top: 0.75pt solid rgba(0, 0, 128, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);margin-bottom:0;margin-top:0;margin-left:0;margin-right:0;}.cl-e4986cb0{width:0.934in;background-color:rgba(255, 255, 255, 1.00);vertical-align: middle;border-bottom: 1.5pt solid rgba(0, 0, 128, 1.00);border-top: 0.75pt solid rgba(0, 0, 128, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);margin-bottom:0;margin-top:0;margin-left:0;margin-right:0;}</style><table data-quarto-disable-processing="true" class="cl-e49d37d6"><caption><p>Frequency Table by Class (label)</p></caption><thead><tr style="overflow-wrap:break-word;"><th class="cl-e4986c88"><p class="cl-e4985fea"><span class="cl-e4962eb4">label</span></p></th><th class="cl-e4986c92"><p class="cl-e4985feb"><span class="cl-e4962eb4">Frequency</span></p></th><th class="cl-e4986c93"><p class="cl-e4985feb"><span class="cl-e4962eb4">Percent</span></p></th></tr></thead><tbody><tr style="overflow-wrap:break-word;"><td class="cl-e4986c9c"><p class="cl-e4985fea"><span class="cl-e4962eb4">A</span></p></td><td class="cl-e4986c9d"><p class="cl-e4985feb"><span class="cl-e4962ebe">508</span></p></td><td class="cl-e4986c9e"><p class="cl-e4985feb"><span class="cl-e4962ebe">20.73</span></p></td></tr><tr style="overflow-wrap:break-word;"><td class="cl-e4986c9f"><p class="cl-e4985fea"><span class="cl-e4962eb4">B</span></p></td><td class="cl-e4986ca0"><p class="cl-e4985feb"><span class="cl-e4962ebe">492</span></p></td><td class="cl-e4986ca6"><p class="cl-e4985feb"><span class="cl-e4962ebe">20.07</span></p></td></tr><tr style="overflow-wrap:break-word;"><td class="cl-e4986ca7"><p class="cl-e4985fea"><span class="cl-e4962eb4">C</span></p></td><td class="cl-e4986ca8"><p class="cl-e4985feb"><span class="cl-e4962ebe">492</span></p></td><td class="cl-e4986ca9"><p class="cl-e4985feb"><span class="cl-e4962ebe">20.07</span></p></td></tr><tr style="overflow-wrap:break-word;"><td class="cl-e4986c9f"><p class="cl-e4985fea"><span class="cl-e4962eb4">D</span></p></td><td class="cl-e4986ca0"><p class="cl-e4985feb"><span class="cl-e4962ebe">487</span></p></td><td class="cl-e4986ca6"><p class="cl-e4985feb"><span class="cl-e4962ebe">19.87</span></p></td></tr><tr style="overflow-wrap:break-word;"><td class="cl-e4986caa"><p class="cl-e4985fea"><span class="cl-e4962eb4">E</span></p></td><td class="cl-e4986cab"><p class="cl-e4985feb"><span class="cl-e4962ebe">472</span></p></td><td class="cl-e4986cb0"><p class="cl-e4985feb"><span class="cl-e4962ebe">19.26</span></p></td></tr></tbody></table></div>
+</div>
+</div>
+<div class="callout callout-style-default callout-important callout-titled">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+Decision
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<p>Rows with missing data are removed.</p>
+<p>The data is split:</p>
+<ul>
+<li><code>train</code> - 50% - to train the classification model</li>
+<li><code>validation</code> - 25% - to validate and tune performance of the trained model(s); to establish model generalisability</li>
+<li><code>test</code> - 25% - to evaluate the performance of the final model; only used once and kept separate</li>
+</ul>
+</div>
+</div>
+<!--# The below is a function to split a dataframe into three random subsets - train, validate, test.  It takes `dataframe`, `target column` (e.g. label), `proportions` (train, validate, test - need to sum to 1), `stratify` (TRUE, FALSE whether to stratify on target column).  It is saved in a separate file -->
+<!--# The above output needs to be inspected to ensure that each subset of the original dataframe is the correct size (proportion) and has the same proportions of target labels, if stratification is required. -->
+</section>
+</section>
+
+</main>
+<!-- /main column -->
+<script id="quarto-html-after-body" type="application/javascript">
+window.document.addEventListener("DOMContentLoaded", function (event) {
+  const toggleBodyColorMode = (bsSheetEl) => {
+    const mode = bsSheetEl.getAttribute("data-mode");
+    const bodyEl = window.document.querySelector("body");
+    if (mode === "dark") {
+      bodyEl.classList.add("quarto-dark");
+      bodyEl.classList.remove("quarto-light");
+    } else {
+      bodyEl.classList.add("quarto-light");
+      bodyEl.classList.remove("quarto-dark");
+    }
+  }
+  const toggleBodyColorPrimary = () => {
+    const bsSheetEl = window.document.querySelector("link#quarto-bootstrap");
+    if (bsSheetEl) {
+      toggleBodyColorMode(bsSheetEl);
+    }
+  }
+  toggleBodyColorPrimary();  
+  const icon = "";
+  const anchorJS = new window.AnchorJS();
+  anchorJS.options = {
+    placement: 'right',
+    icon: icon
+  };
+  anchorJS.add('.anchored');
+  const isCodeAnnotation = (el) => {
+    for (const clz of el.classList) {
+      if (clz.startsWith('code-annotation-')) {                     
+        return true;
+      }
+    }
+    return false;
+  }
+  const clipboard = new window.ClipboardJS('.code-copy-button', {
+    text: function(trigger) {
+      const codeEl = trigger.previousElementSibling.cloneNode(true);
+      for (const childEl of codeEl.children) {
+        if (isCodeAnnotation(childEl)) {
+          childEl.remove();
+        }
+      }
+      return codeEl.innerText;
+    }
+  });
+  clipboard.on('success', function(e) {
+    // button target
+    const button = e.trigger;
+    // don't keep focus
+    button.blur();
+    // flash "checked"
+    button.classList.add('code-copy-button-checked');
+    var currentTitle = button.getAttribute("title");
+    button.setAttribute("title", "Copied!");
+    let tooltip;
+    if (window.bootstrap) {
+      button.setAttribute("data-bs-toggle", "tooltip");
+      button.setAttribute("data-bs-placement", "left");
+      button.setAttribute("data-bs-title", "Copied!");
+      tooltip = new bootstrap.Tooltip(button, 
+        { trigger: "manual", 
+          customClass: "code-copy-button-tooltip",
+          offset: [0, -8]});
+      tooltip.show();    
+    }
+    setTimeout(function() {
+      if (tooltip) {
+        tooltip.hide();
+        button.removeAttribute("data-bs-title");
+        button.removeAttribute("data-bs-toggle");
+        button.removeAttribute("data-bs-placement");
+      }
+      button.setAttribute("title", currentTitle);
+      button.classList.remove('code-copy-button-checked');
+    }, 1000);
+    // clear code selection
+    e.clearSelection();
+  });
+  function tippyHover(el, contentFn) {
+    const config = {
+      allowHTML: true,
+      content: contentFn,
+      maxWidth: 500,
+      delay: 100,
+      arrow: false,
+      appendTo: function(el) {
+          return el.parentElement;
+      },
+      interactive: true,
+      interactiveBorder: 10,
+      theme: 'quarto',
+      placement: 'bottom-start'
+    };
+    window.tippy(el, config); 
+  }
+  const noterefs = window.document.querySelectorAll('a[role="doc-noteref"]');
+  for (var i=0; i<noterefs.length; i++) {
+    const ref = noterefs[i];
+    tippyHover(ref, function() {
+      // use id or data attribute instead here
+      let href = ref.getAttribute('data-footnote-href') || ref.getAttribute('href');
+      try { href = new URL(href).hash; } catch {}
+      const id = href.replace(/^#\/?/, "");
+      const note = window.document.getElementById(id);
+      return note.innerHTML;
+    });
+  }
+      let selectedAnnoteEl;
+      const selectorForAnnotation = ( cell, annotation) => {
+        let cellAttr = 'data-code-cell="' + cell + '"';
+        let lineAttr = 'data-code-annotation="' +  annotation + '"';
+        const selector = 'span[' + cellAttr + '][' + lineAttr + ']';
+        return selector;
+      }
+      const selectCodeLines = (annoteEl) => {
+        const doc = window.document;
+        const targetCell = annoteEl.getAttribute("data-target-cell");
+        const targetAnnotation = annoteEl.getAttribute("data-target-annotation");
+        const annoteSpan = window.document.querySelector(selectorForAnnotation(targetCell, targetAnnotation));
+        const lines = annoteSpan.getAttribute("data-code-lines").split(",");
+        const lineIds = lines.map((line) => {
+          return targetCell + "-" + line;
+        })
+        let top = null;
+        let height = null;
+        let parent = null;
+        if (lineIds.length > 0) {
+            //compute the position of the single el (top and bottom and make a div)
+            const el = window.document.getElementById(lineIds[0]);
+            top = el.offsetTop;
+            height = el.offsetHeight;
+            parent = el.parentElement.parentElement;
+          if (lineIds.length > 1) {
+            const lastEl = window.document.getElementById(lineIds[lineIds.length - 1]);
+            const bottom = lastEl.offsetTop + lastEl.offsetHeight;
+            height = bottom - top;
+          }
+          if (top !== null && height !== null && parent !== null) {
+            // cook up a div (if necessary) and position it 
+            let div = window.document.getElementById("code-annotation-line-highlight");
+            if (div === null) {
+              div = window.document.createElement("div");
+              div.setAttribute("id", "code-annotation-line-highlight");
+              div.style.position = 'absolute';
+              parent.appendChild(div);
+            }
+            div.style.top = top - 2 + "px";
+            div.style.height = height + 4 + "px";
+            let gutterDiv = window.document.getElementById("code-annotation-line-highlight-gutter");
+            if (gutterDiv === null) {
+              gutterDiv = window.document.createElement("div");
+              gutterDiv.setAttribute("id", "code-annotation-line-highlight-gutter");
+              gutterDiv.style.position = 'absolute';
+              const codeCell = window.document.getElementById(targetCell);
+              const gutter = codeCell.querySelector('.code-annotation-gutter');
+              gutter.appendChild(gutterDiv);
+            }
+            gutterDiv.style.top = top - 2 + "px";
+            gutterDiv.style.height = height + 4 + "px";
+          }
+          selectedAnnoteEl = annoteEl;
+        }
+      };
+      const unselectCodeLines = () => {
+        const elementsIds = ["code-annotation-line-highlight", "code-annotation-line-highlight-gutter"];
+        elementsIds.forEach((elId) => {
+          const div = window.document.getElementById(elId);
+          if (div) {
+            div.remove();
+          }
+        });
+        selectedAnnoteEl = undefined;
+      };
+      // Attach click handler to the DT
+      const annoteDls = window.document.querySelectorAll('dt[data-target-cell]');
+      for (const annoteDlNode of annoteDls) {
+        annoteDlNode.addEventListener('click', (event) => {
+          const clickedEl = event.target;
+          if (clickedEl !== selectedAnnoteEl) {
+            unselectCodeLines();
+            const activeEl = window.document.querySelector('dt[data-target-cell].code-annotation-active');
+            if (activeEl) {
+              activeEl.classList.remove('code-annotation-active');
+            }
+            selectCodeLines(clickedEl);
+            clickedEl.classList.add('code-annotation-active');
+          } else {
+            // Unselect the line
+            unselectCodeLines();
+            clickedEl.classList.remove('code-annotation-active');
+          }
+        });
+      }
+  const findCites = (el) => {
+    const parentEl = el.parentElement;
+    if (parentEl) {
+      const cites = parentEl.dataset.cites;
+      if (cites) {
+        return {
+          el,
+          cites: cites.split(' ')
+        };
+      } else {
+        return findCites(el.parentElement)
+      }
+    } else {
+      return undefined;
+    }
+  };
+  var bibliorefs = window.document.querySelectorAll('a[role="doc-biblioref"]');
+  for (var i=0; i<bibliorefs.length; i++) {
+    const ref = bibliorefs[i];
+    const citeInfo = findCites(ref);
+    if (citeInfo) {
+      tippyHover(citeInfo.el, function() {
+        var popup = window.document.createElement('div');
+        citeInfo.cites.forEach(function(cite) {
+          var citeDiv = window.document.createElement('div');
+          citeDiv.classList.add('hanging-indent');
+          citeDiv.classList.add('csl-entry');
+          var biblioDiv = window.document.getElementById('ref-' + cite);
+          if (biblioDiv) {
+            citeDiv.innerHTML = biblioDiv.innerHTML;
+          }
+          popup.appendChild(citeDiv);
+        });
+        return popup.innerHTML;
+      });
+    }
+  }
+});
+</script>
+</div> <!-- /content -->
+
+
+
+</body></html>

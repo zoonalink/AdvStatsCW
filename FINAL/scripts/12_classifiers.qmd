@@ -1445,11 +1445,6 @@ accuracy
 <!--# best model - 0.97 validation using dataset3.  class error 0.0294 (train) and 0.0278 (valid) and brier - 0.0228 and 0.0256.  this is the one! -->
 
 ```{r}
-
-
-```
-
-```{r}
 for (i in 1:length(train_list)) {
   train <- train_list[[i]]
   valid <- valid_list[[i]]

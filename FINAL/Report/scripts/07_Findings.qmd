@@ -1,0 +1,175 @@
+---
+title: "Chemical Sample Classification Report"
+subtitle: "Findings"
+author: "Petter Lövehagen"
+date: "09 May 2023"
+
+RVersion: 3.6.0 
+RStudio: 2023.03.0+386 Cherry Blossom Release
+Platform: "x86_64-w64-mingw32/x64 (64-bit)"
+OS: "Windows 11 SE"
+
+format: 
+  docx: default
+  html:
+    toc: true
+    toc-depth: 2
+    toc-title: "Contents"
+    toc-location: left
+    code-fold: true
+    code-line-numbers: true
+    theme: spacelab
+    html-math-method: mathjax
+    highlight: "tango"
+    #css: "../data/custom.css"
+prefer-docx: true
+lang: "en-GB"
+subject: "chemical sample classifition"
+#bibliography: "../data/AS_CW_References.bib"
+csl: "../data/harvard-university-of-the-west-of-england.csl"
+
+knitr:
+  opts_chunk:
+    include: false
+    tidy: true
+    echo: false
+    warning: false
+    message: false
+    error: true
+    fig.align: left
+    out.width: '90%'
+    fig.width: 6
+    fig.height: 4
+---
+
+```{r final_packages}
+# load/install R packages/libraries
+# set seed
+# load flextable defaults
+# see R file for details
+set.seed(567)
+file <- "classify"
+source("R/chem_report_load.R")
+```
+
+## Findings {#sec-findings}
+
+### Data {#sec-data-comment}
+
+The supplied sample dataset is of good quality and generally suitable for classification modelling. There are some outstanding questions about missing data and potential outliers, but nothing of or which prevents analysis and modelling.
+
+### Data Reduction {#sec-data-reduction-find}
+
+Principal Components Analysis was found to be unsuitable as a dimension reduction technique on this data - not enough variability was captured.
+
+Feature Reduction, where variables are excluded from the classification models, was found to be successful at a small cost to performance.
+
+### Classification Models {#sec-classification-model-find}
+
+Trees, random forests, discriminant analysis, support vector machine, clustering and k nearest neighbours were investigated.
+
+The best performing model overall was a Discriminant Analysis model on the using all variables, resulting in an accuracy of 97.7% on the validate set.
+
+The best performing model using a reduced variable dataset was also a DA model, with an accuracy of 97.2%.
+
+```{r load_model_data}
+# load scaling function
+source("R/scale_data_using_train_stats.R")
+
+
+#load test data
+test <- read.csv("../data/chem_test.csv")
+num_test <- test[,-21]
+#dim(test)
+
+
+# calculate train means and sds for scaling function
+train_label <- read.csv("../data/chem_train.csv")
+train <- train_label[,-21]
+train_means <- colMeans(train)
+train_sds <- apply(train, 2, sd)
+
+# scale based on train stats
+test_scaled <- scale_data_using_train(num_test, train_means = train_means, train_sds = train_sds)
+#dim(test_scaled)
+
+test[,21]
+
+```
+
+```{r predict_test_complete}
+
+# load models
+DA_complete_model_1 <- readRDS("../report/DA_model_1.RDS")
+DA_reduced_model_7 <- readRDS("../report/DA_model_7.RDS")
+
+# make class predictions on new dataset
+predictions <- predict(DA_complete_model_1, newdata = test_scaled, type = "class")
+
+
+# compare predictions to true class
+accuracy <- sum(predictions$classification == as.factor(test[,21])) / nrow(test_scaled)
+
+# print accuracy
+cat(paste0("Accuracy of Complete_Var model on test dataset: ", round(accuracy, 3), "\n"))
+
+comp_acc <- round((accuracy*100),2)
+```
+
+```{r predict_test_reduced}
+#"X7"  "X8"  "X9"  "X10" "X3"  "X11" (col order)
+
+# variables
+test_reduced_3 <- test_scaled[, c("X7", "X8", "X9", "X10", "X3", "X11")]
+
+
+
+# load models
+DA_reduced_model_7 <- readRDS("../report/DA_model_7.RDS")
+
+# make class predictions on new dataset
+predictions2 <- predict(DA_reduced_model_7, newdata = test_reduced_3, type = "class")
+
+# compare predictions to true class
+accuracy2 <- sum(predictions2$classification == as.factor(test[, 21])) / nrow(test_scaled)
+
+# print accuracy
+cat(paste0("Accuracy of Reduced_Var model on test dataset: ", round(accuracy2, 3), "\n"))
+
+reduce_acc <- round((accuracy2*100), 2)
+
+
+```
+
+### Test Data
+
+The final assessment of the models is on completely untouched data - the `test` set.
+
+::: callout-important
+## Test Results
+
+-   Accuracy of DA Model using **All Variables**: `r comp_acc`%
+
+-   Accuracy of DA Model using **Reduced Variables**: `r reduce_acc`%
+
+Performance hit from using less variables: `r comp_acc - reduce_acc`%
+:::
+
+<br>
+
+<br>
+
+::: callout-important
+## Recommendations
+
+-   Exploratory session with domain expert to gain insight into dataset:
+    -   Missing data
+    -   Outliers
+    -   Variables - especially label E
+    -   Measurements
+-   Deploy Classification Model using reduced variable set
+-   Consider further model improvement
+    -   Speed gains
+
+    -   Accuracy gain
+:::

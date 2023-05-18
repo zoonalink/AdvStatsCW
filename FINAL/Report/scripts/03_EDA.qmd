@@ -1,0 +1,772 @@
+---
+title: "Chemical Sample Classification Report"
+#subtitle: "Exploratory Data"
+author: "Petter Lövehagen"
+date: "09 May 2023"
+
+RVersion: 3.6.0 
+RStudio: 2023.03.0+386 Cherry Blossom Release
+Platform: "x86_64-w64-mingw32/x64 (64-bit)"
+OS: "Windows 11 SE"
+
+format: 
+  docx: default
+  html:
+    toc: true
+    toc-depth: 3
+    toc-title: "Contents"
+    toc-location: left
+    code-fold: true
+    code-line-numbers: true
+    theme: spacelab
+    html-math-method: mathjax
+    highlight: "tango"
+    #css: "../data/custom.css"
+output:
+  word_document:
+    fig.retina: 300
+prefer-docx: true
+lang: "en-GB"
+bibliography: "../data/AS_CW_References.bib"
+csl: "../data/harvard-university-of-the-west-of-england.csl"
+
+knitr:
+  opts_chunk:
+    include: false
+    tidy: true
+    echo: false
+    warning: false
+    message: false
+    error: true
+    out.width: '90%'
+    #fig.width: 6
+    #fig.height: 4
+---
+
+```{r EDA_packages}
+# load/install R packages/libraries
+# set seed
+# load flextable defaults
+# see R file for details
+set.seed(567)
+file <- "EDA"
+source("R/chem_report_load.R")
+
+```
+
+```{r load_data_from_csv}
+# load train data set
+train <-read.csv("../data/chem_train.csv")
+# extract numeric columns
+num_train <- train[, -21]
+
+```
+
+```{r train_structure}
+# structure and summary
+
+head(train)
+dim(train)
+str(train)
+summary(train)
+```
+
+```{r stats_psych}
+#summary of stats using 'psych'
+
+describe(train)
+```
+
+<!--# The summary statistics of the dataset (before any transformation) suggest that variables may be using different scales of measurement.  Without knowing the units of measurement or anything else about the dataset, the data will need to be mean scaled/normalised to ensure that variables are on the same scale. -->
+
+### Exploratory Data Analysis {#sec-exploratory-data-analysis}
+
+
+#### Overall Size and Shape {#sec-overall-statistics}
+
+```{r train_statistics}
+
+
+# overall min and max
+overall_min <- round(min(num_train),2)
+overall_max <- round(max(num_train),2)
+minCol_index <- which(num_train == min(num_train), arr.ind = TRUE)[2]
+maxCol_index <- which(num_train == max(num_train), arr.ind = TRUE)[2]
+minCol_name <- colnames(num_train)[minCol_index]
+maxCol_name <- colnames(num_train)[maxCol_index]
+
+# ranges
+ranges <- apply(num_train, 2, function(x) diff(range(x)))
+maxRange <- round(max(ranges),2)
+minRange <- round(min(ranges),2)
+maxRange_name <- colnames(num_train)[which.max(ranges)]
+minRange_name <- colnames(num_train)[which.min(ranges)]
+
+# standard deviations
+sd_vals <- apply(num_train, 2, sd)
+maxSD <- round(max(sd_vals),2)
+minSD <- round(min(sd_vals),2)
+maxSD_name <- colnames(num_train)[which.max(sd_vals)]
+minSD_name <- colnames(num_train)[which.min(sd_vals)]
+
+# means
+mean_vals <- apply(num_train, 2, mean)
+maxMean <- round(max(mean_vals),2)
+minMean <- round(min(mean_vals),2)
+maxMean_name <- colnames(num_train)[which.max(mean_vals)]
+minMean_name <- colnames(num_train)[which.min(mean_vals)]
+
+# variances
+var_vals <- apply(num_train, 2, var)
+maxVar <- round(max(var_vals),2)
+minVar <- round(min(var_vals),2)
+maxVar_name <- colnames(num_train)[which.max(var_vals)]
+minVar_name <- colnames(num_train)[which.min(var_vals)]
+
+
+```
+
+`train` has `r nrow(train)` rows, with an overall minimum value of `r overall_min` (`r minCol_name`) and an overall maximum value of `r overall_max` (`r maxCol_name`).
+
+
+<!-- | Statistic | Min                             | Max                             | -->
+
+<!-- |----------------------------------|-------------------|-------------------| -->
+
+<!-- | Mean      | `r minMean` (`r minMean_name`)   | `r maxMean` (`r maxMean_name`)   | -->
+
+<!-- | Variance  | `r minVar` (`r minVar_name`)     | `r maxVar` (`r maxVar_name`)     | -->
+
+<!-- | Range     | `r minRange` (`r minRange_name`) | `r maxRange` (`r maxRange_name`) | -->
+
+<!-- : Table 4: Statistics across Variables -->
+
+```{r minmax_statistics, include=TRUE, echo=FALSE, results='asis'}
+#| tab.id: tbl-minmaxStats
+#| tbl-cap: "Minimum / Maximum Statistics in 'train'"
+#| tbl-cap-location: bottom
+#| tbl-alt: "Table with minimum and maximum mean, variance and range in train dataset"
+
+
+# data frame with the statistics and their values
+statistics <- data.frame(
+  Statistic = c("Mean", "Variance", "Range"),
+  "Minimum" = c(paste0(minMean, " (", minMean_name, ") "), paste0(minVar, " (", minVar_name, ") "), paste0(minRange, " (", minRange_name, ") ")),
+  "Maximum" = c(paste0(maxMean, " (", maxMean_name, ") "), paste0(maxVar, " (", maxVar_name, ") "), paste0(maxRange, " (", maxRange_name, ") "))
+)
+
+
+statistics |>
+  flextable() |> 
+  autofit() |> 
+  bold(j=1)
+
+```
+
+*Spread* between variables in terms of mean, variance and range is significant.
+
+<!--# I scale the data below but continue to do EDA on the unscaled data.  The scaled data will be used for modelling and analysis later on in the report. -->
+
+```{r scale_train}
+# load scale_data function
+source("R/scale_data.R")
+
+# scale num_train
+num_train_scaled <- scale_data(num_train)
+#dim(num_train_scaled)
+#describe(num_train_scaled)
+summary(num_train_scaled)
+
+# add label to scaled data
+num_train_scaled <- as.data.frame(scale(num_train))
+num_train_scaled_label <- cbind(num_train_scaled, label = train$label)
+
+num_train_scaled_label
+
+#save to csv
+write.csv(num_train_scaled_label, "../data/train_scaled_label.csv", row.names = FALSE)
+
+
+```
+
+#### Outliers {#sec-outliers}
+
+Values which are significantly different from other data points in the dataset were explored.  It is essential to distinguish between genuine extreme values and errors (measurement, data entry, faulty readings).  Genuine data contain valuable information; problematic outliers may need to be treated or removed as they can skew analysis.
+
+Distribution plots suggest that variables are generally *normally* distributed (@fig-distros) with some non-normality (@fig-hist).
+
+
+<!--#  The density plot below for two selected variables (X1 and X7) show that there are differences when grouping by the target labels. -->
+
+```{r ggdensity}
+# density plots by class (label) for X1
+X1<-ggplot(train, aes(x = X1, fill = label)) +
+  geom_density(alpha = 0.5) +
+  facet_wrap(~ label, nrow = 3)
+# above plot plus a combined plot for X7
+X1 + ggplot(train, aes(x=X7, fill = label)) + 
+  geom_density(alpha = 0.5) 
+```
+
+<!--# The below plot list shows all variables' densities grouped by target variable (label) - when expanded, it apperas that variables are largely normally distributed but that there are some key variables where the distributions differ between groups - for example  X7-X10.  It is likely that these will be useful to differentiate between chemicals in in the model. -->
+
+```{r ggplot_grid, warning=FALSE}
+
+# list of plots, with one plot for each variable
+plot_list <- lapply(names(train), function(var) {
+  ggplot(train, aes_string(x = var, fill = "label")) +
+    geom_density(alpha = 0.5) +
+    ggtitle(paste0("Distribution of ", var))
+})
+
+# Combine the plots into a grid using the cowplot package
+plot_grid(plotlist = plot_list, ncol = 5)
+
+```
+
+```{r distributions, include=TRUE, echo=FALSE, message = FALSE, tab.align='left', fig.alt="Distributions by 'label'"}
+#| label: fig-distros
+#| fig-cap: "Distributions by 'label'"
+
+# list of plots, with one plot for each variable, remove legend
+plot_list <- lapply(names(train[,-21]), function(var) {
+  ggplot(train, aes_string(x = var, colour = "label", fill = "label", alpha = 0.2)) +
+    scale_fill_manual(values = palette2) +
+    scale_colour_manual(values = palette2) +
+    geom_density(aes(y = after_stat(density)), alpha = 0.2)  +
+    ylab(NULL) + 
+    theme(legend.position="none")
+})
+
+# Combine the plots into a grid using the cowplot package
+grid <- plot_grid(plotlist = plot_list, ncol = 5)
+
+# add title 
+title <- ggdraw() + 
+  draw_label("Distribution of variables", fontface = "bold", size = 20)
+
+# combine with plot_grid function from cowplot
+plot_grid(title, grid, ncol = 1, rel_heights = c(0.1, 1))
+
+
+
+```
+
+<!--# When looking at histograms, I explored how to best determine which binwidth to use.  I came across Freedman-Diaconis and Sturges rules. The results for `num_train` are below and they are quite different.  For example, the FD binwidth for varible X7 is 0.07 while Sturges' method suggests a binwidth of 0.14, that is, double.  In general, Sturges bw is much larger. The reason is that FD takes into account the variability of the data, not just the count of observations (Sturges).  I am going to use FDR. -->
+
+```{r binwidths}
+
+
+# binwidths using Freedman-Diaconis rule
+binwidth_FD <- lapply(num_train, function(x) {
+  bw <- 2 * IQR(x) / (length(x)^(1/3))
+  round(bw, 2)
+})
+
+# binwidths using Sturges rule
+binwidth_Stu <- lapply(num_train, function(x) {
+  bw <- diff(range(x)) / (1 + log2(length(x)))
+  round(bw, 2)
+})
+
+# combine binwidths into one table
+binwidth_table <- cbind(variable = names(num_train), 
+                        binwidth_FD = unlist(binwidth_FD), 
+                        binwidth_Stu = unlist(binwidth_Stu))
+
+# print the table
+print(binwidth_table)
+
+
+
+```
+The violin plots (@fig-violin) visualise potential outliers - data points beyond 1.5x the  `interquartile range` (IQR) (50% of the data). These are the points on the *whiskers*; X8 has many more *potential* outliers than variable X9.
+
+
+```{r histograms, include=TRUE, echo=FALSE, message = FALSE, tab.align='left', fig.alt="Histograms and Density Plots of Selected Variables"}
+#| label: fig-hist
+#| fig-cap: "Histograms and Density Plots of Selected Variables in `train`"
+
+# selected variables
+var_subset <- num_train[c("X1", "X7", "X8", "X9")]
+
+# binwidth function using Freedman-Diaconis Rule
+binwidth_FD <- lapply(var_subset, function(x) {
+  bw <- 2 * IQR(x) / (length(x)^(1/3))
+  round(bw, 2)
+})
+
+# set size, small
+theme_set(theme_bw(base_size = 10))
+
+# list of histograms for each variable
+histograms <- lapply(names(var_subset), function(x) {
+  ggplot(data = data.frame(y = num_train[[x]]), aes(x = y)) +
+    geom_histogram(aes(y = after_stat(density)), fill = "#1B9E77", color = "#616161", alpha = 0.4,
+                   binwidth = binwidth_FD[[x]]) +
+    geom_density(aes(y = after_stat(density)), alpha = 0.6) +
+    labs(x = x, y = NULL) 
+})
+
+# histograms with cowplot package
+hists <- plot_grid(plotlist = histograms, ncol = 2, align = "v") +
+  ggtitle("Histograms and Density Plots of Selected Variables") +
+  theme(plot.title = element_text(hjust = 0.5, size = 14),
+        plot.margin = unit(c(1, 1, 1, 1), "cm"))
+
+hists
+
+```
+
+The distribution and density plots in @fig-hist show potential non-normal distributions, with multiple peaks or skewness. The violin plots (@fig-violin) help visualise potential outliers - data points beyond 1.5x the  `interquartile range` (IQR), representing 50% of the data. These are the dots on the *whiskers*; X8 has many more *potential* outliers than variable X9.
+
+```{r violins, include=TRUE, echo=FALSE, message = FALSE, fig.alt="Violin Plots of Selected Variables"}
+#| label: fig-violin
+#| fig-cap: "Violin Plots of Selected Variables in `train`"
+
+# variables of interest
+#var_subset <- num_train[c("X1", "X7", "X8", "X9")]
+
+# binwidths for histograms
+#binwidths <- lapply(var_subset, function(x) diff(range(x))/30)
+
+# list of labeled boxplot and violin plot for each variable
+# currently commented out boxplots - remove # to create
+viol_box <- lapply(names(var_subset), function(x) {
+
+  # # create a labeled boxplot
+  # boxplot <- ggplot(data = data.frame(y = var_subset[[x]]), aes(y = y)) +
+  #   geom_boxplot(fill = "#A3C4BC", color = "#616161") +
+  #   ggtitle(paste("Boxplot of", x)) +
+  #   xlab(x) +
+  #   ylab("Value") +
+  #   theme_bw(base_size = 10) 
+
+  # violin plot
+  violinplot <- ggplot(data = data.frame(y = var_subset[[x]]), aes(x = "", y = y)) +
+    geom_violin(fill = "#1B9E77", color = "#616161", alpha = 0.4) +
+    geom_boxplot(width = 0.2, fill = "#7570B3", color = "#616161", alpha = 0.6) +
+    #ggtitle(paste("Violin Plot of", x)) +
+    xlab(x) +
+    ylab("") +
+    theme_bw(base_size = 10) 
+
+  # return list with boxplot and violin plot
+  list(
+    #boxplot, 
+    violinplot)
+})
+
+# flatten the list of plots, arrange 
+plots_flat <- unlist(viol_box, recursive = FALSE)
+
+violins <- plot_grid(plotlist = plots_flat, 
+          #nrow = 2, 
+          ncol = 4) +
+  ggtitle("Violin Plots of Selected Variables") +
+  theme(plot.title = element_text(hjust = 0.5, size = 14),
+        plot.margin = unit(c(1, 1, 1, 1), "cm"))
+
+violins
+```
+
+<!--# Below are the histograms and boxplots for all variables.  There's nothing too remarkable - the variables are more or less normally distributed with X7-X9 having less normal distributions. -->
+
+```{r train_histograms_all}
+
+# all variables
+var_subset <- num_train
+
+# binwidth function using Freedman-Diaconis Rule
+binwidth_FD <- lapply(var_subset, function(x) {
+  bw <- 2 * IQR(x) / (length(x)^(1/3))
+  round(bw, 2)
+})
+
+# set size, small
+theme_set(theme_bw(base_size = 10))
+
+# list of histograms for each variable
+histograms_all <- lapply(names(var_subset), function(x) {
+  ggplot(data = data.frame(y = num_train[[x]]), aes(x = y)) +
+    geom_histogram(aes(y = after_stat(density)), fill = "#A3C4BC", color = "#616161",
+                   binwidth = binwidth_FD[[x]]) +
+    geom_density(aes(y = after_stat(density)), alpha = 0.8) +
+    labs(x = x, y = NULL) 
+})
+
+# histograms with cowplot package
+hists_all <- plot_grid(plotlist = histograms_all, ncol = 4, align = "v") +
+  ggtitle("Histograms and Density Plots of All Variables") +
+  theme(plot.title = element_text(hjust = 0.5, size = 14),
+        plot.margin = unit(c(1, 1, 1, 1), "cm"))
+
+hists_all
+
+
+```
+
+```{r train_boxplots_all}
+# set size, small
+theme_set(theme_bw(base_size = 10))
+
+# list of boxplots for each variable
+boxplots <- lapply(num_train, function(x) ggplot(data = data.frame(y = x), aes(y = y)) +
+               geom_boxplot(fill = "#A3C4BC", color = "#616161") +
+               labs(x = NULL, y = NULL) +
+               coord_fixed(ratio = .04))
+
+# boxplots with cowplot package
+
+
+plot_grid(plotlist = boxplots, ncol = 4, align = "h") +
+  ggtitle("Boxplots of all Variables") +
+  theme(plot.title = element_text(hjust = 0.5, size = 14),
+        plot.margin = unit(c(1, 1, 1, 1), "cm"))
+```
+
+<!--# To be certain, I have reproduced the above plots on the scaled data.  The density plots remain the same but the binwidths are different, producing a slightly different visual.  The bins for X7-X10 and X17-X20 are clearly larger/wider so it appears that scaling (centre 0, standard deviation = 1) has made the data more spread out for these variables.  This could mean that these variables have more variability tahn the others, which may be useful in the classification models.-->
+
+
+
+```{r hists_sc}
+# histograms for all scaled variables
+
+# selected variables
+var_subset <- num_train_scaled
+
+# binwidth function using Freedman-Diaconis Rule
+binwidth_FD <- lapply(var_subset, function(x) {
+  bw <- 2 * IQR(x) / (length(x)^(1/3))
+  round(bw, 2)
+})
+
+# set size, small
+theme_set(theme_bw(base_size = 10))
+
+# list of histograms for each variable
+histograms_sc <- lapply(names(var_subset), function(x) {
+  ggplot(data = data.frame(y = num_train[[x]]), aes(x = y)) +
+    geom_histogram(aes(y = after_stat(density)), fill = "#A3C4BC", color = "#616161",
+                   binwidth = binwidth_FD[[x]]) +
+    geom_density(aes(y = after_stat(density)), alpha = 0.8) +
+    labs(x = x, y = NULL) 
+})
+
+# histograms with cowplot package
+hists_sc <- plot_grid(plotlist = histograms_sc, ncol = 4, align = "v") +
+  ggtitle("Histograms and Density Plots of Variables (scaled)") +
+  theme(plot.title = element_text(hjust = 0.5, size = 14),
+        plot.margin = unit(c(1, 1, 1, 1), "cm"))
+
+hists_sc
+```
+
+```{r box_sc}
+# box plots for all scaled variables
+
+# set size, small
+theme_set(theme_bw(base_size = 10))
+
+# list of boxplots for each variable
+boxplots_scale <- lapply(num_train_scaled, function(x) ggplot(data = data.frame(y = x), aes(y = y)) +
+               geom_boxplot(fill = "#A3C4BC", color = "#616161") +
+               labs(x = NULL, y = NULL)) 
+
+# boxplots with cowplot package
+plot_grid(plotlist = boxplots_scale, ncol = 5, align = "h") +
+  ggtitle("Boxplots of Variables (scaled)") +
+  theme(plot.title = element_text(hjust = 0.5, size = 16),
+        plot.margin = unit(c(1, 1, 1, 1), "cm"))
+```
+
+<!--# In addition to visually inspecting the variables in terms of distributions and densities, I looked at a more formal approach to identify outliers in the dataset.  I calculated z-scores for each variable using 'scale()'.  -->
+
+<!--# Then potential 'outliers' were pulled out - those with a z-score of +/- 3 which is a common threshold.  In a normal distribution - 99.7% of observations fall within 3 standard deviations. -->
+
+
+
+
+
+```{r outliers_zscore}
+# calculate z-scores for each variable
+z_scores <- apply(num_train, 2, function(x) scale(x, center = TRUE, scale = TRUE))
+
+# identify values with z-score greater than 3 or less than -3
+outliers <- which(abs(z_scores) > 3, arr.ind = TRUE)
+
+# new df with column name, number 
+outliers_df <- data.frame(
+  col_name = colnames(num_train)[outliers[, "col"]],
+  col_num = outliers[, "col"],
+  row_num = outliers[, "row"]
+)
+
+nrow(outliers_df)
+
+
+# get table of outliers by variable
+table_outliers <- table(outliers_df$col_name)
+max_outliers <- max(table_outliers)
+max_col_name <- names(table_outliers)[which.max(table_outliers)]
+#flextable(as.data.frame(table_outliers))
+plot(table_outliers)
+
+```
+
+Potential outliers were investigated statistically with varying results depending on method and sensitivity. 
+
+A general approach involves identifying data which is &plusmn; 3 standard deviations from a calculated statistic (*z-score*) - meaning it is beyond 0.3% of the centre. 
+
+<!--# The above plot shows numbers of potential outliers (+/- 3SD) in the unscaled dataset - there are 81 total 'potential' outliers.  Variable 8 sticks out with the most - 10.  This is 0.4% of the dataset - so a tiny bit more than what might be expected in a normal distribution (0.3%)..  
+
+<!--# A more robust method to consider outliers is using mean absolute deviation (instead of SD) which can be seen below.  This results in 119 potential outliers.  The interesting thing is that X8 now has 38 potential outliers.  It could be that X8 has more extreme variables or has more variability - but the client should be made aware.   -->
+
+```{r outliers_mad}
+#| tab.id: tbl-outliers_mad
+#| tbl-cap: "Counts of outliers by Variable"
+#| tbl-cap-location: bottom
+#| tbl-alt: "Table with Counts of outliers by Variable in train dataset"
+
+# function to return median absolute deviation (MAD) outliers, default = 3
+
+outliers_mad <- function(df, N =3) {
+  # initialise dataframe to store outliers
+  outliers <- data.frame()
+  
+  # loop through each column 
+  for (col in names(df)) {
+    # check if numeric
+    if (is.numeric(df[[col]])) {
+      # calculate MAD for the column
+      mad <- mad(df[[col]])
+      
+      # identify outliers using MAD and N
+      outliers <- rbind(outliers, data.frame(column = col, value = df[[col]])[abs(df[[col]] - median(df[[col]])) > N * mad, ])
+    }
+  }
+  
+  # return dataframe of outliers
+  return(outliers)
+}
+
+# store outlier results
+mads <- outliers_mad(num_train, 3)
+
+# function to produce count flextable
+outliers_FT <- function(outliers, cap = "") {
+  # count number of outliers per variable
+  counts <- table(outliers$column)
+  # data frame with 'Variable' and 'Count'
+  result_df <- data.frame(Variable = names(counts), Count = as.numeric(counts))
+  # sort by count
+  result_df <- arrange(result_df, desc(Count))
+  # flextable
+  FT <- flextable(result_df) |>
+    set_caption(cap) 
+  
+  return(FT)
+}
+nrow(mads)
+mad_outlier <- outliers_FT(outliers = mads, cap = "Counts of outliers by Variable")
+mad_outlier
+```
+
+<!--# The above looked at outliers within each variable.  Another approach is to consider outliers in a multivariate approach - using Mahalanobis distance. -->
+
+
+
+
+
+```{r}
+
+# # Mahalanobis distance for each row of the dataset
+# maha <- mahalanobis(num_train, center = colMeans(num_train), cov = cov(num_train))
+# 
+# # rows that are more than N MADs away from the centre
+# mad_outliers <- which(maha > 6 * mad(maha))
+
+
+maha_outliers <- function(df, N) {
+  # Mahalanobis distance for each observation
+  maha <- mahalanobis(x = df, center = colMeans(df), cov = cov(df))
+  
+  # cutoff value for distances - covariance
+  cutoff <- qchisq(p = 0.95, df = ncol(df))
+  
+  # observations with distances greater than the cutoff
+  cov_outliers <- which(maha > N * sqrt(cutoff))
+  
+  # obs greater distance using median absolute deviation 
+  mad_outliers <- which(maha > 4 * mad(maha))
+  
+return(list(cov_outliers = cov_outliers, mad_outliers = mad_outliers))
+  }
+
+# Call the function with your data frame and a threshold value
+outliers <- maha_outliers(num_train, N = 6)
+
+# Extract the indices of the outliers identified by the covariance method
+cov_outliers <- outliers$cov_outliers
+
+# Extract the indices of the outliers identified by the MAD method
+mad_outliers <- outliers$mad_outliers
+
+length(cov_outliers)
+length(mad_outliers)
+
+
+#mad_outliers
+
+ # violations2 <- num_train %>%
+ #   insist_rows(maha_dist, within_n_mads(3), dplyr::everything()) %>%
+ #   as.data.frame()
+
+```
+
+<!--# Mahalonbis distance has been calculated for each value in the dataset.  Two measures of dispersion are used - covariance matrix and median absolute deviation (MAD).  MAD is less sensitive to outliers compared to standard deviation.  MAD is set to 6 MADs away from centre; for covariance, I am using chi-squared distribution to identify those beyond 0.95. Whilst there is some evidence of outliers, there is nothing particularly concerning.  Without additional information, it is not possible to know whether these are outliers which warrant concern, transformation or even removal.  In the absence of information, they will be retained in the modelling.--> 
+
+
+
+```{r outlier_sentence}
+
+outlier_sentence <- {
+  # check if there are 0 outliers
+  if (nrow(table_outliers) == 0) {
+  print("There are no 'outliers' in the dataset.")
+# check if there is 1 outlier
+} else if (nrow(table_outliers) ==1) {
+  max_outliers <- max(table_outliers)
+  col_max_outliers <- names(table_outliers)[which.max(table_outliers)]
+  print(paste0("There is ", nrow(outliers_df), " 'outlier' in the dataset from ", col_max_outliers, "."))
+# check if variables with outliers ==  variables in num_train
+} else if (nrow(table_outliers) == ncol(num_train)) {
+  max_outliers <- max(table_outliers)
+  col_max_outliers <- names(table_outliers)[which.max(table_outliers)]
+  print(paste0("There are a total of ", nrow(outliers_df), " 'outliers' in the dataset. Every variable in the dataset has at least one 'outlier' with variable '", col_max_outliers, "' having the most with ", max_outliers, "."))
+# check if less variables with outliers than vars in num_train
+} else if (nrow(table_outliers) < nrow(num_train)) {
+  max_outliers <- max(table_outliers)
+  col_max_outliers <- names(table_outliers)[which.max(table_outliers)]
+  print(paste0("There are a total of ", nrow(outliers_df), " 'outliers' in the dataset from ", nrow(table_outliers), " variables; '", col_max_outliers, "' has the most with ", max_outliers, "."))
+}
+}
+
+```
+`r outlier_sentence`
+
+::: callout-important
+## Decision
+
+Data will be *scaled* to prevent variables having undue influence.
+
+Outliers will be retained. 
+:::
+
+
+
+### Correlation between Variables {#sec-correlation-between-variables}
+
+<!--# This section looks at correlations between variables to get an initial understanding of how they may be related. The pairs.panel runs but is less useful as there are too many variables.  They are broken up into smaller plots below. -->
+
+```{r pairspanel}
+# uncomment to run a not-so-useful pairs plot
+
+#par(mar = c(1, 1, 1, 1))
+#pairs.panels(train)
+
+```
+
+```{r corrmatrix, include=TRUE, echo=FALSE, message = FALSE, fig.alt="Correlation Matrix between variables"}
+#| label: fig-corrmatrix
+#| fig-cap: "Correlation Matrix"
+
+# create correlation matrix
+corr_matrix <- cor(num_train)
+
+# plot correlation matrix using corrplot
+corrplot(corr_matrix, method = 'ellipse', type = 'lower', insig='blank',
+           diag=FALSE, tl.col = 'grey30')
+
+```
+
+After exploring [overall statistics](#sec-overall-statistics) and [outliers](#sec-outliers), this section examines linear relationships. The `correlation matrix` shows strong negative correlation between X18, X20 each with X17, X19 and strong positive correlation between X18 and X20 as well as between X17 and X19.  A lot of variables have little or no correlation.
+
+The ellipsoid shapes in the `pair plot` highlight liner relationships with correlation coefficients (-1 to 1) indicating the strength of the relationship.
+
+
+
+```{r ggcorrplot}
+# alternative corrplots
+
+# create correlation matrix
+ggcorr <- round(cor(num_train), 1)
+
+# p values
+p.mat <- cor_pmat(num_train)
+
+# plot correlation matrix using ggcorrplot
+ggcorrplot(ggcorr, hc.order = TRUE, type = "lower")
+
+ggcorrplot(ggcorr,
+  hc.order = TRUE, type = "full", p.mat = p.mat,insig = "blank",
+  outline.color = "white",
+  ggtheme = ggplot2::theme_gray,
+  colors = c("#6D9EC1", "white", "#E46726")
+)
+```
+
+<!--# The different correlation plots are included as they show the correlations in slightly different manners and can help spot the interactions between variables.  The ggpair plots below are 4 sets of 5 variables - this does not give every variable combination but it gives an indication of correlations.  We can see with clarity that there are strong linear relationships between variables X17-X20 whilst the other plots have less strong correlation (lower Pearson's R coefficient) with the blob-like scatter plots. -->
+
+```{r ggpairs, message=FALSE}
+
+#pair plots broken into sets of 5
+names(train)
+
+pair1_5 <- train %>%
+  dplyr::select(label, X1:X5) %>% 
+  GGally::ggpairs(aes(color = label, alpha = 0.4),
+          columns = c("X1", "X2", "X3", "X4", "X5"), progress = FALSE) +
+          scale_color_manual(values = palette2) + 
+  scale_colour_manual(values = palette2)
+
+
+pair6_10 <- train %>%
+  dplyr::select(label, X6:X10) %>% 
+  GGally::ggpairs(aes(color = label, alpha = 0.4),
+          columns = c("X6","X7", "X8", "X9","X10"), progress = FALSE) +
+          scale_color_manual(values = palette2) + 
+  scale_colour_manual(values = palette2)
+
+pair11_15 <- train %>%
+  dplyr::select(label, X11, X12, X13, X14, X15, X16, X17, X18) %>% 
+  GGally::ggpairs(aes(color = label, alpha = 0.4),
+          columns = c("X11","X12","X13", "X14", "X15"), progress = FALSE) +
+          scale_color_manual(values = palette2) + 
+  scale_colour_manual(values = palette2)
+
+pair16_20 <- train %>%
+  dplyr::select(label, X16, X17, X18, X19, X20) %>% 
+  GGally::ggpairs(aes(color = label, alpha = 0.4),
+          columns = c("X16", "X17", "X18", "X19", "X20"), progress = FALSE) +
+  scale_fill_manual(values = palette2) + 
+  scale_colour_manual(values = palette2)
+  
+
+pair1_5
+pair6_10
+pair11_15
+pair16_20
+
+```
+
+```{r ggpair_16_20, include=TRUE, echo=FALSE, message = FALSE, fig.alt="Correlation Pair Plots - Variables X16-X20"}
+#| label: fig-corrmatrix1620
+#| fig-cap: "Correlation Pair Plots - Variables X16-X20"
+
+pair16_20
+```
+
+
+
+

@@ -1,0 +1,446 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en-GB" xml:lang="en-GB"><head>
+
+<meta charset="utf-8">
+<meta name="generator" content="quarto-1.3.296">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+
+<meta name="author" content="Petter Lövehagen">
+<meta name="dcterms.date" content="2023-05-09">
+
+<title>Chemical Sample Classification Report</title>
+<style>
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+div.columns{display: flex; gap: min(4vw, 1.5em);}
+div.column{flex: auto; overflow-x: auto;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+ul.task-list li input[type="checkbox"] {
+  width: 0.8em;
+  margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
+  vertical-align: middle;
+}
+</style>
+
+
+<script src="03_EDA_files/libs/clipboard/clipboard.min.js"></script>
+<script src="03_EDA_files/libs/quarto-html/quarto.js"></script>
+<script src="03_EDA_files/libs/quarto-html/popper.min.js"></script>
+<script src="03_EDA_files/libs/quarto-html/tippy.umd.min.js"></script>
+<script src="03_EDA_files/libs/quarto-html/anchor.min.js"></script>
+<link href="03_EDA_files/libs/quarto-html/tippy.css" rel="stylesheet">
+<link href="03_EDA_files/libs/quarto-html/quarto-syntax-highlighting.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<script src="03_EDA_files/libs/bootstrap/bootstrap.min.js"></script>
+<link href="03_EDA_files/libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
+<link href="03_EDA_files/libs/bootstrap/bootstrap.min.css" rel="stylesheet" id="quarto-bootstrap" data-mode="light">
+<link href="03_EDA_files/libs/tabwid-1.1.3/tabwid.css" rel="stylesheet">
+<script src="03_EDA_files/libs/tabwid-1.1.3/tabwid.js"></script>
+
+
+</head>
+
+<body>
+
+<div id="quarto-content" class="page-columns page-rows-contents page-layout-article toc-left">
+<div id="quarto-sidebar-toc-left" class="sidebar toc-left">
+  <nav id="TOC" role="doc-toc" class="toc-active">
+    <h2 id="toc-title">Contents</h2>
+   
+  <ul>
+  <li><a href="#sec-exploratory-data-analysis" id="toc-sec-exploratory-data-analysis" class="nav-link active" data-scroll-target="#sec-exploratory-data-analysis">Exploratory Data Analysis</a></li>
+  <li><a href="#sec-correlation-between-variables" id="toc-sec-correlation-between-variables" class="nav-link" data-scroll-target="#sec-correlation-between-variables">Correlation between Variables</a></li>
+  </ul>
+<div class="quarto-alternate-formats"><h2>Other Formats</h2><ul><li><a href="03_EDA.docx"><i class="bi bi-file-word"></i>MS Word</a></li></ul></div></nav>
+</div>
+<div id="quarto-margin-sidebar" class="sidebar margin-sidebar">
+</div>
+<main class="content" id="quarto-document-content">
+
+<header id="title-block-header" class="quarto-title-block default">
+<div class="quarto-title">
+<h1 class="title">Chemical Sample Classification Report</h1>
+</div>
+
+
+
+<div class="quarto-title-meta">
+
+    <div>
+    <div class="quarto-title-meta-heading">Author</div>
+    <div class="quarto-title-meta-contents">
+             <p>Petter Lövehagen </p>
+          </div>
+  </div>
+    
+    <div>
+    <div class="quarto-title-meta-heading">Published</div>
+    <div class="quarto-title-meta-contents">
+      <p class="date">9 May 2023</p>
+    </div>
+  </div>
+  
+    
+  </div>
+  
+
+</header>
+
+<!--# The summary statistics of the dataset (before any transformation) suggest that variables may be using different scales of measurement.  Without knowing the units of measurement or anything else about the dataset, the data will need to be mean scaled/normalised to ensure that variables are on the same scale. -->
+<section id="sec-exploratory-data-analysis" class="level3">
+<h3 class="anchored" data-anchor-id="sec-exploratory-data-analysis">Exploratory Data Analysis</h3>
+<section id="sec-overall-statistics" class="level4">
+<h4 class="anchored" data-anchor-id="sec-overall-statistics">Overall Size and Shape</h4>
+<p><code>train</code> has 1225 rows, with an overall minimum value of -0.52 (X7) and an overall maximum value of 16.76 (X5).</p>
+<!-- | Statistic | Min                             | Max                             | -->
+<!-- |----------------------------------|-------------------|-------------------| -->
+<!-- | Mean      | 0.25 (X8)   | 13.8 (X5)   | -->
+<!-- | Variance  | 0.04 (X10)     | 1.57 (X4)     | -->
+<!-- | Range     | 1.42 (X18) | 8.37 (X14) | -->
+
+<!-- : Table 4: Statistics across Variables -->
+<div class="cell tbl-cap-location-bottom" data-tab.id="tbl-minmaxStats" data-tbl-alt="Table with minimum and maximum mean, variance and range in train dataset">
+<div class="cell-output-display">
+
+<div class="tabwid tabwid-caption-bottom"><style>.cl-a263ccd0{}.cl-a25c016c{font-family:'Helvetica';font-size:12pt;font-weight:bold;font-style:normal;text-decoration:none;color:rgba(51, 51, 51, 1.00);background-color:transparent;}.cl-a25c0180{font-family:'Helvetica';font-size:12pt;font-weight:normal;font-style:normal;text-decoration:none;color:rgba(51, 51, 51, 1.00);background-color:transparent;}.cl-a25fcb30{margin:0;text-align:left;border-bottom: 0 solid rgba(0, 0, 0, 1.00);border-top: 0 solid rgba(0, 0, 0, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);padding-bottom:5pt;padding-top:5pt;padding-left:6pt;padding-right:6pt;line-height: 1;background-color:transparent;}.cl-a25fda3a{width:0.98in;background-color:rgba(255, 255, 255, 1.00);vertical-align: middle;border-bottom: 1.5pt solid rgba(0, 0, 128, 1.00);border-top: 1.5pt solid rgba(0, 0, 128, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);margin-bottom:0;margin-top:0;margin-left:0;margin-right:0;}.cl-a25fda44{width:1.147in;background-color:rgba(255, 255, 255, 1.00);vertical-align: middle;border-bottom: 1.5pt solid rgba(0, 0, 128, 1.00);border-top: 1.5pt solid rgba(0, 0, 128, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);margin-bottom:0;margin-top:0;margin-left:0;margin-right:0;}.cl-a25fda45{width:0.98in;background-color:rgba(255, 255, 255, 1.00);vertical-align: middle;border-bottom: 0.75pt solid rgba(0, 0, 128, 1.00);border-top: 0 solid rgba(0, 0, 0, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);margin-bottom:0;margin-top:0;margin-left:0;margin-right:0;}.cl-a25fda46{width:1.147in;background-color:rgba(255, 255, 255, 1.00);vertical-align: middle;border-bottom: 0.75pt solid rgba(0, 0, 128, 1.00);border-top: 0 solid rgba(0, 0, 0, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);margin-bottom:0;margin-top:0;margin-left:0;margin-right:0;}.cl-a25fda4e{width:0.98in;background-color:rgba(255, 255, 255, 1.00);vertical-align: middle;border-bottom: 0.75pt solid rgba(0, 0, 128, 1.00);border-top: 0.75pt solid rgba(0, 0, 128, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);margin-bottom:0;margin-top:0;margin-left:0;margin-right:0;}.cl-a25fda4f{width:1.147in;background-color:rgba(255, 255, 255, 1.00);vertical-align: middle;border-bottom: 0.75pt solid rgba(0, 0, 128, 1.00);border-top: 0.75pt solid rgba(0, 0, 128, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);margin-bottom:0;margin-top:0;margin-left:0;margin-right:0;}.cl-a25fda50{width:0.98in;background-color:rgba(255, 255, 255, 1.00);vertical-align: middle;border-bottom: 1.5pt solid rgba(0, 0, 128, 1.00);border-top: 0.75pt solid rgba(0, 0, 128, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);margin-bottom:0;margin-top:0;margin-left:0;margin-right:0;}.cl-a25fda51{width:1.147in;background-color:rgba(255, 255, 255, 1.00);vertical-align: middle;border-bottom: 1.5pt solid rgba(0, 0, 128, 1.00);border-top: 0.75pt solid rgba(0, 0, 128, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);margin-bottom:0;margin-top:0;margin-left:0;margin-right:0;}</style><table data-quarto-disable-processing="true" class="cl-a263ccd0"><caption><p>Minimum / Maximum Statistics in ‘train’</p></caption><thead><tr style="overflow-wrap:break-word;"><th class="cl-a25fda3a"><p class="cl-a25fcb30"><span class="cl-a25c016c">Statistic</span></p></th><th class="cl-a25fda44"><p class="cl-a25fcb30"><span class="cl-a25c016c">Minimum</span></p></th><th class="cl-a25fda44"><p class="cl-a25fcb30"><span class="cl-a25c016c">Maximum</span></p></th></tr></thead><tbody><tr style="overflow-wrap:break-word;"><td class="cl-a25fda45"><p class="cl-a25fcb30"><span class="cl-a25c016c">Mean</span></p></td><td class="cl-a25fda46"><p class="cl-a25fcb30"><span class="cl-a25c0180">0.25 (X8) </span></p></td><td class="cl-a25fda46"><p class="cl-a25fcb30"><span class="cl-a25c0180">13.8 (X5) </span></p></td></tr><tr style="overflow-wrap:break-word;"><td class="cl-a25fda4e"><p class="cl-a25fcb30"><span class="cl-a25c016c">Variance</span></p></td><td class="cl-a25fda4f"><p class="cl-a25fcb30"><span class="cl-a25c0180">0.04 (X10) </span></p></td><td class="cl-a25fda4f"><p class="cl-a25fcb30"><span class="cl-a25c0180">1.57 (X4) </span></p></td></tr><tr style="overflow-wrap:break-word;"><td class="cl-a25fda50"><p class="cl-a25fcb30"><span class="cl-a25c016c">Range</span></p></td><td class="cl-a25fda51"><p class="cl-a25fcb30"><span class="cl-a25c0180">1.42 (X18) </span></p></td><td class="cl-a25fda51"><p class="cl-a25fcb30"><span class="cl-a25c0180">8.37 (X14) </span></p></td></tr></tbody></table></div>
+</div>
+</div>
+<p><em>Spread</em> between variables in terms of mean, variance and range is significant.</p>
+<!--# I scale the data below but continue to do EDA on the unscaled data.  The scaled data will be used for modelling and analysis later on in the report. -->
+</section>
+<section id="sec-outliers" class="level4">
+<h4 class="anchored" data-anchor-id="sec-outliers">Outliers</h4>
+<p>Values which are significantly different from other data points in the dataset were explored. It is essential to distinguish between genuine extreme values and errors (measurement, data entry, faulty readings). Genuine data contain valuable information; problematic outliers may need to be treated or removed as they can skew analysis.</p>
+<p>Distribution plots suggest that variables are generally <em>normally</em> distributed (<a href="#fig-distros">Figure&nbsp;1</a>) with some non-normality (<a href="#fig-hist">Figure&nbsp;2</a>).</p>
+<!--#  The density plot below for two selected variables (X1 and X7) show that there are differences when grouping by the target labels. -->
+<!--# The below plot list shows all variables' densities grouped by target variable (label) - when expanded, it apperas that variables are largely normally distributed but that there are some key variables where the distributions differ between groups - for example  X7-X10.  It is likely that these will be useful to differentiate between chemicals in in the model. -->
+<div class="cell" data-tab.align="left">
+<div class="cell-output-display">
+<div id="fig-distros" class="quarto-figure quarto-figure-center anchored">
+<figure class="figure">
+<p><img src="03_EDA_files/figure-html/fig-distros-1.png" class="quarto-discovered-preview-image img-fluid figure-img" style="width:90.0%" alt="Distributions by 'label'"></p>
+<p></p><figcaption class="figure-caption">Figure&nbsp;1: Distributions by ‘label’</figcaption><p></p>
+</figure>
+</div>
+</div>
+</div>
+<!--# When looking at histograms, I explored how to best determine which binwidth to use.  I came across Freedman-Diaconis and Sturges rules. The results for `num_train` are below and they are quite different.  For example, the FD binwidth for varible X7 is 0.07 while Sturges' method suggests a binwidth of 0.14, that is, double.  In general, Sturges bw is much larger. The reason is that FD takes into account the variability of the data, not just the count of observations (Sturges).  I am going to use FDR. -->
+<p>The violin plots (<a href="#fig-violin">Figure&nbsp;3</a>) visualise potential outliers - data points beyond 1.5x the <code>interquartile range</code> (IQR) (50% of the data). These are the points on the <em>whiskers</em>; X8 has many more <em>potential</em> outliers than variable X9.</p>
+<div class="cell" data-tab.align="left">
+<div class="cell-output-display">
+<div id="fig-hist" class="quarto-figure quarto-figure-center anchored">
+<figure class="figure">
+<p><img src="03_EDA_files/figure-html/fig-hist-1.png" class="img-fluid figure-img" style="width:90.0%" alt="Histograms and Density Plots of Selected Variables"></p>
+<p></p><figcaption class="figure-caption">Figure&nbsp;2: Histograms and Density Plots of Selected Variables in <code>train</code></figcaption><p></p>
+</figure>
+</div>
+</div>
+</div>
+<p>The distribution and density plots in <a href="#fig-hist">Figure&nbsp;2</a> show potential non-normal distributions, with multiple peaks or skewness. The violin plots (<a href="#fig-violin">Figure&nbsp;3</a>) help visualise potential outliers - data points beyond 1.5x the <code>interquartile range</code> (IQR), representing 50% of the data. These are the dots on the <em>whiskers</em>; X8 has many more <em>potential</em> outliers than variable X9.</p>
+<div class="cell">
+<div class="cell-output-display">
+<div id="fig-violin" class="quarto-figure quarto-figure-center anchored">
+<figure class="figure">
+<p><img src="03_EDA_files/figure-html/fig-violin-1.png" class="img-fluid figure-img" style="width:90.0%" alt="Violin Plots of Selected Variables"></p>
+<p></p><figcaption class="figure-caption">Figure&nbsp;3: Violin Plots of Selected Variables in <code>train</code></figcaption><p></p>
+</figure>
+</div>
+</div>
+</div>
+<!--# Below are the histograms and boxplots for all variables.  There's nothing too remarkable - the variables are more or less normally distributed with X7-X9 having less normal distributions. -->
+<!--# To be certain, I have reproduced the above plots on the scaled data.  The density plots remain the same but the binwidths are different, producing a slightly different visual.  The bins for X7-X10 and X17-X20 are clearly larger/wider so it appears that scaling (centre 0, standard deviation = 1) has made the data more spread out for these variables.  This could mean that these variables have more variability tahn the others, which may be useful in the classification models.-->
+<!--# In addition to visually inspecting the variables in terms of distributions and densities, I looked at a more formal approach to identify outliers in the dataset.  I calculated z-scores for each variable using 'scale()'.  -->
+<!--# Then potential 'outliers' were pulled out - those with a z-score of +/- 3 which is a common threshold.  In a normal distribution - 99.7% of observations fall within 3 standard deviations. -->
+<p>Potential outliers were investigated statistically with varying results depending on method and sensitivity.</p>
+<p>A general approach involves identifying data which is ± 3 standard deviations from a calculated statistic (<em>z-score</em>) - meaning it is beyond 0.3% of the centre.</p>
+<!--# The above plot shows numbers of potential outliers (+/- 3SD) in the unscaled dataset - there are 81 total 'potential' outliers.  Variable 8 sticks out with the most - 10.  This is 0.4% of the dataset - so a tiny bit more than what might be expected in a normal distribution (0.3%)..  
+
+<!--# A more robust method to consider outliers is using mean absolute deviation (instead of SD) which can be seen below.  This results in 119 potential outliers.  The interesting thing is that X8 now has 38 potential outliers.  It could be that X8 has more extreme variables or has more variability - but the client should be made aware.   -->
+<!--# The above looked at outliers within each variable.  Another approach is to consider outliers in a multivariate approach - using Mahalanobis distance. -->
+<!--# Mahalonbis distance has been calculated for each value in the dataset.  Two measures of dispersion are used - covariance matrix and median absolute deviation (MAD).  MAD is less sensitive to outliers compared to standard deviation.  MAD is set to 6 MADs away from centre; for covariance, I am using chi-squared distribution to identify those beyond 0.95. Whilst there is some evidence of outliers, there is nothing particularly concerning.  Without additional information, it is not possible to know whether these are outliers which warrant concern, transformation or even removal.  In the absence of information, they will be retained in the modelling.-->
+<p>There are a total of 81 ‘outliers’ in the dataset from 19 variables; ‘X8’ has the most with 10.</p>
+<div class="callout callout-style-default callout-important callout-titled">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+Decision
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<p>Data will be <em>scaled</em> to prevent variables having undue influence.</p>
+<p>Outliers will be retained.</p>
+</div>
+</div>
+</section>
+</section>
+<section id="sec-correlation-between-variables" class="level3">
+<h3 class="anchored" data-anchor-id="sec-correlation-between-variables">Correlation between Variables</h3>
+<!--# This section looks at correlations between variables to get an initial understanding of how they may be related. The pairs.panel runs but is less useful as there are too many variables.  They are broken up into smaller plots below. -->
+<div class="cell">
+<div class="cell-output-display">
+<div id="fig-corrmatrix" class="quarto-figure quarto-figure-center anchored">
+<figure class="figure">
+<p><img src="03_EDA_files/figure-html/fig-corrmatrix-1.png" class="img-fluid figure-img" style="width:90.0%" alt="Correlation Matrix between variables"></p>
+<p></p><figcaption class="figure-caption">Figure&nbsp;4: Correlation Matrix</figcaption><p></p>
+</figure>
+</div>
+</div>
+</div>
+<p>After exploring <a href="#sec-overall-statistics">overall statistics</a> and <a href="#sec-outliers">outliers</a>, this section examines linear relationships. The <code>correlation matrix</code> shows strong negative correlation between X18, X20 each with X17, X19 and strong positive correlation between X18 and X20 as well as between X17 and X19. A lot of variables have little or no correlation.</p>
+<p>The ellipsoid shapes in the <code>pair plot</code> highlight liner relationships with correlation coefficients (-1 to 1) indicating the strength of the relationship.</p>
+<!--# The different correlation plots are included as they show the correlations in slightly different manners and can help spot the interactions between variables.  The ggpair plots below are 4 sets of 5 variables - this does not give every variable combination but it gives an indication of correlations.  We can see with clarity that there are strong linear relationships between variables X17-X20 whilst the other plots have less strong correlation (lower Pearson's R coefficient) with the blob-like scatter plots. -->
+<div class="cell">
+<div class="cell-output-display">
+<div id="fig-corrmatrix1620" class="quarto-figure quarto-figure-center anchored">
+<figure class="figure">
+<p><img src="03_EDA_files/figure-html/fig-corrmatrix1620-1.png" class="img-fluid figure-img" style="width:90.0%" alt="Correlation Pair Plots - Variables X16-X20"></p>
+<p></p><figcaption class="figure-caption">Figure&nbsp;5: Correlation Pair Plots - Variables X16-X20</figcaption><p></p>
+</figure>
+</div>
+</div>
+</div>
+</section>
+
+</main>
+<!-- /main column -->
+<script id="quarto-html-after-body" type="application/javascript">
+window.document.addEventListener("DOMContentLoaded", function (event) {
+  const toggleBodyColorMode = (bsSheetEl) => {
+    const mode = bsSheetEl.getAttribute("data-mode");
+    const bodyEl = window.document.querySelector("body");
+    if (mode === "dark") {
+      bodyEl.classList.add("quarto-dark");
+      bodyEl.classList.remove("quarto-light");
+    } else {
+      bodyEl.classList.add("quarto-light");
+      bodyEl.classList.remove("quarto-dark");
+    }
+  }
+  const toggleBodyColorPrimary = () => {
+    const bsSheetEl = window.document.querySelector("link#quarto-bootstrap");
+    if (bsSheetEl) {
+      toggleBodyColorMode(bsSheetEl);
+    }
+  }
+  toggleBodyColorPrimary();  
+  const icon = "";
+  const anchorJS = new window.AnchorJS();
+  anchorJS.options = {
+    placement: 'right',
+    icon: icon
+  };
+  anchorJS.add('.anchored');
+  const isCodeAnnotation = (el) => {
+    for (const clz of el.classList) {
+      if (clz.startsWith('code-annotation-')) {                     
+        return true;
+      }
+    }
+    return false;
+  }
+  const clipboard = new window.ClipboardJS('.code-copy-button', {
+    text: function(trigger) {
+      const codeEl = trigger.previousElementSibling.cloneNode(true);
+      for (const childEl of codeEl.children) {
+        if (isCodeAnnotation(childEl)) {
+          childEl.remove();
+        }
+      }
+      return codeEl.innerText;
+    }
+  });
+  clipboard.on('success', function(e) {
+    // button target
+    const button = e.trigger;
+    // don't keep focus
+    button.blur();
+    // flash "checked"
+    button.classList.add('code-copy-button-checked');
+    var currentTitle = button.getAttribute("title");
+    button.setAttribute("title", "Copied!");
+    let tooltip;
+    if (window.bootstrap) {
+      button.setAttribute("data-bs-toggle", "tooltip");
+      button.setAttribute("data-bs-placement", "left");
+      button.setAttribute("data-bs-title", "Copied!");
+      tooltip = new bootstrap.Tooltip(button, 
+        { trigger: "manual", 
+          customClass: "code-copy-button-tooltip",
+          offset: [0, -8]});
+      tooltip.show();    
+    }
+    setTimeout(function() {
+      if (tooltip) {
+        tooltip.hide();
+        button.removeAttribute("data-bs-title");
+        button.removeAttribute("data-bs-toggle");
+        button.removeAttribute("data-bs-placement");
+      }
+      button.setAttribute("title", currentTitle);
+      button.classList.remove('code-copy-button-checked');
+    }, 1000);
+    // clear code selection
+    e.clearSelection();
+  });
+  function tippyHover(el, contentFn) {
+    const config = {
+      allowHTML: true,
+      content: contentFn,
+      maxWidth: 500,
+      delay: 100,
+      arrow: false,
+      appendTo: function(el) {
+          return el.parentElement;
+      },
+      interactive: true,
+      interactiveBorder: 10,
+      theme: 'quarto',
+      placement: 'bottom-start'
+    };
+    window.tippy(el, config); 
+  }
+  const noterefs = window.document.querySelectorAll('a[role="doc-noteref"]');
+  for (var i=0; i<noterefs.length; i++) {
+    const ref = noterefs[i];
+    tippyHover(ref, function() {
+      // use id or data attribute instead here
+      let href = ref.getAttribute('data-footnote-href') || ref.getAttribute('href');
+      try { href = new URL(href).hash; } catch {}
+      const id = href.replace(/^#\/?/, "");
+      const note = window.document.getElementById(id);
+      return note.innerHTML;
+    });
+  }
+      let selectedAnnoteEl;
+      const selectorForAnnotation = ( cell, annotation) => {
+        let cellAttr = 'data-code-cell="' + cell + '"';
+        let lineAttr = 'data-code-annotation="' +  annotation + '"';
+        const selector = 'span[' + cellAttr + '][' + lineAttr + ']';
+        return selector;
+      }
+      const selectCodeLines = (annoteEl) => {
+        const doc = window.document;
+        const targetCell = annoteEl.getAttribute("data-target-cell");
+        const targetAnnotation = annoteEl.getAttribute("data-target-annotation");
+        const annoteSpan = window.document.querySelector(selectorForAnnotation(targetCell, targetAnnotation));
+        const lines = annoteSpan.getAttribute("data-code-lines").split(",");
+        const lineIds = lines.map((line) => {
+          return targetCell + "-" + line;
+        })
+        let top = null;
+        let height = null;
+        let parent = null;
+        if (lineIds.length > 0) {
+            //compute the position of the single el (top and bottom and make a div)
+            const el = window.document.getElementById(lineIds[0]);
+            top = el.offsetTop;
+            height = el.offsetHeight;
+            parent = el.parentElement.parentElement;
+          if (lineIds.length > 1) {
+            const lastEl = window.document.getElementById(lineIds[lineIds.length - 1]);
+            const bottom = lastEl.offsetTop + lastEl.offsetHeight;
+            height = bottom - top;
+          }
+          if (top !== null && height !== null && parent !== null) {
+            // cook up a div (if necessary) and position it 
+            let div = window.document.getElementById("code-annotation-line-highlight");
+            if (div === null) {
+              div = window.document.createElement("div");
+              div.setAttribute("id", "code-annotation-line-highlight");
+              div.style.position = 'absolute';
+              parent.appendChild(div);
+            }
+            div.style.top = top - 2 + "px";
+            div.style.height = height + 4 + "px";
+            let gutterDiv = window.document.getElementById("code-annotation-line-highlight-gutter");
+            if (gutterDiv === null) {
+              gutterDiv = window.document.createElement("div");
+              gutterDiv.setAttribute("id", "code-annotation-line-highlight-gutter");
+              gutterDiv.style.position = 'absolute';
+              const codeCell = window.document.getElementById(targetCell);
+              const gutter = codeCell.querySelector('.code-annotation-gutter');
+              gutter.appendChild(gutterDiv);
+            }
+            gutterDiv.style.top = top - 2 + "px";
+            gutterDiv.style.height = height + 4 + "px";
+          }
+          selectedAnnoteEl = annoteEl;
+        }
+      };
+      const unselectCodeLines = () => {
+        const elementsIds = ["code-annotation-line-highlight", "code-annotation-line-highlight-gutter"];
+        elementsIds.forEach((elId) => {
+          const div = window.document.getElementById(elId);
+          if (div) {
+            div.remove();
+          }
+        });
+        selectedAnnoteEl = undefined;
+      };
+      // Attach click handler to the DT
+      const annoteDls = window.document.querySelectorAll('dt[data-target-cell]');
+      for (const annoteDlNode of annoteDls) {
+        annoteDlNode.addEventListener('click', (event) => {
+          const clickedEl = event.target;
+          if (clickedEl !== selectedAnnoteEl) {
+            unselectCodeLines();
+            const activeEl = window.document.querySelector('dt[data-target-cell].code-annotation-active');
+            if (activeEl) {
+              activeEl.classList.remove('code-annotation-active');
+            }
+            selectCodeLines(clickedEl);
+            clickedEl.classList.add('code-annotation-active');
+          } else {
+            // Unselect the line
+            unselectCodeLines();
+            clickedEl.classList.remove('code-annotation-active');
+          }
+        });
+      }
+  const findCites = (el) => {
+    const parentEl = el.parentElement;
+    if (parentEl) {
+      const cites = parentEl.dataset.cites;
+      if (cites) {
+        return {
+          el,
+          cites: cites.split(' ')
+        };
+      } else {
+        return findCites(el.parentElement)
+      }
+    } else {
+      return undefined;
+    }
+  };
+  var bibliorefs = window.document.querySelectorAll('a[role="doc-biblioref"]');
+  for (var i=0; i<bibliorefs.length; i++) {
+    const ref = bibliorefs[i];
+    const citeInfo = findCites(ref);
+    if (citeInfo) {
+      tippyHover(citeInfo.el, function() {
+        var popup = window.document.createElement('div');
+        citeInfo.cites.forEach(function(cite) {
+          var citeDiv = window.document.createElement('div');
+          citeDiv.classList.add('hanging-indent');
+          citeDiv.classList.add('csl-entry');
+          var biblioDiv = window.document.getElementById('ref-' + cite);
+          if (biblioDiv) {
+            citeDiv.innerHTML = biblioDiv.innerHTML;
+          }
+          popup.appendChild(citeDiv);
+        });
+        return popup.innerHTML;
+      });
+    }
+  }
+});
+</script>
+</div> <!-- /content -->
+
+
+
+</body></html>

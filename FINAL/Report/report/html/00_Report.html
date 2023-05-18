@@ -1,0 +1,1006 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en-GB" xml:lang="en-GB"><head>
+
+<meta charset="utf-8">
+<meta name="generator" content="quarto-1.3.296">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+
+<meta name="author" content="Petter Lövehagen">
+<meta name="dcterms.date" content="2023-05-09">
+
+<title>Chemical Sample Classification Report</title>
+<style>
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+div.columns{display: flex; gap: min(4vw, 1.5em);}
+div.column{flex: auto; overflow-x: auto;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+ul.task-list li input[type="checkbox"] {
+  width: 0.8em;
+  margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
+  vertical-align: middle;
+}
+</style>
+
+
+<script src="00_Report_files/libs/clipboard/clipboard.min.js"></script>
+<script src="00_Report_files/libs/quarto-html/quarto.js"></script>
+<script src="00_Report_files/libs/quarto-html/popper.min.js"></script>
+<script src="00_Report_files/libs/quarto-html/tippy.umd.min.js"></script>
+<script src="00_Report_files/libs/quarto-html/anchor.min.js"></script>
+<link href="00_Report_files/libs/quarto-html/tippy.css" rel="stylesheet">
+<link href="00_Report_files/libs/quarto-html/quarto-syntax-highlighting.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<script src="00_Report_files/libs/bootstrap/bootstrap.min.js"></script>
+<link href="00_Report_files/libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
+<link href="00_Report_files/libs/bootstrap/bootstrap.min.css" rel="stylesheet" id="quarto-bootstrap" data-mode="light">
+
+<link href="00_Report_files/libs/tabwid-1.1.3/tabwid.css" rel="stylesheet">
+<script src="00_Report_files/libs/tabwid-1.1.3/tabwid.js"></script>
+<script src="00_Report_files/libs/kePrint-0.0.1/kePrint.js"></script>
+<link href="00_Report_files/libs/lightable-0.0.1/lightable.css" rel="stylesheet">
+
+
+</head>
+
+<body>
+
+<div id="quarto-content" class="page-columns page-rows-contents page-layout-article toc-left">
+<div id="quarto-sidebar-toc-left" class="sidebar toc-left">
+  <nav id="TOC" role="doc-toc" class="toc-active">
+    <h2 id="toc-title">Contents</h2>
+   
+  <ul class="collapse">
+  <li><a href="#sec-brief" id="toc-sec-brief" class="nav-link active" data-scroll-target="#sec-brief">Brief</a></li>
+  <li><a href="#sec-data" id="toc-sec-data" class="nav-link" data-scroll-target="#sec-data">Data</a></li>
+  <li><a href="#sec-principal-component-analysis" id="toc-sec-principal-component-analysis" class="nav-link" data-scroll-target="#sec-principal-component-analysis">Principal Component Analysis</a></li>
+  <li><a href="#sec-clustering" id="toc-sec-clustering" class="nav-link" data-scroll-target="#sec-clustering">Clustering</a></li>
+  <li><a href="#sec-classification-models" id="toc-sec-classification-models" class="nav-link" data-scroll-target="#sec-classification-models">Classification Models</a></li>
+  <li><a href="#sec-findings" id="toc-sec-findings" class="nav-link" data-scroll-target="#sec-findings">Findings</a></li>
+  </ul>
+<div class="quarto-alternate-formats"><h2>Other Formats</h2><ul><li><a href="00_Report.docx"><i class="bi bi-file-word"></i>MS Word</a></li></ul></div></nav>
+</div>
+<div id="quarto-margin-sidebar" class="sidebar margin-sidebar">
+</div>
+<main class="content" id="quarto-document-content">
+
+<header id="title-block-header" class="quarto-title-block default">
+<div class="quarto-title">
+<h1 class="title">Chemical Sample Classification Report</h1>
+</div>
+
+
+
+<div class="quarto-title-meta">
+
+    <div>
+    <div class="quarto-title-meta-heading">Author</div>
+    <div class="quarto-title-meta-contents">
+             <p>Petter Lövehagen </p>
+          </div>
+  </div>
+    
+    <div>
+    <div class="quarto-title-meta-heading">Published</div>
+    <div class="quarto-title-meta-contents">
+      <p class="date">9 May 2023</p>
+    </div>
+  </div>
+  
+    
+  </div>
+  
+
+</header>
+
+<section id="section" class="level4">
+<h4 class="anchored" data-anchor-id="section"><!--# Set up R script  --></h4>
+<!--# The script installs/loads packages needed for the Report. If a section is rendered separately, it only required libraries.  See R file for details. -->
+<!--# The script sets a seed so that analysis and results can be reproduced. -->
+
+<!--# The script sets table rendering defaults. -->
+<!--# The complete report takes upto 15 minutes to compile -->
+</section>
+<section id="sec-brief" class="level2">
+<h2 class="anchored" data-anchor-id="sec-brief">Brief</h2>
+<p>The brief is to develop a model to effectively classify chemicals into groups using supplied measurements.</p>
+<p>The client wants to know if all variables are <em>necessary</em> for good out-of-sample classification performance.</p>
+<p>This report will:</p>
+<ul>
+<li><p>explore and analyse the provided dataset</p></li>
+<li><p>develop an optimised, classification model</p></li>
+<li><p>comment viability of using reduced variable datasets</p></li>
+<li><p>provide recommendations</p></li>
+</ul>
+<div class="callout callout-style-default callout-note callout-titled">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+Note
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<p>Additional analysis is available in the <code>technical version</code> of this report, including code and comments.</p>
+</div>
+</div>
+<div style="page-break-after: always;"></div>
+</section>
+<section id="sec-data" class="level2">
+<h2 class="anchored" data-anchor-id="sec-data">Data</h2>
+<p>The supplied dataset contains 2500 samples, each with 20 measurements.</p>
+<p>The analysis team was not supplied with information about the data, e.g.:</p>
+<ul>
+<li>what is measured</li>
+<li>variable importance, interactions</li>
+<li>measurement information: scale, units, reliability</li>
+</ul>
+<p>Therefore, variables are treated equally and without bias. Decisions are made on statistical grounds and stated assumptions.</p>
+<p><br> <br></p>
+<div class="callout callout-style-default callout-tip callout-titled">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+Tip
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<p>Additional domain-specific contextual information about the data could result in alternative modelling decisions and outcomes.</p>
+</div>
+</div>
+<p><br> <br></p>
+<section id="sec-missing-data" class="level3">
+<h3 class="anchored" data-anchor-id="sec-missing-data">Missing data</h3>
+<p>Before proceeding with <a href="#sec-exploratory-data-analysis">Exploratory Data Analysis</a>, it is important to explore <code>missingness</code>. Some classification models assume <strong>no</strong> missing data, and depending on the amount, prevalence and pattern, different assumptions and techniques are appropriate.</p>
+<p>Data is assumed to be ‘missing at random’ (MAR) - that is, the probability of <code>missingness</code> only depends on <em>observed</em> variables.</p>
+<!--# Missingness may require additional analysis as a future datasets may not be suited to discarding rows with missing values.  It is assumed that the dataset is 'missing at random although this should be confirmed to ensure that assumptions hold.  -->
+<!--# The mcar_test() from the `naniar` package has been run and it leads us to reject the null hypothesis that the data is `missing completely at random`.  Additional tests and explorations could be employed to check`missing at random` -->
+<p>The sample has 49 rows with at least one missing value, which is 0.09% of the entire dataset. Given the minute amount, rows with missing values will be removed.</p>
+<!--# If the missing data is not MAR - that is, it depends on *unobserved* variables, there are more appropriate  methods like maximum likelihood imputation. 
+
+Unobserved influences for these measurements could include sample purity/quality, sample handling, or   measurement/equipment discrepancies.
+
+*Imputation* often introduces bias into the analysis by violating method assumptions, or the imputed values differ significantly from true missing values. -->
+<p><br></p>
+<div class="callout callout-style-default callout-caution callout-titled">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+Caution
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<p>The client should consider:</p>
+<ul>
+<li>Concerns regarding missing data</li>
+<li>Consistency measurements (equipment, staff, facilities, chemicals, etc.)</li>
+<li>Reasons for missing data? Mitigation?</li>
+<li>Can missing data be collected retrospectively?</li>
+<li>Likely amount of missing data in the future?</li>
+</ul>
+</div>
+</div>
+<p><br></p>
+<section id="sec-missing-value-details-by-class-and-variable" class="level4">
+<h4 class="anchored" data-anchor-id="sec-missing-value-details-by-class-and-variable">Missing value details by class and variable</h4>
+<p>This dataset has 18 variables with missing data. The five variables with the most missing data are:</p>
+<div class="cell tbl-cap-location-bottom" data-layout-align="left" data-tbl-alt="Table with top five variables with most missing data" data-tab.id="tbl-top5missing">
+<div class="cell-output-display">
+
+<div class="tabwid tabwid-caption-bottom"><style>.cl-129b1240{}.cl-129430ba{font-family:'Helvetica';font-size:12pt;font-weight:bold;font-style:normal;text-decoration:none;color:rgba(51, 51, 51, 1.00);background-color:transparent;}.cl-129430c4{font-family:'Helvetica';font-size:12pt;font-weight:normal;font-style:normal;text-decoration:none;color:rgba(51, 51, 51, 1.00);background-color:transparent;}.cl-1296c794{margin:0;text-align:left;border-bottom: 0 solid rgba(0, 0, 0, 1.00);border-top: 0 solid rgba(0, 0, 0, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);padding-bottom:5pt;padding-top:5pt;padding-left:6pt;padding-right:6pt;line-height: 1;background-color:transparent;}.cl-1296c79e{margin:0;text-align:right;border-bottom: 0 solid rgba(0, 0, 0, 1.00);border-top: 0 solid rgba(0, 0, 0, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);padding-bottom:5pt;padding-top:5pt;padding-left:6pt;padding-right:6pt;line-height: 1;background-color:transparent;}.cl-1296d82e{width:0.971in;background-color:rgba(255, 255, 255, 1.00);vertical-align: middle;border-bottom: 1.5pt solid rgba(0, 0, 128, 1.00);border-top: 1.5pt solid rgba(0, 0, 128, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);margin-bottom:0;margin-top:0;margin-left:0;margin-right:0;}.cl-1296d82f{width:0.804in;background-color:rgba(255, 255, 255, 1.00);vertical-align: middle;border-bottom: 1.5pt solid rgba(0, 0, 128, 1.00);border-top: 1.5pt solid rgba(0, 0, 128, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);margin-bottom:0;margin-top:0;margin-left:0;margin-right:0;}.cl-1296d838{width:1.221in;background-color:rgba(255, 255, 255, 1.00);vertical-align: middle;border-bottom: 1.5pt solid rgba(0, 0, 128, 1.00);border-top: 1.5pt solid rgba(0, 0, 128, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);margin-bottom:0;margin-top:0;margin-left:0;margin-right:0;}.cl-1296d839{width:0.971in;background-color:rgba(255, 255, 255, 1.00);vertical-align: middle;border-bottom: 0.75pt solid rgba(0, 0, 128, 1.00);border-top: 0 solid rgba(0, 0, 0, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);margin-bottom:0;margin-top:0;margin-left:0;margin-right:0;}.cl-1296d83a{width:0.804in;background-color:rgba(255, 255, 255, 1.00);vertical-align: middle;border-bottom: 0.75pt solid rgba(0, 0, 128, 1.00);border-top: 0 solid rgba(0, 0, 0, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);margin-bottom:0;margin-top:0;margin-left:0;margin-right:0;}.cl-1296d842{width:1.221in;background-color:rgba(255, 255, 255, 1.00);vertical-align: middle;border-bottom: 0.75pt solid rgba(0, 0, 128, 1.00);border-top: 0 solid rgba(0, 0, 0, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);margin-bottom:0;margin-top:0;margin-left:0;margin-right:0;}.cl-1296d843{width:0.971in;background-color:rgba(255, 255, 255, 1.00);vertical-align: middle;border-bottom: 0.75pt solid rgba(0, 0, 128, 1.00);border-top: 0.75pt solid rgba(0, 0, 128, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);margin-bottom:0;margin-top:0;margin-left:0;margin-right:0;}.cl-1296d844{width:0.804in;background-color:rgba(255, 255, 255, 1.00);vertical-align: middle;border-bottom: 0.75pt solid rgba(0, 0, 128, 1.00);border-top: 0.75pt solid rgba(0, 0, 128, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);margin-bottom:0;margin-top:0;margin-left:0;margin-right:0;}.cl-1296d845{width:1.221in;background-color:rgba(255, 255, 255, 1.00);vertical-align: middle;border-bottom: 0.75pt solid rgba(0, 0, 128, 1.00);border-top: 0.75pt solid rgba(0, 0, 128, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);margin-bottom:0;margin-top:0;margin-left:0;margin-right:0;}.cl-1296d84c{width:0.971in;background-color:rgba(255, 255, 255, 1.00);vertical-align: middle;border-bottom: 1.5pt solid rgba(0, 0, 128, 1.00);border-top: 0.75pt solid rgba(0, 0, 128, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);margin-bottom:0;margin-top:0;margin-left:0;margin-right:0;}.cl-1296d84d{width:0.804in;background-color:rgba(255, 255, 255, 1.00);vertical-align: middle;border-bottom: 1.5pt solid rgba(0, 0, 128, 1.00);border-top: 0.75pt solid rgba(0, 0, 128, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);margin-bottom:0;margin-top:0;margin-left:0;margin-right:0;}.cl-1296d84e{width:1.221in;background-color:rgba(255, 255, 255, 1.00);vertical-align: middle;border-bottom: 1.5pt solid rgba(0, 0, 128, 1.00);border-top: 0.75pt solid rgba(0, 0, 128, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);margin-bottom:0;margin-top:0;margin-left:0;margin-right:0;}</style><table data-quarto-disable-processing="true" class="cl-129b1240"><caption><p>Top 5 Variables with missing data, by count</p></caption><thead><tr style="overflow-wrap:break-word;"><th class="cl-1296d82e"><p class="cl-1296c794"><span class="cl-129430ba">Variable</span></p></th><th class="cl-1296d82f"><p class="cl-1296c79e"><span class="cl-129430ba">Count</span></p></th><th class="cl-1296d838"><p class="cl-1296c79e"><span class="cl-129430ba">Percentage</span></p></th></tr></thead><tbody><tr style="overflow-wrap:break-word;"><td class="cl-1296d839"><p class="cl-1296c794"><span class="cl-129430ba">X9</span></p></td><td class="cl-1296d83a"><p class="cl-1296c79e"><span class="cl-129430c4">6</span></p></td><td class="cl-1296d842"><p class="cl-1296c79e"><span class="cl-129430c4">0.24</span></p></td></tr><tr style="overflow-wrap:break-word;"><td class="cl-1296d843"><p class="cl-1296c794"><span class="cl-129430ba">X18</span></p></td><td class="cl-1296d844"><p class="cl-1296c79e"><span class="cl-129430c4">5</span></p></td><td class="cl-1296d845"><p class="cl-1296c79e"><span class="cl-129430c4">0.20</span></p></td></tr><tr style="overflow-wrap:break-word;"><td class="cl-1296d843"><p class="cl-1296c794"><span class="cl-129430ba">X1</span></p></td><td class="cl-1296d844"><p class="cl-1296c79e"><span class="cl-129430c4">4</span></p></td><td class="cl-1296d845"><p class="cl-1296c79e"><span class="cl-129430c4">0.16</span></p></td></tr><tr style="overflow-wrap:break-word;"><td class="cl-1296d843"><p class="cl-1296c794"><span class="cl-129430ba">X6</span></p></td><td class="cl-1296d844"><p class="cl-1296c79e"><span class="cl-129430c4">4</span></p></td><td class="cl-1296d845"><p class="cl-1296c79e"><span class="cl-129430c4">0.16</span></p></td></tr><tr style="overflow-wrap:break-word;"><td class="cl-1296d84c"><p class="cl-1296c794"><span class="cl-129430ba">X15</span></p></td><td class="cl-1296d84d"><p class="cl-1296c79e"><span class="cl-129430c4">4</span></p></td><td class="cl-1296d84e"><p class="cl-1296c79e"><span class="cl-129430c4">0.16</span></p></td></tr></tbody></table></div>
+</div>
+</div>
+<p>Variable X9 has the most missing values with 6, accounting for 0.24% of this variable’s data.</p>
+<p>No single sample has more than 1 missing value(s). This means that, at most, a sample is missing 4.76% of its data.</p>
+<!--# The upset plot below shows the five variables with the most missing values and confirms that no sample is missing data from more than one variable.-->
+<div class="cell" data-layout-align="left" data-tab.align="left">
+<div class="cell-output-display">
+<div id="fig-upsetplot" class="quarto-figure quarto-figure-left anchored">
+<figure class="figure">
+<p><img src="00_Report_files/figure-html/fig-upsetplot-1.png" class="quarto-discovered-preview-image img-fluid figure-img" style="width:90.0%" alt="Upset plot of missing data"></p>
+<p></p><figcaption class="figure-caption">Figure&nbsp;1: Upset plot of missing data</figcaption><p></p>
+</figure>
+</div>
+</div>
+</div>
+<p>Label E has the most missing data with 0.52%.</p>
+<div class="cell tbl-cap-location-bottom" data-layout-align="left" data-tbl-alt="Table with missing data, grouped by chemical class" data-tab.id="tbl-missingbylabel">
+<div class="cell-output-display">
+
+<div class="tabwid tabwid-caption-bottom"><style>.cl-12d11b9c{}.cl-12ca84ee{font-family:'Helvetica';font-size:12pt;font-weight:bold;font-style:normal;text-decoration:none;color:rgba(51, 51, 51, 1.00);background-color:transparent;}.cl-12ca84f8{font-family:'Helvetica';font-size:12pt;font-weight:normal;font-style:normal;text-decoration:none;color:rgba(51, 51, 51, 1.00);background-color:transparent;}.cl-12cd28c0{margin:0;text-align:left;border-bottom: 0 solid rgba(0, 0, 0, 1.00);border-top: 0 solid rgba(0, 0, 0, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);padding-bottom:5pt;padding-top:5pt;padding-left:6pt;padding-right:6pt;line-height: 1;background-color:transparent;}.cl-12cd28ca{margin:0;text-align:right;border-bottom: 0 solid rgba(0, 0, 0, 1.00);border-top: 0 solid rgba(0, 0, 0, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);padding-bottom:5pt;padding-top:5pt;padding-left:6pt;padding-right:6pt;line-height: 1;background-color:transparent;}.cl-12cd3842{width:0.758in;background-color:rgba(255, 255, 255, 1.00);vertical-align: middle;border-bottom: 1.5pt solid rgba(0, 0, 128, 1.00);border-top: 1.5pt solid rgba(0, 0, 128, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);margin-bottom:0;margin-top:0;margin-left:0;margin-right:0;}.cl-12cd384c{width:0.804in;background-color:rgba(255, 255, 255, 1.00);vertical-align: middle;border-bottom: 1.5pt solid rgba(0, 0, 128, 1.00);border-top: 1.5pt solid rgba(0, 0, 128, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);margin-bottom:0;margin-top:0;margin-left:0;margin-right:0;}.cl-12cd384d{width:1.221in;background-color:rgba(255, 255, 255, 1.00);vertical-align: middle;border-bottom: 1.5pt solid rgba(0, 0, 128, 1.00);border-top: 1.5pt solid rgba(0, 0, 128, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);margin-bottom:0;margin-top:0;margin-left:0;margin-right:0;}.cl-12cd3856{width:0.758in;background-color:rgba(255, 255, 255, 1.00);vertical-align: middle;border-bottom: 0.75pt solid rgba(0, 0, 128, 1.00);border-top: 0 solid rgba(0, 0, 0, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);margin-bottom:0;margin-top:0;margin-left:0;margin-right:0;}.cl-12cd3857{width:0.804in;background-color:rgba(255, 255, 255, 1.00);vertical-align: middle;border-bottom: 0.75pt solid rgba(0, 0, 128, 1.00);border-top: 0 solid rgba(0, 0, 0, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);margin-bottom:0;margin-top:0;margin-left:0;margin-right:0;}.cl-12cd3858{width:1.221in;background-color:rgba(255, 255, 255, 1.00);vertical-align: middle;border-bottom: 0.75pt solid rgba(0, 0, 128, 1.00);border-top: 0 solid rgba(0, 0, 0, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);margin-bottom:0;margin-top:0;margin-left:0;margin-right:0;}.cl-12cd3860{width:0.758in;background-color:rgba(255, 255, 255, 1.00);vertical-align: middle;border-bottom: 0.75pt solid rgba(0, 0, 128, 1.00);border-top: 0.75pt solid rgba(0, 0, 128, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);margin-bottom:0;margin-top:0;margin-left:0;margin-right:0;}.cl-12cd3861{width:0.804in;background-color:rgba(255, 255, 255, 1.00);vertical-align: middle;border-bottom: 0.75pt solid rgba(0, 0, 128, 1.00);border-top: 0.75pt solid rgba(0, 0, 128, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);margin-bottom:0;margin-top:0;margin-left:0;margin-right:0;}.cl-12cd3862{width:1.221in;background-color:rgba(255, 255, 255, 1.00);vertical-align: middle;border-bottom: 0.75pt solid rgba(0, 0, 128, 1.00);border-top: 0.75pt solid rgba(0, 0, 128, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);margin-bottom:0;margin-top:0;margin-left:0;margin-right:0;}.cl-12cd386a{width:0.758in;background-color:rgba(255, 255, 255, 1.00);vertical-align: middle;border-bottom: 0.75pt solid rgba(0, 0, 128, 1.00);border-top: 0.75pt solid rgba(0, 0, 128, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);margin-bottom:0;margin-top:0;margin-left:0;margin-right:0;}.cl-12cd386b{width:0.804in;background-color:rgba(255, 255, 255, 1.00);vertical-align: middle;border-bottom: 0.75pt solid rgba(0, 0, 128, 1.00);border-top: 0.75pt solid rgba(0, 0, 128, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);margin-bottom:0;margin-top:0;margin-left:0;margin-right:0;}.cl-12cd386c{width:1.221in;background-color:rgba(255, 255, 255, 1.00);vertical-align: middle;border-bottom: 0.75pt solid rgba(0, 0, 128, 1.00);border-top: 0.75pt solid rgba(0, 0, 128, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);margin-bottom:0;margin-top:0;margin-left:0;margin-right:0;}.cl-12cd3874{width:0.758in;background-color:rgba(255, 255, 255, 1.00);vertical-align: middle;border-bottom: 1.5pt solid rgba(0, 0, 128, 1.00);border-top: 0.75pt solid rgba(0, 0, 128, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);margin-bottom:0;margin-top:0;margin-left:0;margin-right:0;}.cl-12cd3875{width:0.804in;background-color:rgba(255, 255, 255, 1.00);vertical-align: middle;border-bottom: 1.5pt solid rgba(0, 0, 128, 1.00);border-top: 0.75pt solid rgba(0, 0, 128, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);margin-bottom:0;margin-top:0;margin-left:0;margin-right:0;}.cl-12cd387e{width:1.221in;background-color:rgba(255, 255, 255, 1.00);vertical-align: middle;border-bottom: 1.5pt solid rgba(0, 0, 128, 1.00);border-top: 0.75pt solid rgba(0, 0, 128, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);margin-bottom:0;margin-top:0;margin-left:0;margin-right:0;}</style><table data-quarto-disable-processing="true" class="cl-12d11b9c"><caption><p>Missing data, grouped by chemical class (label)</p></caption><thead><tr style="overflow-wrap:break-word;"><th class="cl-12cd3842"><p class="cl-12cd28c0"><span class="cl-12ca84ee">Label</span></p></th><th class="cl-12cd384c"><p class="cl-12cd28ca"><span class="cl-12ca84ee">Count</span></p></th><th class="cl-12cd384d"><p class="cl-12cd28ca"><span class="cl-12ca84ee">Percentage</span></p></th></tr></thead><tbody><tr style="overflow-wrap:break-word;"><td class="cl-12cd3856"><p class="cl-12cd28c0"><span class="cl-12ca84ee">A</span></p></td><td class="cl-12cd3857"><p class="cl-12cd28ca"><span class="cl-12ca84f8">10</span></p></td><td class="cl-12cd3858"><p class="cl-12cd28ca"><span class="cl-12ca84f8">0.40</span></p></td></tr><tr style="overflow-wrap:break-word;"><td class="cl-12cd3860"><p class="cl-12cd28c0"><span class="cl-12ca84ee">B</span></p></td><td class="cl-12cd3861"><p class="cl-12cd28ca"><span class="cl-12ca84f8">6</span></p></td><td class="cl-12cd3862"><p class="cl-12cd28ca"><span class="cl-12ca84f8">0.24</span></p></td></tr><tr style="overflow-wrap:break-word;"><td class="cl-12cd386a"><p class="cl-12cd28c0"><span class="cl-12ca84ee">C</span></p></td><td class="cl-12cd386b"><p class="cl-12cd28ca"><span class="cl-12ca84f8">10</span></p></td><td class="cl-12cd386c"><p class="cl-12cd28ca"><span class="cl-12ca84f8">0.40</span></p></td></tr><tr style="overflow-wrap:break-word;"><td class="cl-12cd3860"><p class="cl-12cd28c0"><span class="cl-12ca84ee">D</span></p></td><td class="cl-12cd3861"><p class="cl-12cd28ca"><span class="cl-12ca84f8">10</span></p></td><td class="cl-12cd3862"><p class="cl-12cd28ca"><span class="cl-12ca84f8">0.40</span></p></td></tr><tr style="overflow-wrap:break-word;"><td class="cl-12cd3874"><p class="cl-12cd28c0"><span class="cl-12ca84ee">E</span></p></td><td class="cl-12cd3875"><p class="cl-12cd28ca"><span class="cl-12ca84f8">13</span></p></td><td class="cl-12cd387e"><p class="cl-12cd28ca"><span class="cl-12ca84f8">0.52</span></p></td></tr></tbody></table></div>
+</div>
+</div>
+<p>Patterns of <code>missingness</code> are apparent for sequential variables:</p>
+<div class="cell" data-layout-align="left">
+<div class="cell-output-display">
+<div id="fig-heatmapMiss" class="quarto-figure quarto-figure-left anchored">
+<figure class="figure">
+<p><img src="00_Report_files/figure-html/fig-heatmapMiss-1.png" class="img-fluid figure-img" style="width:90.0%" alt="Heatmap of missing data per variable, grouped by Chemical class (label)"></p>
+<p></p><figcaption class="figure-caption">Figure&nbsp;2: Heatmap of missing data per variable, grouped by Chemical class</figcaption><p></p>
+</figure>
+</div>
+</div>
+</div>
+<div class="callout callout-style-default callout-caution callout-titled">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+Caution
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<p><code>Missingness</code> by variables for labels:</p>
+<ul>
+<li>X1-X4 is <em>only</em> missing for label A</li>
+<li>X6, X8 are <em>only</em> missing for label B</li>
+<li>X9-X12 is <em>only</em> missing for label C</li>
+<li>X13-X16 are <em>only</em> missing for label D</li>
+<li>X17-X19 are <em>only</em> missing for label E</li>
+</ul>
+<p>Is there a relationship?</p>
+</div>
+</div>
+<p><br> <br></p>
+</section>
+</section>
+<section id="splitting-data" class="level3">
+<h3 class="anchored" data-anchor-id="splitting-data">Splitting data</h3>
+<p>In order to avoid introducing bias into the process, the data is divided into subsets. Insights from analysis are solely from the training data.</p>
+<p>As the data is not <em>perfectly</em> balanced between labels, it is split with ‘stratification’ ensuring that each partition has a representative proportion of labels.</p>
+<div class="cell tbl-cap-location-bottom" data-layout-align="left" data-tbl-alt="Frequency table grouped by chemical class" data-tab.id="tbl-freqbyclass">
+<div class="cell-output-display">
+
+<div class="tabwid tabwid-caption-bottom"><style>.cl-13109b82{}.cl-130aa812{font-family:'Helvetica';font-size:12pt;font-weight:bold;font-style:normal;text-decoration:none;color:rgba(51, 51, 51, 1.00);background-color:transparent;}.cl-130aa81c{font-family:'Helvetica';font-size:12pt;font-weight:normal;font-style:normal;text-decoration:none;color:rgba(51, 51, 51, 1.00);background-color:transparent;}.cl-130cf1bc{margin:0;text-align:left;border-bottom: 0 solid rgba(0, 0, 0, 1.00);border-top: 0 solid rgba(0, 0, 0, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);padding-bottom:5pt;padding-top:5pt;padding-left:6pt;padding-right:6pt;line-height: 1;background-color:transparent;}.cl-130cf1bd{margin:0;text-align:right;border-bottom: 0 solid rgba(0, 0, 0, 1.00);border-top: 0 solid rgba(0, 0, 0, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);padding-bottom:5pt;padding-top:5pt;padding-left:6pt;padding-right:6pt;line-height: 1;background-color:transparent;}.cl-130cfec8{width:0.702in;background-color:rgba(255, 255, 255, 1.00);vertical-align: middle;border-bottom: 1.5pt solid rgba(0, 0, 128, 1.00);border-top: 1.5pt solid rgba(0, 0, 128, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);margin-bottom:0;margin-top:0;margin-left:0;margin-right:0;}.cl-130cfed2{width:1.165in;background-color:rgba(255, 255, 255, 1.00);vertical-align: middle;border-bottom: 1.5pt solid rgba(0, 0, 128, 1.00);border-top: 1.5pt solid rgba(0, 0, 128, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);margin-bottom:0;margin-top:0;margin-left:0;margin-right:0;}.cl-130cfedc{width:0.934in;background-color:rgba(255, 255, 255, 1.00);vertical-align: middle;border-bottom: 1.5pt solid rgba(0, 0, 128, 1.00);border-top: 1.5pt solid rgba(0, 0, 128, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);margin-bottom:0;margin-top:0;margin-left:0;margin-right:0;}.cl-130cfedd{width:0.702in;background-color:rgba(255, 255, 255, 1.00);vertical-align: middle;border-bottom: 0.75pt solid rgba(0, 0, 128, 1.00);border-top: 0 solid rgba(0, 0, 0, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);margin-bottom:0;margin-top:0;margin-left:0;margin-right:0;}.cl-130cfede{width:1.165in;background-color:rgba(255, 255, 255, 1.00);vertical-align: middle;border-bottom: 0.75pt solid rgba(0, 0, 128, 1.00);border-top: 0 solid rgba(0, 0, 0, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);margin-bottom:0;margin-top:0;margin-left:0;margin-right:0;}.cl-130cfee6{width:0.934in;background-color:rgba(255, 255, 255, 1.00);vertical-align: middle;border-bottom: 0.75pt solid rgba(0, 0, 128, 1.00);border-top: 0 solid rgba(0, 0, 0, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);margin-bottom:0;margin-top:0;margin-left:0;margin-right:0;}.cl-130cfee7{width:0.702in;background-color:rgba(255, 255, 255, 1.00);vertical-align: middle;border-bottom: 0.75pt solid rgba(0, 0, 128, 1.00);border-top: 0.75pt solid rgba(0, 0, 128, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);margin-bottom:0;margin-top:0;margin-left:0;margin-right:0;}.cl-130cfee8{width:1.165in;background-color:rgba(255, 255, 255, 1.00);vertical-align: middle;border-bottom: 0.75pt solid rgba(0, 0, 128, 1.00);border-top: 0.75pt solid rgba(0, 0, 128, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);margin-bottom:0;margin-top:0;margin-left:0;margin-right:0;}.cl-130cfef0{width:0.934in;background-color:rgba(255, 255, 255, 1.00);vertical-align: middle;border-bottom: 0.75pt solid rgba(0, 0, 128, 1.00);border-top: 0.75pt solid rgba(0, 0, 128, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);margin-bottom:0;margin-top:0;margin-left:0;margin-right:0;}.cl-130cfef1{width:0.702in;background-color:rgba(255, 255, 255, 1.00);vertical-align: middle;border-bottom: 0.75pt solid rgba(0, 0, 128, 1.00);border-top: 0.75pt solid rgba(0, 0, 128, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);margin-bottom:0;margin-top:0;margin-left:0;margin-right:0;}.cl-130cfef2{width:1.165in;background-color:rgba(255, 255, 255, 1.00);vertical-align: middle;border-bottom: 0.75pt solid rgba(0, 0, 128, 1.00);border-top: 0.75pt solid rgba(0, 0, 128, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);margin-bottom:0;margin-top:0;margin-left:0;margin-right:0;}.cl-130cfef3{width:0.934in;background-color:rgba(255, 255, 255, 1.00);vertical-align: middle;border-bottom: 0.75pt solid rgba(0, 0, 128, 1.00);border-top: 0.75pt solid rgba(0, 0, 128, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);margin-bottom:0;margin-top:0;margin-left:0;margin-right:0;}.cl-130cfef4{width:0.702in;background-color:rgba(255, 255, 255, 1.00);vertical-align: middle;border-bottom: 1.5pt solid rgba(0, 0, 128, 1.00);border-top: 0.75pt solid rgba(0, 0, 128, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);margin-bottom:0;margin-top:0;margin-left:0;margin-right:0;}.cl-130cfefa{width:1.165in;background-color:rgba(255, 255, 255, 1.00);vertical-align: middle;border-bottom: 1.5pt solid rgba(0, 0, 128, 1.00);border-top: 0.75pt solid rgba(0, 0, 128, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);margin-bottom:0;margin-top:0;margin-left:0;margin-right:0;}.cl-130cfefb{width:0.934in;background-color:rgba(255, 255, 255, 1.00);vertical-align: middle;border-bottom: 1.5pt solid rgba(0, 0, 128, 1.00);border-top: 0.75pt solid rgba(0, 0, 128, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);margin-bottom:0;margin-top:0;margin-left:0;margin-right:0;}</style><table data-quarto-disable-processing="true" class="cl-13109b82"><caption><p>Frequency Table by Class (label)</p></caption><thead><tr style="overflow-wrap:break-word;"><th class="cl-130cfec8"><p class="cl-130cf1bc"><span class="cl-130aa812">label</span></p></th><th class="cl-130cfed2"><p class="cl-130cf1bd"><span class="cl-130aa812">Frequency</span></p></th><th class="cl-130cfedc"><p class="cl-130cf1bd"><span class="cl-130aa812">Percent</span></p></th></tr></thead><tbody><tr style="overflow-wrap:break-word;"><td class="cl-130cfedd"><p class="cl-130cf1bc"><span class="cl-130aa812">A</span></p></td><td class="cl-130cfede"><p class="cl-130cf1bd"><span class="cl-130aa81c">508</span></p></td><td class="cl-130cfee6"><p class="cl-130cf1bd"><span class="cl-130aa81c">20.73</span></p></td></tr><tr style="overflow-wrap:break-word;"><td class="cl-130cfee7"><p class="cl-130cf1bc"><span class="cl-130aa812">B</span></p></td><td class="cl-130cfee8"><p class="cl-130cf1bd"><span class="cl-130aa81c">492</span></p></td><td class="cl-130cfef0"><p class="cl-130cf1bd"><span class="cl-130aa81c">20.07</span></p></td></tr><tr style="overflow-wrap:break-word;"><td class="cl-130cfef1"><p class="cl-130cf1bc"><span class="cl-130aa812">C</span></p></td><td class="cl-130cfef2"><p class="cl-130cf1bd"><span class="cl-130aa81c">492</span></p></td><td class="cl-130cfef3"><p class="cl-130cf1bd"><span class="cl-130aa81c">20.07</span></p></td></tr><tr style="overflow-wrap:break-word;"><td class="cl-130cfee7"><p class="cl-130cf1bc"><span class="cl-130aa812">D</span></p></td><td class="cl-130cfee8"><p class="cl-130cf1bd"><span class="cl-130aa81c">487</span></p></td><td class="cl-130cfef0"><p class="cl-130cf1bd"><span class="cl-130aa81c">19.87</span></p></td></tr><tr style="overflow-wrap:break-word;"><td class="cl-130cfef4"><p class="cl-130cf1bc"><span class="cl-130aa812">E</span></p></td><td class="cl-130cfefa"><p class="cl-130cf1bd"><span class="cl-130aa81c">472</span></p></td><td class="cl-130cfefb"><p class="cl-130cf1bd"><span class="cl-130aa81c">19.26</span></p></td></tr></tbody></table></div>
+</div>
+</div>
+<div class="callout callout-style-default callout-important callout-titled">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+Decision
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<p>Rows with missing data are removed.</p>
+<p>The data is split:</p>
+<ul>
+<li><code>train</code> - 50% - to train the classification model</li>
+<li><code>validation</code> - 25% - to validate and tune performance of the trained model(s); to establish model generalisability</li>
+<li><code>test</code> - 25% - to evaluate the performance of the final model; only used once and kept separate</li>
+</ul>
+</div>
+</div>
+<!--# The below is a function to split a dataframe into three random subsets - train, validate, test.  It takes `dataframe`, `target column` (e.g. label), `proportions` (train, validate, test - need to sum to 1), `stratify` (TRUE, FALSE whether to stratify on target column).  It is saved in a separate file -->
+<!--# The above output needs to be inspected to ensure that each subset of the original dataframe is the correct size (proportion) and has the same proportions of target labels, if stratification is required. -->
+<div style="page-break-after: always;"></div>
+<!--# The summary statistics of the dataset (before any transformation) suggest that variables may be using different scales of measurement.  Without knowing the units of measurement or anything else about the dataset, the data will need to be mean scaled/normalised to ensure that variables are on the same scale. -->
+</section>
+<section id="sec-exploratory-data-analysis" class="level3">
+<h3 class="anchored" data-anchor-id="sec-exploratory-data-analysis">Exploratory Data Analysis</h3>
+<section id="sec-overall-statistics" class="level4">
+<h4 class="anchored" data-anchor-id="sec-overall-statistics">Overall Size and Shape</h4>
+<p><code>train</code> has 1225 rows, with an overall minimum value of -0.52 (X7) and an overall maximum value of 16.76 (X5).</p>
+<!-- | Statistic | Min                             | Max                             | -->
+<!-- |----------------------------------|-------------------|-------------------| -->
+<!-- | Mean      | 0.25 (X8)   | 13.8 (X5)   | -->
+<!-- | Variance  | 0.04 (X10)     | 1.57 (X4)     | -->
+<!-- | Range     | 1.42 (X18) | 8.37 (X14) | -->
+
+<!-- : Table 4: Statistics across Variables -->
+<div class="cell tbl-cap-location-bottom" data-layout-align="left" data-tab.id="tbl-minmaxStats" data-tbl-alt="Table with minimum and maximum mean, variance and range in train dataset">
+<div class="cell-output-display">
+
+<div class="tabwid tabwid-caption-bottom"><style>.cl-1358cc86{}.cl-1352de48{font-family:'Helvetica';font-size:12pt;font-weight:bold;font-style:normal;text-decoration:none;color:rgba(51, 51, 51, 1.00);background-color:transparent;}.cl-1352de52{font-family:'Helvetica';font-size:12pt;font-weight:normal;font-style:normal;text-decoration:none;color:rgba(51, 51, 51, 1.00);background-color:transparent;}.cl-13553698{margin:0;text-align:left;border-bottom: 0 solid rgba(0, 0, 0, 1.00);border-top: 0 solid rgba(0, 0, 0, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);padding-bottom:5pt;padding-top:5pt;padding-left:6pt;padding-right:6pt;line-height: 1;background-color:transparent;}.cl-1355434a{width:0.98in;background-color:rgba(255, 255, 255, 1.00);vertical-align: middle;border-bottom: 1.5pt solid rgba(0, 0, 128, 1.00);border-top: 1.5pt solid rgba(0, 0, 128, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);margin-bottom:0;margin-top:0;margin-left:0;margin-right:0;}.cl-1355434b{width:1.147in;background-color:rgba(255, 255, 255, 1.00);vertical-align: middle;border-bottom: 1.5pt solid rgba(0, 0, 128, 1.00);border-top: 1.5pt solid rgba(0, 0, 128, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);margin-bottom:0;margin-top:0;margin-left:0;margin-right:0;}.cl-13554354{width:0.98in;background-color:rgba(255, 255, 255, 1.00);vertical-align: middle;border-bottom: 0.75pt solid rgba(0, 0, 128, 1.00);border-top: 0 solid rgba(0, 0, 0, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);margin-bottom:0;margin-top:0;margin-left:0;margin-right:0;}.cl-13554355{width:1.147in;background-color:rgba(255, 255, 255, 1.00);vertical-align: middle;border-bottom: 0.75pt solid rgba(0, 0, 128, 1.00);border-top: 0 solid rgba(0, 0, 0, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);margin-bottom:0;margin-top:0;margin-left:0;margin-right:0;}.cl-13554356{width:0.98in;background-color:rgba(255, 255, 255, 1.00);vertical-align: middle;border-bottom: 0.75pt solid rgba(0, 0, 128, 1.00);border-top: 0.75pt solid rgba(0, 0, 128, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);margin-bottom:0;margin-top:0;margin-left:0;margin-right:0;}.cl-13554357{width:1.147in;background-color:rgba(255, 255, 255, 1.00);vertical-align: middle;border-bottom: 0.75pt solid rgba(0, 0, 128, 1.00);border-top: 0.75pt solid rgba(0, 0, 128, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);margin-bottom:0;margin-top:0;margin-left:0;margin-right:0;}.cl-1355435e{width:0.98in;background-color:rgba(255, 255, 255, 1.00);vertical-align: middle;border-bottom: 1.5pt solid rgba(0, 0, 128, 1.00);border-top: 0.75pt solid rgba(0, 0, 128, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);margin-bottom:0;margin-top:0;margin-left:0;margin-right:0;}.cl-1355435f{width:1.147in;background-color:rgba(255, 255, 255, 1.00);vertical-align: middle;border-bottom: 1.5pt solid rgba(0, 0, 128, 1.00);border-top: 0.75pt solid rgba(0, 0, 128, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);margin-bottom:0;margin-top:0;margin-left:0;margin-right:0;}</style><table data-quarto-disable-processing="true" class="cl-1358cc86"><caption><p>Minimum / Maximum Statistics in ‘train’</p></caption><thead><tr style="overflow-wrap:break-word;"><th class="cl-1355434a"><p class="cl-13553698"><span class="cl-1352de48">Statistic</span></p></th><th class="cl-1355434b"><p class="cl-13553698"><span class="cl-1352de48">Minimum</span></p></th><th class="cl-1355434b"><p class="cl-13553698"><span class="cl-1352de48">Maximum</span></p></th></tr></thead><tbody><tr style="overflow-wrap:break-word;"><td class="cl-13554354"><p class="cl-13553698"><span class="cl-1352de48">Mean</span></p></td><td class="cl-13554355"><p class="cl-13553698"><span class="cl-1352de52">0.25 (X8) </span></p></td><td class="cl-13554355"><p class="cl-13553698"><span class="cl-1352de52">13.8 (X5) </span></p></td></tr><tr style="overflow-wrap:break-word;"><td class="cl-13554356"><p class="cl-13553698"><span class="cl-1352de48">Variance</span></p></td><td class="cl-13554357"><p class="cl-13553698"><span class="cl-1352de52">0.04 (X10) </span></p></td><td class="cl-13554357"><p class="cl-13553698"><span class="cl-1352de52">1.57 (X4) </span></p></td></tr><tr style="overflow-wrap:break-word;"><td class="cl-1355435e"><p class="cl-13553698"><span class="cl-1352de48">Range</span></p></td><td class="cl-1355435f"><p class="cl-13553698"><span class="cl-1352de52">1.42 (X18) </span></p></td><td class="cl-1355435f"><p class="cl-13553698"><span class="cl-1352de52">8.37 (X14) </span></p></td></tr></tbody></table></div>
+</div>
+</div>
+<p><em>Spread</em> between variables in terms of mean, variance and range is significant.</p>
+<!--# I scale the data below but continue to do EDA on the unscaled data.  The scaled data will be used for modelling and analysis later on in the report. -->
+</section>
+<section id="sec-outliers" class="level4">
+<h4 class="anchored" data-anchor-id="sec-outliers">Outliers</h4>
+<p>Values which are significantly different from other data points in the dataset were explored. It is essential to distinguish between genuine extreme values and errors (measurement, data entry, faulty readings). Genuine data contain valuable information; problematic outliers may need to be treated or removed as they can skew analysis.</p>
+<p>Distribution plots suggest that variables are generally <em>normally</em> distributed (<a href="#fig-distros">Figure&nbsp;3</a>) with some non-normality (<a href="#fig-hist">Figure&nbsp;4</a>).</p>
+<!--#  The density plot below for two selected variables (X1 and X7) show that there are differences when grouping by the target labels. -->
+<!--# The below plot list shows all variables' densities grouped by target variable (label) - when expanded, it apperas that variables are largely normally distributed but that there are some key variables where the distributions differ between groups - for example  X7-X10.  It is likely that these will be useful to differentiate between chemicals in in the model. -->
+<div class="cell" data-layout-align="left" data-tab.align="left">
+<div class="cell-output-display">
+<div id="fig-distros" class="quarto-figure quarto-figure-left anchored">
+<figure class="figure">
+<p><img src="00_Report_files/figure-html/fig-distros-1.png" class="img-fluid figure-img" style="width:90.0%" alt="Distributions by 'label'"></p>
+<p></p><figcaption class="figure-caption">Figure&nbsp;3: Distributions by ‘label’</figcaption><p></p>
+</figure>
+</div>
+</div>
+</div>
+<!--# When looking at histograms, I explored how to best determine which binwidth to use.  I came across Freedman-Diaconis and Sturges rules. The results for `num_train` are below and they are quite different.  For example, the FD binwidth for varible X7 is 0.07 while Sturges' method suggests a binwidth of 0.14, that is, double.  In general, Sturges bw is much larger. The reason is that FD takes into account the variability of the data, not just the count of observations (Sturges).  I am going to use FDR. -->
+<p>The violin plots (<a href="#fig-violin">Figure&nbsp;5</a>) visualise potential outliers - data points beyond 1.5x the <code>interquartile range</code> (IQR) (50% of the data). These are the points on the <em>whiskers</em>; X8 has many more <em>potential</em> outliers than variable X9.</p>
+<div class="cell" data-layout-align="left" data-tab.align="left">
+<div class="cell-output-display">
+<div id="fig-hist" class="quarto-figure quarto-figure-left anchored">
+<figure class="figure">
+<p><img src="00_Report_files/figure-html/fig-hist-1.png" class="img-fluid figure-img" style="width:90.0%" alt="Histograms and Density Plots of Selected Variables"></p>
+<p></p><figcaption class="figure-caption">Figure&nbsp;4: Histograms and Density Plots of Selected Variables in <code>train</code></figcaption><p></p>
+</figure>
+</div>
+</div>
+</div>
+<p>The distribution and density plots in <a href="#fig-hist">Figure&nbsp;4</a> show potential non-normal distributions, with multiple peaks or skewness. The violin plots (<a href="#fig-violin">Figure&nbsp;5</a>) help visualise potential outliers - data points beyond 1.5x the <code>interquartile range</code> (IQR), representing 50% of the data. These are the dots on the <em>whiskers</em>; X8 has many more <em>potential</em> outliers than variable X9.</p>
+<div class="cell" data-layout-align="left">
+<div class="cell-output-display">
+<div id="fig-violin" class="quarto-figure quarto-figure-left anchored">
+<figure class="figure">
+<p><img src="00_Report_files/figure-html/fig-violin-1.png" class="img-fluid figure-img" style="width:90.0%" alt="Violin Plots of Selected Variables"></p>
+<p></p><figcaption class="figure-caption">Figure&nbsp;5: Violin Plots of Selected Variables in <code>train</code></figcaption><p></p>
+</figure>
+</div>
+</div>
+</div>
+<!--# Below are the histograms and boxplots for all variables.  There's nothing too remarkable - the variables are more or less normally distributed with X7-X9 having less normal distributions. -->
+<!--# To be certain, I have reproduced the above plots on the scaled data.  The density plots remain the same but the binwidths are different, producing a slightly different visual.  The bins for X7-X10 and X17-X20 are clearly larger/wider so it appears that scaling (centre 0, standard deviation = 1) has made the data more spread out for these variables.  This could mean that these variables have more variability tahn the others, which may be useful in the classification models.-->
+<!--# In addition to visually inspecting the variables in terms of distributions and densities, I looked at a more formal approach to identify outliers in the dataset.  I calculated z-scores for each variable using 'scale()'.  -->
+<!--# Then potential 'outliers' were pulled out - those with a z-score of +/- 3 which is a common threshold.  In a normal distribution - 99.7% of observations fall within 3 standard deviations. -->
+<p>Potential outliers were investigated statistically with varying results depending on method and sensitivity.</p>
+<p>A general approach involves identifying data which is ± 3 standard deviations from a calculated statistic (<em>z-score</em>) - meaning it is beyond 0.3% of the centre.</p>
+<!--# The above plot shows numbers of potential outliers (+/- 3SD) in the unscaled dataset - there are 81 total 'potential' outliers.  Variable 8 sticks out with the most - 10.  This is 0.4% of the dataset - so a tiny bit more than what might be expected in a normal distribution (0.3%)..  
+
+<!--# A more robust method to consider outliers is using mean absolute deviation (instead of SD) which can be seen below.  This results in 119 potential outliers.  The interesting thing is that X8 now has 38 potential outliers.  It could be that X8 has more extreme variables or has more variability - but the client should be made aware.   -->
+<!--# The above looked at outliers within each variable.  Another approach is to consider outliers in a multivariate approach - using Mahalanobis distance. -->
+<!--# Mahalonbis distance has been calculated for each value in the dataset.  Two measures of dispersion are used - covariance matrix and median absolute deviation (MAD).  MAD is less sensitive to outliers compared to standard deviation.  MAD is set to 6 MADs away from centre; for covariance, I am using chi-squared distribution to identify those beyond 0.95. Whilst there is some evidence of outliers, there is nothing particularly concerning.  Without additional information, it is not possible to know whether these are outliers which warrant concern, transformation or even removal.  In the absence of information, they will be retained in the modelling.-->
+<p>There are a total of 81 ‘outliers’ in the dataset from 19 variables; ‘X8’ has the most with 10.</p>
+<div class="callout callout-style-default callout-important callout-titled">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+Decision
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<p>Data will be <em>scaled</em> to prevent variables having undue influence.</p>
+<p>Outliers will be retained.</p>
+</div>
+</div>
+</section>
+</section>
+<section id="sec-correlation-between-variables" class="level3">
+<h3 class="anchored" data-anchor-id="sec-correlation-between-variables">Correlation between Variables</h3>
+<!--# This section looks at correlations between variables to get an initial understanding of how they may be related. The pairs.panel runs but is less useful as there are too many variables.  They are broken up into smaller plots below. -->
+<div class="cell" data-layout-align="left">
+<div class="cell-output-display">
+<div id="fig-corrmatrix" class="quarto-figure quarto-figure-left anchored">
+<figure class="figure">
+<p><img src="00_Report_files/figure-html/fig-corrmatrix-1.png" class="img-fluid figure-img" style="width:90.0%" alt="Correlation Matrix"></p>
+<p></p><figcaption class="figure-caption">Figure&nbsp;6: Correlation Matrix</figcaption><p></p>
+</figure>
+</div>
+</div>
+</div>
+<p>After exploring <a href="#sec-overall-statistics">overall statistics</a> and <a href="#sec-outliers">outliers</a>, this section examines linear relationships. The <code>correlation matrix</code> shows strong negative correlation between X18, X20 each with X17, X19 and strong positive correlation between X18 and X20 as well as between X17 and X19. A lot of variables have little or no correlation.</p>
+<p>The ellipsoid shapes in the <code>pair plot</code> highlight liner relationships with correlation coefficients (-1 to 1) indicating the strength of the relationship.</p>
+<!--# The different correlation plots are included as they show the correlations in slightly different manners and can help spot the interactions between variables.  The ggpair plots below are 4 sets of 5 variables - this does not give every variable combination but it gives an indication of correlations.  We can see with clarity that there are strong linear relationships between variables X17-X20 whilst the other plots have less strong correlation (lower Pearson's R coefficient) with the blob-like scatter plots. -->
+<div class="cell" data-layout-align="left">
+<div class="cell-output-display">
+<div id="fig-corrmatrix1620" class="quarto-figure quarto-figure-left anchored">
+<figure class="figure">
+<p><img src="00_Report_files/figure-html/fig-corrmatrix1620-1.png" class="img-fluid figure-img" style="width:90.0%" alt="Correlation Pair Plots - Variables X16-X20"></p>
+<p></p><figcaption class="figure-caption">Figure&nbsp;7: Correlation Pair Plots - Variables X16-X20</figcaption><p></p>
+</figure>
+</div>
+</div>
+</div>
+<div style="page-break-after: always;"></div>
+<!--# Scaled datasets are created for train and validate subsets.  Train is means centred with a standard deviation of one.  The train means and SDs are applied to the validate set.-->
+</section>
+</section>
+<section id="sec-principal-component-analysis" class="level2">
+<h2 class="anchored" data-anchor-id="sec-principal-component-analysis">Principal Component Analysis</h2>
+<section id="sec-suitability" class="level3">
+<h3 class="anchored" data-anchor-id="sec-suitability">Suitability</h3>
+<!--# PCA looks to reduce dimensionality (in this case, 20 variables) by considering any underlying structure in the dataset.  The correlation plots and corresponding R coefficients suggest that there may be sufficient correlation in the dataset to warrant PCA. -->
+<!--# kmo samplying adequacy - >0.6 -->
+<p>Principal Component Analysis attempts to reduce the variability in a dataset to fewer, linearly <em>uncorrelated</em> ‘principal components’.</p>
+<p>The sample dataset appears suitable for PCA based on correlations. This is statistically confirmed with a <code>KMO</code> test value of 0.71 which is greater than the accepted threshold for <code>PCA</code> suitability (0.6).</p>
+<p>Only three variables have a low sampling adequacy, with X15 having a value of 0.46.</p>
+<div class="cell tbl-cap-location-bottom" data-layout-align="left" data-tab.align="left" data-tab.id="tbl-kmo" data-tbl-alt="Summary of individual measures of sampling adequacy (MSA)">
+<div class="cell-output-display">
+
+<div class="tabwid tabwid-caption-bottom"><style>.cl-28dbed5e{}.cl-28d5f61a{font-family:'Helvetica';font-size:12pt;font-weight:bold;font-style:normal;text-decoration:none;color:rgba(51, 51, 51, 1.00);background-color:transparent;}.cl-28d5f624{font-family:'Helvetica';font-size:12pt;font-weight:normal;font-style:normal;text-decoration:none;color:rgba(51, 51, 51, 1.00);background-color:transparent;}.cl-28d84e24{margin:0;text-align:left;border-bottom: 0 solid rgba(0, 0, 0, 1.00);border-top: 0 solid rgba(0, 0, 0, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);padding-bottom:5pt;padding-top:5pt;padding-left:6pt;padding-right:6pt;line-height: 1;background-color:transparent;}.cl-28d85b3a{width:0.75in;background-color:rgba(255, 255, 255, 1.00);vertical-align: middle;border-bottom: 1.5pt solid rgba(0, 0, 128, 1.00);border-top: 1.5pt solid rgba(0, 0, 128, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);margin-bottom:0;margin-top:0;margin-left:0;margin-right:0;}.cl-28d85b44{width:2.559in;background-color:rgba(255, 255, 255, 1.00);vertical-align: middle;border-bottom: 1.5pt solid rgba(0, 0, 128, 1.00);border-top: 1.5pt solid rgba(0, 0, 128, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);margin-bottom:0;margin-top:0;margin-left:0;margin-right:0;}.cl-28d85b45{width:0.75in;background-color:rgba(255, 255, 255, 1.00);vertical-align: middle;border-bottom: 0.75pt solid rgba(0, 0, 128, 1.00);border-top: 0 solid rgba(0, 0, 0, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);margin-bottom:0;margin-top:0;margin-left:0;margin-right:0;}.cl-28d85b46{width:2.559in;background-color:rgba(255, 255, 255, 1.00);vertical-align: middle;border-bottom: 0.75pt solid rgba(0, 0, 128, 1.00);border-top: 0 solid rgba(0, 0, 0, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);margin-bottom:0;margin-top:0;margin-left:0;margin-right:0;}.cl-28d85b4e{width:0.75in;background-color:rgba(255, 255, 255, 1.00);vertical-align: middle;border-bottom: 0.75pt solid rgba(0, 0, 128, 1.00);border-top: 0.75pt solid rgba(0, 0, 128, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);margin-bottom:0;margin-top:0;margin-left:0;margin-right:0;}.cl-28d85b4f{width:2.559in;background-color:rgba(255, 255, 255, 1.00);vertical-align: middle;border-bottom: 0.75pt solid rgba(0, 0, 128, 1.00);border-top: 0.75pt solid rgba(0, 0, 128, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);margin-bottom:0;margin-top:0;margin-left:0;margin-right:0;}.cl-28d85b50{width:0.75in;background-color:rgba(255, 255, 255, 1.00);vertical-align: middle;border-bottom: 1.5pt solid rgba(0, 0, 128, 1.00);border-top: 0.75pt solid rgba(0, 0, 128, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);margin-bottom:0;margin-top:0;margin-left:0;margin-right:0;}.cl-28d85b58{width:2.559in;background-color:rgba(255, 255, 255, 1.00);vertical-align: middle;border-bottom: 1.5pt solid rgba(0, 0, 128, 1.00);border-top: 0.75pt solid rgba(0, 0, 128, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);margin-bottom:0;margin-top:0;margin-left:0;margin-right:0;}</style><table data-quarto-disable-processing="true" class="cl-28dbed5e"><caption><p>Summary of individual measures of sampling adequacy (MSA)</p></caption><thead><tr style="overflow-wrap:break-word;"><th class="cl-28d85b3a"><p class="cl-28d84e24"><span class="cl-28d5f61a">MSAi_band</span></p></th><th class="cl-28d85b3a"><p class="cl-28d84e24"><span class="cl-28d5f61a">Suitability</span></p></th><th class="cl-28d85b44"><p class="cl-28d84e24"><span class="cl-28d5f61a">Variables</span></p></th></tr></thead><tbody><tr style="overflow-wrap:break-word;"><td class="cl-28d85b45"><p class="cl-28d84e24"><span class="cl-28d5f624">0.8-0.89</span></p></td><td class="cl-28d85b45"><p class="cl-28d84e24"><span class="cl-28d5f624">Excellent</span></p></td><td class="cl-28d85b46"><p class="cl-28d84e24"><span class="cl-28d5f624">X12, X13</span></p></td></tr><tr style="overflow-wrap:break-word;"><td class="cl-28d85b4e"><p class="cl-28d84e24"><span class="cl-28d5f624">0.7-0.79</span></p></td><td class="cl-28d85b4e"><p class="cl-28d84e24"><span class="cl-28d5f624">Good</span></p></td><td class="cl-28d85b4f"><p class="cl-28d84e24"><span class="cl-28d5f624">X2, X3, X5, X6, X8, X11, X14, X16, X17, X18, X19, X20</span></p></td></tr><tr style="overflow-wrap:break-word;"><td class="cl-28d85b4e"><p class="cl-28d84e24"><span class="cl-28d5f624">0.6-0.69</span></p></td><td class="cl-28d85b4e"><p class="cl-28d84e24"><span class="cl-28d5f624">Mediocre</span></p></td><td class="cl-28d85b4f"><p class="cl-28d84e24"><span class="cl-28d5f624">X7, X9, X10</span></p></td></tr><tr style="overflow-wrap:break-word;"><td class="cl-28d85b4e"><p class="cl-28d84e24"><span class="cl-28d5f624">0.5-0.59</span></p></td><td class="cl-28d85b4e"><p class="cl-28d84e24"><span class="cl-28d5f624">Marginal</span></p></td><td class="cl-28d85b4f"><p class="cl-28d84e24"><span class="cl-28d5f624">X1, X4</span></p></td></tr><tr style="overflow-wrap:break-word;"><td class="cl-28d85b50"><p class="cl-28d84e24"><span class="cl-28d5f624">&lt; 0.5</span></p></td><td class="cl-28d85b50"><p class="cl-28d84e24"><span class="cl-28d5f624">Unsuitable</span></p></td><td class="cl-28d85b58"><p class="cl-28d84e24"><span class="cl-28d5f624">X15</span></p></td></tr></tbody></table></div>
+</div>
+</div>
+<!--# Bartlett's test of sphericity has the hypothesis that a correlation matrix is an identity matrix; significant p-value indicates PCA is appropriate, which again confirms that PCA is worth exploring. -->
+</section>
+<section id="sec-components" class="level3">
+<h3 class="anchored" data-anchor-id="sec-components">Components</h3>
+<!--# Scree plots allow us to visually determine how many 'dimensions' are in the underlying data.  Usually the cutoff is at the 'elbow' joint or where eigenvalues are greater than 1.  The plot below suggests four plots for PCA (and 3 for Factor Analysis), after which additional dimensions do not significantly account for the variability in the dataset. After the first 3 or 4 factors, the remaining components appear to offer a similar amount of explanatory power to the data.  This could be problematic in that it might mean we will not be able to capture enough variability in the components. -->
+<!--# Horn's Parallel Analysis has been applied to the dataset, which estimates the number of 'significant' components through the generation of a large number of simulated data sets - in this case 5000.  The resulting eigenvalues are averaged to get a mean estimate of the expected eigenvalues, which are compared to the observed values in order to determine how many 'significant' components to keep. The results below suggest to retain 4 components - based on the eigenvalue being greater than 1. -->
+<p><code>Screeplots</code> and <code>Horn's Parallel Analysis</code> help determine how many components to retain. The visual approach, where eigenvalues (representing variance explained) are plotted against components and parallel analysis indicate 4 components.</p>
+</section>
+<section id="sec-implementing-pca" class="level3">
+<h3 class="anchored" data-anchor-id="sec-implementing-pca">Implementing PCA</h3>
+<!--# An initial PCA below allows us to understand how the variability is captured by the components. -->
+<p>Most variables load on at least one component but loadings on components 5, 6, etc. will not be retained. For example, X20 is highly loaded on the fourth component but not contributing elsewhere.</p>
+<div class="cell" data-layout-align="left" data-tab.align="left">
+<div class="cell-output-display">
+<div id="fig-pca-loading" class="quarto-figure quarto-figure-left anchored">
+<figure class="figure">
+<p><img src="00_Report_files/figure-html/fig-pca-loading-1.png" class="img-fluid figure-img" style="width:90.0%" alt="Plot with variable loadings for first six components"></p>
+<p></p><figcaption class="figure-caption">Figure&nbsp;8: First six PCA component variable loadings</figcaption><p></p>
+</figure>
+</div>
+</div>
+</div>
+<!--# Below a PCA has been applied, specifying four components.  Some interpretation of the PCA results: Mean item complexity is a measure of how complex the items in the data are - i.e., we could say that on average, each item in the data loads onto 1.4 components.  This can be interpreted to mean that there is clear underlying structure to the data. However, explaining 46% of the variability may not be sufficient?-->
+<!--# The root mean square of the residuals (RMSR) is the difference between the actual and predicted values, so smaller RMSRs  mean that there is a better fit.  An RMSR of 0.07 suggests a reasonable fit. -->
+<!--# Below we fit a PCA using dudi.pca, specifying four components, no centring and no scaling as this has already been done.  Looking at the screeplot of variance explained below, the fourth component does not explain much additional variance, however it will be retained.  -->
+<!--# pca5 below is a plot of individual points for components 1 and 2 with added ellipses by their label.  This shows the clusters - but there is a significant amount of overlay.  This suggests that there may not be enough information to effetively differentiate between the different labels.   -->
+<p>The PCA biplots show correlations discussed in <a href="#sec-exploratory-data-analysis">Exploratory Data Analysis</a> in the components.</p>
+<p>Angles between variables:</p>
+<ul>
+<li>close to 0° indicate a strong positive correlation (X17, X19)</li>
+<li>close to 180° indicate a strong negative correlation (X17, X18)</li>
+<li>close to 90° are uncorrelated (X8, X17)</li>
+</ul>
+<p>The length of the vector indicates the importance of that variable in explaining the variance.</p>
+<p><a href="#fig-pca-biplot">Figure&nbsp;9</a> shows some strong correlations captured in the first two dimensions, while the third dimension is more difficult to interpret.</p>
+<div class="cell" data-layout-align="left" data-tab.align="left">
+<div class="cell-output-display">
+<div id="fig-pca-biplot" class="quarto-figure quarto-figure-left anchored">
+<figure class="figure">
+<p><img src="00_Report_files/figure-html/fig-pca-biplot-1.png" class="img-fluid figure-img" style="width:90.0%" alt="Biplots of first three dimensions"></p>
+<p></p><figcaption class="figure-caption">Figure&nbsp;9: Biplots of scaled dataset</figcaption><p></p>
+</figure>
+</div>
+</div>
+</div>
+<!--# Here the PCA transformation has been applied using predict() to the validate subset which will be used in the clustering and modelling stages.  We can see that there are four dimensions in the valid dataset with means close to 0 but not  0.-->
+<div style="page-break-after: always;"></div>
+<!--# This section involves exploratory and confirmatory cluster analysis which helps understand the dataset and make decisions about the classification models.  -->
+<!--# The heatmaps of the distances have been commented-out as they take some time to run and are not very informative given their size.  To run them, remove the # from  the last two lines. -->
+<!--# For the purposes of this analysis and report, Euclidean distance will be used as the default distance.  It is a good starting position, generally more accurate than Manhattan but also more computationally expensive for larger datasets.  This could be reviewed with more information from the client. -->
+<!--# Below I have created hierarchical cluster objects for the train dataset with and without pca for four different linkage methods.  Kmeans clustering has also been applied. -->
+<!--#  The ward linkage clusters are plotted below to allow for visual comparison and interpretation. -->
+</section>
+</section>
+<section id="sec-clustering" class="level2">
+<h2 class="anchored" data-anchor-id="sec-clustering">Clustering</h2>
+<p>Clustering techniques were deployed on the datasets with and without PCA transformation to assess its usefulness.</p>
+<p>It is difficult to identify clusters with <code>K-means clustering</code>.</p>
+<div class="cell" data-layout-align="left" data-tab.align="left">
+<div class="cell-output-display">
+<div id="fig-kmeans-clusters" class="quarto-figure quarto-figure-left anchored">
+<figure class="figure">
+<p><img src="00_Report_files/figure-html/fig-kmeans-clusters-1.png" class="img-fluid figure-img" style="width:90.0%" alt="Plot of K-means clusters on PCA and non-PCA training data"></p>
+<p></p><figcaption class="figure-caption">Figure&nbsp;10: K-means clusters on PCA and non-PCA training data</figcaption><p></p>
+</figure>
+</div>
+</div>
+</div>
+<!--#Five clusters are plotted, but it is difficult to see them in a two dimensional plot - they are not obvious. -->
+<!--# Looking through the standard dendrograms is not so useful.  The dendrograms are replotted, specifying 5 groups.  We can see how the trees have been created and the relative number of members in each group.-->
+<!--# The means have been aggregated so that the data in each cluster can be better understood.  In the PCA transformed data, for example, we can see that the first component loads positively on cluster 4 and negatively on cluster 1-->
+<!--# To get a better understanding about the clusters, we can look at the silhouette plots and compare plots between PCA transformed data and only scaled data. There is a fairly clear difference between PCA transformed data which has an average silhouette width of 0.22 and PCA data which has an average silhouette width of 0.08.  A higher score is better as it indicates that similar objects (samples) are closer to objects within their own cluster. -->
+<!--# The clusters in the PCA data are clearly defined and has little going below 0. -->
+<!--# The highest silhouette score is the default K=5 plot with very few values lower than 0, although a lot near 0.  In terms of clustering, Wards linkage is best, followed by complete linkage; and PCA data clusters better than non-PCA data.  -->
+<p><code>Silhouette plots</code> show cluster quality; PCA-transformed data results in ‘better’ clusters. The height represents how well that observation matches its cluster - PCA data has an average of 0.22 in comparison to 0.08 for the scaled data.</p>
+<div class="cell" data-layout-align="left" data-tab.align="left">
+<div class="cell-output-display">
+<div id="fig-best-cluster-sil" class="quarto-figure quarto-figure-left anchored">
+<figure class="figure">
+<p><img src="00_Report_files/figure-html/fig-best-cluster-sil-1.png" class="img-fluid figure-img" style="width:90.0%" alt="Plot of Cluster Silhouettes on PCA and non-PCA training data"></p>
+<p></p><figcaption class="figure-caption">Figure&nbsp;11: Cluster Silhouettes on PCA and non-PCA training data</figcaption><p></p>
+</figure>
+</div>
+</div>
+</div>
+<!--# Below silhouettes for different values of K are computed for each dataset and then plotted.  The silhouette seems to keep going up as K increases - this may suggest that there may not be so many well-defined clusters in the data. -->
+<!--# As well as silhouette plots, it is worth looking at the 'within-cluster sum of squares' (wss) for different K. The plots for PCA and non-PCA datasets look very similar.-->
+<p>The ‘optimal’ number of clusters for both datasets using <code>within-cluster sum of squares</code> (WSS) is 4 or more.</p>
+<div class="cell" data-layout-align="left" data-tab.align="left">
+<div class="cell-output-display">
+<div id="fig-gap-stat-combined" class="quarto-figure quarto-figure-left anchored">
+<figure class="figure">
+<p><img src="00_Report_files/figure-html/fig-gap-stat-combined-1.png" class="img-fluid figure-img" style="width:90.0%" alt="Plots optimum clusters in PCA and non-PCA data"></p>
+<p></p><figcaption class="figure-caption">Figure&nbsp;12: Optimal Clusters (WSS) PCA and non-PCA</figcaption><p></p>
+</figure>
+</div>
+</div>
+</div>
+<p>However, the <code>gap statistic</code> as an estimate of optimal clusters, does not converge for non-PCA, (meaning it cannot identify clusters), while the PCA data seems to have its ‘elbow’ between three and six clusters.</p>
+<p>The dataset does not have obvious clusters.</p>
+<!--# The gap statistic uses the WSS and calculates the different between expected WSS and actual WSS and identifies where the gap statistic is largest, the theory being that where clustering is very good, the gap between within-cluster disperson for that cluster should be large. -->
+<div class="cell" data-layout-align="left" data-tab.align="left">
+<div class="cell-output-display">
+<div id="fig-gap-statistics" class="quarto-figure quarto-figure-left anchored">
+<figure class="figure">
+<p><img src="00_Report_files/figure-html/fig-gap-statistics-1.png" class="img-fluid figure-img" style="width:90.0%" alt="Plot of gap statistics on PCA and non-PCA training data"></p>
+<p></p><figcaption class="figure-caption">Figure&nbsp;13: Gap statistics for PCA and non-PCA training data</figcaption><p></p>
+</figure>
+</div>
+</div>
+</div>
+<!--# Looking at the gap statistics for PCA and non-PCA datasets, the scaled data does not converge, while the PCA data is suggesting that there are perhaps three clusters.  Overall, there cluster investigation has left the door open and not clarified the approach -->
+<div style="page-break-after: always;"></div>
+<!--# In this section, we proceed with some classification models using both PCA and non-PCA datasets.  We start with KNN (K nearest neighbour) classifier.-->
+<!--# The baseline knn is not great, especially when it comes to predicting for label E.  The confusion matrix shows that the model has both false positives and true negatives - that is, it is predicting E when it is not E and predicting not-E when in fact, the true label is E. -->
+<!--# Let us consider more values for K and print confusion matrices for each, as well as storing the accuracies.  It common to check up to the value of the square root of the observations, for the value of K.-->
+</section>
+<section id="sec-classification-models" class="level2">
+<h2 class="anchored" data-anchor-id="sec-classification-models">Classification Models</h2>
+<section id="sec-pca-performance" class="level3">
+<h3 class="anchored" data-anchor-id="sec-pca-performance">PCA Performance</h3>
+<p>Three classifiers were developed and fitted with PCA and non-PCA data to compare results: <code>k nearest neighbour</code> (KNN), <code>model based discriminant analysis</code> (DA) and <code>support vector machines</code> (SVM).</p>
+<p>Models were trained and then validated on ‘unseen’ data. Accuracy (correct model predictions) was the performance metric.</p>
+<section id="sec-k-nearest-neighbour" class="level4">
+<h4 class="anchored" data-anchor-id="sec-k-nearest-neighbour">K Nearest Neighbour</h4>
+<!--# A quick scroll through the confusion matrices for K up to 35 and it is evident that the size of K does not improve the performance of the model.  More K does not mean better classification, especially of label E.  The other labels are being classified relatively well but there is no convergence on group E. -->
+<p>KNN classifies samples into groups by ‘distance’ to neighbours. Overall, non-PCA models performed better with a best default accuracy of 0.82% compared to 73.5%.</p>
+<!--# The best accuracy achieved by the knn classifier is 82.4% which was with k = 7. This is visualised below. -->
+<!--# Below is the same loop but for the PCA transformed dataset. -->
+<p>KNN classifies samples into groups by ‘distance’ to neighbours. Overall, non-PCA models performed better with a best default accuracy of 0.82% compared to 0.74%.</p>
+<div class="cell" data-layout-align="left" data-tab.align="left">
+<div class="cell-output-display">
+<div id="fig-compare-knn-plot" class="quarto-figure quarto-figure-left anchored">
+<figure class="figure">
+<p><img src="00_Report_files/figure-html/fig-compare-knn-plot-1.png" class="img-fluid figure-img" style="width:90.0%" alt="Plot KNN classifier accuracies for different K in PCA and non-PCA training data"></p>
+<p></p><figcaption class="figure-caption">Figure&nbsp;14: KNN classifier accuracies for different K</figcaption><p></p>
+</figure>
+</div>
+</div>
+</div>
+</section>
+<section id="sec-discriminant-analysis" class="level4">
+<h4 class="anchored" data-anchor-id="sec-discriminant-analysis">Discriminant Analysis</h4>
+<!--# KNN models for both PCA and non-PCA data have their best accuracy at K = 7 but the accuracy is almost 10% better with the un-transformed dataset. -->
+<!--# Below I fitted a linear discriminant analysis model using mclust and plotted some results.  The plots have been commented out in the interest of speed.  To run these, remove the #.  -->
+<!--# The default mclust model on the scaled dataset show that no valid model was identified for labels A, B, D, E - instead the algorithm defaulted to basic univariate modelling which essentially means that each variable is treated separately and labels (groups) are assigned on the marginal probability of each variable, assuming that the variables are independent and have equal variance. Label E, however had a specific model - EEI - which means it is a model of equal covariance matrix with unconstrained dimensions and there are three clusters.-->
+<!--# The model performed well when looking at the confusion matrix.  It had a classification error of 0.0278 and a Brier score of 0.024.  The classification error is the sum of off-diagonal elements divided by total observations - meaning that it has high predictive accuracy.  Brier score is another measure of accuracy based on probabilistic predictions but taking into account correctness and confidence of predictions.  Brier score penalises for over-confidence and rewards for correct predictions.  A low Brier score indicates a better performing model - so 0.024 is good.  -->
+<!--# Again it is label E which s challenging.  The model still predicts 218/236 which is still good at 92.4% correct. Other statistics include the log-likelihood where a higher value means a better fitting model; BIC (Bayesian information criterion) where a lower value is better.  The low BIC value suggests that this model fits the data well and is not overly complex. -->
+<!--# It is useful to confirm this results on our 'validate' set - this is unseen data, so we can confirm how well the model generalises to new data.  The results are very good - with an accuracy of 96.4% - only slightly worse then the accuracy on the train dataset (97.2%).  The Brier score on the validate set is 0.0311, also very good. -->
+<!--# The same model has been fitted to the PCA transformed data for a comparison.  The results on the PCA training set are signifcantly worse than un-transformed training set with a classification error of 0.25 and a Brier score of 0.17. This means that the accuracy is only 75%.  The usual suspect - label E - is very poorly classified but there is also misclassification for label B, C and D.  It seems likely that four components may not have captured enough of the variability in the dataset. -->
+<p>Discriminant Analysis classification creates groups from mixed mathematical models based on different variable means. The default model had accuracies of 96.41% (non-PCA) and 75% on the ‘validation’ dataset.</p>
+<p>Label E is particularly challenging to classify with false positives and false negative misclassifications.</p>
+</section>
+<section id="sec-support-vector-machines" class="level4">
+<h4 class="anchored" data-anchor-id="sec-support-vector-machines">Support Vector Machines</h4>
+
+<!--# Another model to investigate is the support vector machine (SVM) - which provides a 90.7% classification accuracy initially.This was fitted to the PCA dataset as well, which produced an accurace of 69.8% which confirms that PCA is probably not suitable for the final classifier.-->
+<p>SVM which did not perform as well as DA or KNN. The non-PCA model had an accuracy of 90.69% and the PCA model resulted in an accuracy of only 69.77%.</p>
+<div class="callout callout-style-default callout-important callout-titled">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+Decision
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<p>PCA is not appropriate on this dataset as it does not capture enough variability for a successful classifier.</p>
+</div>
+</div>
+</section>
+</section>
+<section id="sec-feature-reduction" class="level3">
+<h3 class="anchored" data-anchor-id="sec-feature-reduction">Feature Reduction</h3>
+<p>An alternative to dimension reduction is <code>feature reduction</code> - removing variables. Some variables may not add explanatory power because they capture similar information to other variables or they do not contain relevant information.</p>
+<!--# At this point, trees and forests will be explored and considered for this report -->
+<!--# The complexity plot above allows us to find the point (elbow) where relative error is lowest in relation to the complexity - which is 0.0034. -->
+<!--# Looking at the above trees, it is clear that classifying E is the challenge.  Class A is isolated with two variables - X9 and X7 but E and to a much lesser extent, the other labels are spread widely. -->
+<!--# By comparing error rates on th the three trees, we can see that the unpruned tree performs best and as expected is completely overfitted to the train set.  The optimal tree has an accuracy of 90.5% on the valid set while the 1 standard deviation tree has an accuracy of 89.7%. Thus, we see that pruning the tree hits accuracy but it has the benefit of curtailing overfitting whilst retaining predictive power.-->
+<!--# Trees can help understand the importance of individual variables by looking at which ones are used to split the branches.  The barchart below shows the most important variables are X9, X7, X8, X10, followe by X11, X3, X1, X6 and then they sart to have less of an impact.  Removing features (variables) will be looked at - so this is useful information. -->
+
+<!--# One thing to try is bootstrapping data samples and trees so that the accuracy can be assessed.  The general principle is to calculate the error difference between trees - if it is high - then it could indicate that the model is unstable.  For example, the below two trees have a difference of 17% which is quite high...but it is only two random samples, so bootstrapping several hundred will get closer to the mean. -->
+<!--# The bootstrapping suggests that the trees are not that stable - with an overall error of 15% on average. -->
+<!--# Trees are usually not the best classifiers, but 'random forests' can be. This first on is not great - with an error rate of 10.29%. -->
+<!--# The default forest has a misclassification error rate of 3.6% on the validate set and an estimated out of bag error rate of 8.65% - how it will generalise to unseen data.  Again, it is label E wich is difficult to classify.  Is it really a label? -->
+<!--# Looking at the variable importance from random forests, it is evident that X9, X7, X8, X10 are the most important variables, followed by X11, X3 and others so this should be explored in terms of feature reduction.-->
+<p>Clustering techniques like trees and random forests, can help identify candidate variables for inclusion / exclusion. <a href="#fig-var-imp">Figure&nbsp;15</a> shows taht variables X7-X10 are more important when splitting into labels.</p>
+<div class="cell" data-layout-align="left" data-tab.align="left">
+<div class="cell-output-display">
+<div id="fig-var-imp" class="quarto-figure quarto-figure-left anchored">
+<figure class="figure">
+<p><img src="00_Report_files/figure-html/fig-var-imp-1.png" class="img-fluid figure-img" style="width:90.0%" alt="Plot with variable importance using random forest"></p>
+<p></p><figcaption class="figure-caption">Figure&nbsp;15: Variable importance using random forest</figcaption><p></p>
+</figure>
+</div>
+</div>
+</div>
+<p>Reduced variable datasets to test performance:</p>
+<table class="table">
+<caption>Reduced Feature Datasets</caption>
+<thead>
+<tr class="header">
+<th>Set</th>
+<th>Included Variables</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>Set 1</td>
+<td>X7, X8, X9, X10</td>
+</tr>
+<tr class="even">
+<td>Set 2</td>
+<td>X7, X8, X9, X10, X3, X1</td>
+</tr>
+<tr class="odd">
+<td>Set 3</td>
+<td>X7, X8, X9, X10, X3, X11</td>
+</tr>
+<tr class="even">
+<td>Set 4</td>
+<td>X7, X8, X9, X10, X3, X1, X2, X13</td>
+</tr>
+<tr class="odd">
+<td>Set 5</td>
+<td>X7, X8, X9, X10, X3, X11, X16</td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="sec-model-performance" class="level3">
+<h3 class="anchored" data-anchor-id="sec-model-performance">Model Performance</h3>
+<p>Models were optimsed by searching through combinations of <code>hyperparameters</code> on datasets with different variables.</p>
+<!--# On the basis of the results of knn and mclust discriminant analysis classification models, it appears that PCA transformed data is not as good at classifying these chemicals as the un-transformed dataset, so PCA is abandoned in the modelling.  Only scaled data will be considered from here. -->
+<!--# Below is the first attempt at tuning the hyperparameters of the Mclust DA model.  It uses lower BIC as its improvement metric and I found that the BIC keeps lowering even after the accuracy worsens, as n.components increases.  This is likely because the model is overfitting - that is, it is improving on the 'train' dataset but at the expense of generalising to unseen data. In terms of the best model, n.components is 11 with EEI models for each label.  The Brier scores are 0.023 and 0.034 for train and validate, respectively.  The classification errors are 0.033 and 0.041 respectively. It has been commented out in the interest of faster report knitting.-->
+<!--# Version 2 of hyperparameter tuning can be found below. In addition to n.components, this searches over model names and diagonal as well.  It is also based on BIC scores.-->
+<!--# The results of this loop have overtrained massively.  The model is almost perfect on the train dataset with only one misclassification (E as B) but it is poor on the validate set with a classification error of 11.8%. -->
+<!--# The below is a Quadratic Discriminant Analysis model using Mclust.  QDA only supports EII models.  It is not as good as the previous models, with an accuracy of 85.1%.  It has been commented out in the interest of report knitting speed.-->
+<!--# As with the Mclust DA models, the SVM can be hypertuned - the best model has an acuracy of 95.6% -->
+<!--# Investigating accuracy of models using KNN classifier with the reduced variable set shows a best accuracy of 94.1% with only one neighbour. We can investigate several reduced variable sets by setting up a loop and storing the results. -->
+<section id="sec-knn-loop" class="level4">
+<h4 class="anchored" data-anchor-id="sec-knn-loop">KNN loop</h4>
+<!--# The above KNN loop checks accuries for different datasets through different values of K.  Below, I have modified to store the results  -->
+<p>The best performing KNN model uses <code>valid_3</code> consisting of: X7, X8, X9, X10, X3, X11. The complete dataset (valid_6) peaks with an accuracy of 88.89% compared to 95.1% for the reduced variable set.</p>
+<!--# The best performing reduced variable dataset is set3 which contains the variables.  Its accuracy on the valid set is comparable to that of the full dataset. So how does it perform on the other models - mclust DA, SVM -->
+<div class="cell" data-layout-align="left" data-tab.align="left">
+<div class="cell-output-display">
+<div id="fig-knn-all-accuracy-dataset" class="quarto-figure quarto-figure-left anchored">
+<figure class="figure">
+<p><img src="00_Report_files/figure-html/fig-knn-all-accuracy-dataset-1.png" class="img-fluid figure-img" style="width:90.0%" alt="Plot KNN classifier accuracies for different K and datasets"></p>
+<p></p><figcaption class="figure-caption">Figure&nbsp;16: KNN classifier accuracies for different K and datasets</figcaption><p></p>
+</figure>
+</div>
+</div>
+</div>
+<!--# As with knn, the feature reduced dataset performs comparably well with mclust DA.  Early indications are that the client can collect less data without much of a hit in terms of classification.  Below is a loop which uses accuracy as the measure instead of BIC. Very good results - 96% accuracy.-->
+<!--# These loops work but have been superseded by the combined loop below. -->
+</section>
+<section id="sec-da-loop" class="level4">
+<h4 class="anchored" data-anchor-id="sec-da-loop">DA loop</h4>
+<p>Discriminant Analysis (LDA) models were tuned with ‘n.components’, ‘diagonal’ and ‘model name’ <code>hyperparameters</code> to allow the algorithm to find the combination of mixture models with the best accuracy for the groups.</p>
+<p>The ten best DA models are:</p>
+<div class="cell tbl-cap-location-bottom" data-layout-align="left" data-tab.id="tbl-DA-accuracies-Top10" data-tbl-alt="Table with top 10 Model-Dataset DA Models by Accuracy">
+<div class="cell-output-display">
+
+<div class="tabwid tabwid-caption-bottom"><style>.cl-bd378eb2{}.cl-bd315af6{font-family:'Helvetica';font-size:12pt;font-weight:bold;font-style:normal;text-decoration:none;color:rgba(51, 51, 51, 1.00);background-color:transparent;}.cl-bd315b00{font-family:'Helvetica';font-size:12pt;font-weight:normal;font-style:normal;text-decoration:none;color:rgba(51, 51, 51, 1.00);background-color:transparent;}.cl-bd33c980{margin:0;text-align:left;border-bottom: 0 solid rgba(0, 0, 0, 1.00);border-top: 0 solid rgba(0, 0, 0, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);padding-bottom:5pt;padding-top:5pt;padding-left:6pt;padding-right:6pt;line-height: 1;background-color:transparent;}.cl-bd33c98a{margin:0;text-align:right;border-bottom: 0 solid rgba(0, 0, 0, 1.00);border-top: 0 solid rgba(0, 0, 0, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);padding-bottom:5pt;padding-top:5pt;padding-left:6pt;padding-right:6pt;line-height: 1;background-color:transparent;}.cl-bd33d6e6{width:1.425in;background-color:rgba(255, 255, 255, 1.00);vertical-align: middle;border-bottom: 1.5pt solid rgba(0, 0, 128, 1.00);border-top: 1.5pt solid rgba(0, 0, 128, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);margin-bottom:0;margin-top:0;margin-left:0;margin-right:0;}.cl-bd33d6f0{width:1.11in;background-color:rgba(255, 255, 255, 1.00);vertical-align: middle;border-bottom: 1.5pt solid rgba(0, 0, 128, 1.00);border-top: 1.5pt solid rgba(0, 0, 128, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);margin-bottom:0;margin-top:0;margin-left:0;margin-right:0;}.cl-bd33d6f1{width:1.425in;background-color:rgba(255, 255, 255, 1.00);vertical-align: middle;border-bottom: 0.75pt solid rgba(0, 0, 128, 1.00);border-top: 0 solid rgba(0, 0, 0, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);margin-bottom:0;margin-top:0;margin-left:0;margin-right:0;}.cl-bd33d6fa{width:1.11in;background-color:rgba(255, 255, 255, 1.00);vertical-align: middle;border-bottom: 0.75pt solid rgba(0, 0, 128, 1.00);border-top: 0 solid rgba(0, 0, 0, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);margin-bottom:0;margin-top:0;margin-left:0;margin-right:0;}.cl-bd33d6fb{width:1.425in;background-color:rgba(255, 255, 255, 1.00);vertical-align: middle;border-bottom: 0.75pt solid rgba(0, 0, 128, 1.00);border-top: 0.75pt solid rgba(0, 0, 128, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);margin-bottom:0;margin-top:0;margin-left:0;margin-right:0;}.cl-bd33d704{width:1.11in;background-color:rgba(255, 255, 255, 1.00);vertical-align: middle;border-bottom: 0.75pt solid rgba(0, 0, 128, 1.00);border-top: 0.75pt solid rgba(0, 0, 128, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);margin-bottom:0;margin-top:0;margin-left:0;margin-right:0;}.cl-bd33d70e{width:1.425in;background-color:rgba(255, 255, 255, 1.00);vertical-align: middle;border-bottom: 0.75pt solid rgba(0, 0, 128, 1.00);border-top: 0.75pt solid rgba(0, 0, 128, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);margin-bottom:0;margin-top:0;margin-left:0;margin-right:0;}.cl-bd33d70f{width:1.11in;background-color:rgba(255, 255, 255, 1.00);vertical-align: middle;border-bottom: 0.75pt solid rgba(0, 0, 128, 1.00);border-top: 0.75pt solid rgba(0, 0, 128, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);margin-bottom:0;margin-top:0;margin-left:0;margin-right:0;}.cl-bd33d710{width:1.425in;background-color:rgba(255, 255, 255, 1.00);vertical-align: middle;border-bottom: 0.75pt solid rgba(0, 0, 128, 1.00);border-top: 0.75pt solid rgba(0, 0, 128, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);margin-bottom:0;margin-top:0;margin-left:0;margin-right:0;}.cl-bd33d718{width:1.11in;background-color:rgba(255, 255, 255, 1.00);vertical-align: middle;border-bottom: 0.75pt solid rgba(0, 0, 128, 1.00);border-top: 0.75pt solid rgba(0, 0, 128, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);margin-bottom:0;margin-top:0;margin-left:0;margin-right:0;}.cl-bd33d719{width:1.425in;background-color:rgba(255, 255, 255, 1.00);vertical-align: middle;border-bottom: 1.5pt solid rgba(0, 0, 128, 1.00);border-top: 0.75pt solid rgba(0, 0, 128, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);margin-bottom:0;margin-top:0;margin-left:0;margin-right:0;}.cl-bd33d722{width:1.11in;background-color:rgba(255, 255, 255, 1.00);vertical-align: middle;border-bottom: 1.5pt solid rgba(0, 0, 128, 1.00);border-top: 0.75pt solid rgba(0, 0, 128, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);margin-bottom:0;margin-top:0;margin-left:0;margin-right:0;}</style><table data-quarto-disable-processing="true" class="cl-bd378eb2"><caption><p>Top 10 Model-Dataset DA Models by Accuracy</p></caption><thead><tr style="overflow-wrap:break-word;"><th class="cl-bd33d6e6"><p class="cl-bd33c980"><span class="cl-bd315af6">dataset</span></p></th><th class="cl-bd33d6f0"><p class="cl-bd33c98a"><span class="cl-bd315af6">accuracy</span></p></th></tr></thead><tbody><tr style="overflow-wrap:break-word;"><td class="cl-bd33d6f1"><p class="cl-bd33c980"><span class="cl-bd315b00">Complete</span></p></td><td class="cl-bd33d6fa"><p class="cl-bd33c98a"><span class="cl-bd315b00">0.9771242</span></p></td></tr><tr style="overflow-wrap:break-word;"><td class="cl-bd33d6fb"><p class="cl-bd33c980"><span class="cl-bd315b00">Complete</span></p></td><td class="cl-bd33d704"><p class="cl-bd33c98a"><span class="cl-bd315b00">0.9754902</span></p></td></tr><tr style="overflow-wrap:break-word;"><td class="cl-bd33d6fb"><p class="cl-bd33c980"><span class="cl-bd315b00">Complete</span></p></td><td class="cl-bd33d704"><p class="cl-bd33c98a"><span class="cl-bd315b00">0.9738562</span></p></td></tr><tr style="overflow-wrap:break-word;"><td class="cl-bd33d70e"><p class="cl-bd33c980"><span class="cl-bd315b00">Reduced Set 3</span></p></td><td class="cl-bd33d70f"><p class="cl-bd33c98a"><span class="cl-bd315b00">0.9722222</span></p></td></tr><tr style="overflow-wrap:break-word;"><td class="cl-bd33d6fb"><p class="cl-bd33c980"><span class="cl-bd315b00">Complete</span></p></td><td class="cl-bd33d704"><p class="cl-bd33c98a"><span class="cl-bd315b00">0.9722222</span></p></td></tr><tr style="overflow-wrap:break-word;"><td class="cl-bd33d6fb"><p class="cl-bd33c980"><span class="cl-bd315b00">Complete</span></p></td><td class="cl-bd33d704"><p class="cl-bd33c98a"><span class="cl-bd315b00">0.9705882</span></p></td></tr><tr style="overflow-wrap:break-word;"><td class="cl-bd33d710"><p class="cl-bd33c980"><span class="cl-bd315b00">Reduced Set 4</span></p></td><td class="cl-bd33d718"><p class="cl-bd33c98a"><span class="cl-bd315b00">0.9689542</span></p></td></tr><tr style="overflow-wrap:break-word;"><td class="cl-bd33d6fb"><p class="cl-bd33c980"><span class="cl-bd315b00">Complete</span></p></td><td class="cl-bd33d704"><p class="cl-bd33c98a"><span class="cl-bd315b00">0.9689542</span></p></td></tr><tr style="overflow-wrap:break-word;"><td class="cl-bd33d710"><p class="cl-bd33c980"><span class="cl-bd315b00">Reduced Set 2</span></p></td><td class="cl-bd33d718"><p class="cl-bd33c98a"><span class="cl-bd315b00">0.9673203</span></p></td></tr><tr style="overflow-wrap:break-word;"><td class="cl-bd33d719"><p class="cl-bd33c980"><span class="cl-bd315b00">Reduced Set 3</span></p></td><td class="cl-bd33d722"><p class="cl-bd33c98a"><span class="cl-bd315b00">0.9673203</span></p></td></tr></tbody></table></div>
+</div>
+</div>
+<p>The complete dataset has the highest accuracy (97.71%) but there are 4 models using reduced datasets in the top 10. Set 3 has an accuracy of 97.22% - a performance difference of 0.49% using only 6 variables instead of 20.</p>
+</section>
+<section id="sec--random-forest-loop-" class="level4">
+<h4 class="anchored" data-anchor-id="sec--random-forest-loop-">Random Forest loop</h4>
+<p>The random forest classifiers are very quick to run and perform very well. All of the forests achieve higher than 95.92% accuracy with the complete dataset marginally best with an accuracy of 96.73%.</p>
+<!--# And the winner is mclustDA with 97% -->
+<div style="page-break-after: always;"></div>
+</section>
+</section>
+</section>
+<section id="sec-findings" class="level2">
+<h2 class="anchored" data-anchor-id="sec-findings">Findings</h2>
+<section id="sec-data-comment" class="level3">
+<h3 class="anchored" data-anchor-id="sec-data-comment">Data</h3>
+<p>The supplied sample dataset is of good quality and generally suitable for classification modelling. There are some outstanding questions about missing data and potential outliers, but nothing of or which prevents analysis and modelling.</p>
+</section>
+<section id="sec-data-reduction-find" class="level3">
+<h3 class="anchored" data-anchor-id="sec-data-reduction-find">Data Reduction</h3>
+<p>Principal Components Analysis was found to be unsuitable as a dimension reduction technique on this data - not enough variability was captured.</p>
+<p>Feature Reduction, where variables are excluded from the classification models, was found to be successful at a small cost to performance.</p>
+</section>
+<section id="sec-classification-model-find" class="level3">
+<h3 class="anchored" data-anchor-id="sec-classification-model-find">Classification Models</h3>
+<p>Trees, random forests, discriminant analysis, support vector machine, clustering and k nearest neighbours were investigated.</p>
+<p>The best performing model overall was a Discriminant Analysis model on the using all variables, resulting in an accuracy of 97.7% on the validate set.</p>
+<p>The best performing model using a reduced variable dataset was also a DA model, with an accuracy of 97.2%.</p>
+</section>
+<section id="test-data" class="level3">
+<h3 class="anchored" data-anchor-id="test-data">Test Data</h3>
+<p>The final assessment of the models is on completely untouched data - the <code>test</code> set.</p>
+<div class="callout callout-style-default callout-important callout-titled">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+Test Results
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<ul>
+<li><p>Accuracy of DA Model using <strong>All Variables</strong>: 95.92%</p></li>
+<li><p>Accuracy of DA Model using <strong>Reduced Variables</strong>: 94.28%</p></li>
+</ul>
+<p>Performance hit from using less variables: 1.64%</p>
+</div>
+</div>
+<div class="callout callout-style-default callout-important callout-titled">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+Recommendations
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<ul>
+<li>Exploratory session with domain expert to gain insight into dataset:
+<ul>
+<li>Missing data</li>
+<li>Outliers</li>
+<li>Variables - especially label E</li>
+<li>Measurements</li>
+</ul></li>
+<li>Deploy Classification Model using reduced variable set</li>
+<li>Consider further model improvement
+<ul>
+<li><p>Speed gains</p></li>
+<li><p>Accuracy gain</p></li>
+</ul></li>
+</ul>
+</div>
+</div>
+</section>
+</section>
+
+</main>
+<!-- /main column -->
+<script id="quarto-html-after-body" type="application/javascript">
+window.document.addEventListener("DOMContentLoaded", function (event) {
+  const toggleBodyColorMode = (bsSheetEl) => {
+    const mode = bsSheetEl.getAttribute("data-mode");
+    const bodyEl = window.document.querySelector("body");
+    if (mode === "dark") {
+      bodyEl.classList.add("quarto-dark");
+      bodyEl.classList.remove("quarto-light");
+    } else {
+      bodyEl.classList.add("quarto-light");
+      bodyEl.classList.remove("quarto-dark");
+    }
+  }
+  const toggleBodyColorPrimary = () => {
+    const bsSheetEl = window.document.querySelector("link#quarto-bootstrap");
+    if (bsSheetEl) {
+      toggleBodyColorMode(bsSheetEl);
+    }
+  }
+  toggleBodyColorPrimary();  
+  const icon = "";
+  const anchorJS = new window.AnchorJS();
+  anchorJS.options = {
+    placement: 'right',
+    icon: icon
+  };
+  anchorJS.add('.anchored');
+  const isCodeAnnotation = (el) => {
+    for (const clz of el.classList) {
+      if (clz.startsWith('code-annotation-')) {                     
+        return true;
+      }
+    }
+    return false;
+  }
+  const clipboard = new window.ClipboardJS('.code-copy-button', {
+    text: function(trigger) {
+      const codeEl = trigger.previousElementSibling.cloneNode(true);
+      for (const childEl of codeEl.children) {
+        if (isCodeAnnotation(childEl)) {
+          childEl.remove();
+        }
+      }
+      return codeEl.innerText;
+    }
+  });
+  clipboard.on('success', function(e) {
+    // button target
+    const button = e.trigger;
+    // don't keep focus
+    button.blur();
+    // flash "checked"
+    button.classList.add('code-copy-button-checked');
+    var currentTitle = button.getAttribute("title");
+    button.setAttribute("title", "Copied!");
+    let tooltip;
+    if (window.bootstrap) {
+      button.setAttribute("data-bs-toggle", "tooltip");
+      button.setAttribute("data-bs-placement", "left");
+      button.setAttribute("data-bs-title", "Copied!");
+      tooltip = new bootstrap.Tooltip(button, 
+        { trigger: "manual", 
+          customClass: "code-copy-button-tooltip",
+          offset: [0, -8]});
+      tooltip.show();    
+    }
+    setTimeout(function() {
+      if (tooltip) {
+        tooltip.hide();
+        button.removeAttribute("data-bs-title");
+        button.removeAttribute("data-bs-toggle");
+        button.removeAttribute("data-bs-placement");
+      }
+      button.setAttribute("title", currentTitle);
+      button.classList.remove('code-copy-button-checked');
+    }, 1000);
+    // clear code selection
+    e.clearSelection();
+  });
+  function tippyHover(el, contentFn) {
+    const config = {
+      allowHTML: true,
+      content: contentFn,
+      maxWidth: 500,
+      delay: 100,
+      arrow: false,
+      appendTo: function(el) {
+          return el.parentElement;
+      },
+      interactive: true,
+      interactiveBorder: 10,
+      theme: 'quarto',
+      placement: 'bottom-start'
+    };
+    window.tippy(el, config); 
+  }
+  const noterefs = window.document.querySelectorAll('a[role="doc-noteref"]');
+  for (var i=0; i<noterefs.length; i++) {
+    const ref = noterefs[i];
+    tippyHover(ref, function() {
+      // use id or data attribute instead here
+      let href = ref.getAttribute('data-footnote-href') || ref.getAttribute('href');
+      try { href = new URL(href).hash; } catch {}
+      const id = href.replace(/^#\/?/, "");
+      const note = window.document.getElementById(id);
+      return note.innerHTML;
+    });
+  }
+      let selectedAnnoteEl;
+      const selectorForAnnotation = ( cell, annotation) => {
+        let cellAttr = 'data-code-cell="' + cell + '"';
+        let lineAttr = 'data-code-annotation="' +  annotation + '"';
+        const selector = 'span[' + cellAttr + '][' + lineAttr + ']';
+        return selector;
+      }
+      const selectCodeLines = (annoteEl) => {
+        const doc = window.document;
+        const targetCell = annoteEl.getAttribute("data-target-cell");
+        const targetAnnotation = annoteEl.getAttribute("data-target-annotation");
+        const annoteSpan = window.document.querySelector(selectorForAnnotation(targetCell, targetAnnotation));
+        const lines = annoteSpan.getAttribute("data-code-lines").split(",");
+        const lineIds = lines.map((line) => {
+          return targetCell + "-" + line;
+        })
+        let top = null;
+        let height = null;
+        let parent = null;
+        if (lineIds.length > 0) {
+            //compute the position of the single el (top and bottom and make a div)
+            const el = window.document.getElementById(lineIds[0]);
+            top = el.offsetTop;
+            height = el.offsetHeight;
+            parent = el.parentElement.parentElement;
+          if (lineIds.length > 1) {
+            const lastEl = window.document.getElementById(lineIds[lineIds.length - 1]);
+            const bottom = lastEl.offsetTop + lastEl.offsetHeight;
+            height = bottom - top;
+          }
+          if (top !== null && height !== null && parent !== null) {
+            // cook up a div (if necessary) and position it 
+            let div = window.document.getElementById("code-annotation-line-highlight");
+            if (div === null) {
+              div = window.document.createElement("div");
+              div.setAttribute("id", "code-annotation-line-highlight");
+              div.style.position = 'absolute';
+              parent.appendChild(div);
+            }
+            div.style.top = top - 2 + "px";
+            div.style.height = height + 4 + "px";
+            let gutterDiv = window.document.getElementById("code-annotation-line-highlight-gutter");
+            if (gutterDiv === null) {
+              gutterDiv = window.document.createElement("div");
+              gutterDiv.setAttribute("id", "code-annotation-line-highlight-gutter");
+              gutterDiv.style.position = 'absolute';
+              const codeCell = window.document.getElementById(targetCell);
+              const gutter = codeCell.querySelector('.code-annotation-gutter');
+              gutter.appendChild(gutterDiv);
+            }
+            gutterDiv.style.top = top - 2 + "px";
+            gutterDiv.style.height = height + 4 + "px";
+          }
+          selectedAnnoteEl = annoteEl;
+        }
+      };
+      const unselectCodeLines = () => {
+        const elementsIds = ["code-annotation-line-highlight", "code-annotation-line-highlight-gutter"];
+        elementsIds.forEach((elId) => {
+          const div = window.document.getElementById(elId);
+          if (div) {
+            div.remove();
+          }
+        });
+        selectedAnnoteEl = undefined;
+      };
+      // Attach click handler to the DT
+      const annoteDls = window.document.querySelectorAll('dt[data-target-cell]');
+      for (const annoteDlNode of annoteDls) {
+        annoteDlNode.addEventListener('click', (event) => {
+          const clickedEl = event.target;
+          if (clickedEl !== selectedAnnoteEl) {
+            unselectCodeLines();
+            const activeEl = window.document.querySelector('dt[data-target-cell].code-annotation-active');
+            if (activeEl) {
+              activeEl.classList.remove('code-annotation-active');
+            }
+            selectCodeLines(clickedEl);
+            clickedEl.classList.add('code-annotation-active');
+          } else {
+            // Unselect the line
+            unselectCodeLines();
+            clickedEl.classList.remove('code-annotation-active');
+          }
+        });
+      }
+  const findCites = (el) => {
+    const parentEl = el.parentElement;
+    if (parentEl) {
+      const cites = parentEl.dataset.cites;
+      if (cites) {
+        return {
+          el,
+          cites: cites.split(' ')
+        };
+      } else {
+        return findCites(el.parentElement)
+      }
+    } else {
+      return undefined;
+    }
+  };
+  var bibliorefs = window.document.querySelectorAll('a[role="doc-biblioref"]');
+  for (var i=0; i<bibliorefs.length; i++) {
+    const ref = bibliorefs[i];
+    const citeInfo = findCites(ref);
+    if (citeInfo) {
+      tippyHover(citeInfo.el, function() {
+        var popup = window.document.createElement('div');
+        citeInfo.cites.forEach(function(cite) {
+          var citeDiv = window.document.createElement('div');
+          citeDiv.classList.add('hanging-indent');
+          citeDiv.classList.add('csl-entry');
+          var biblioDiv = window.document.getElementById('ref-' + cite);
+          if (biblioDiv) {
+            citeDiv.innerHTML = biblioDiv.innerHTML;
+          }
+          popup.appendChild(citeDiv);
+        });
+        return popup.innerHTML;
+      });
+    }
+  }
+});
+</script>
+</div> <!-- /content -->
+
+
+
+</body></html>

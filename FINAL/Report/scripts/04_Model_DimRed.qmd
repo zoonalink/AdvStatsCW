@@ -1,0 +1,396 @@
+---
+title: "Chemical Sample Classification Report"
+#subtitle: "Modelling"
+author: "Petter Lövehagen"
+date: "09 May 2023"
+
+RVersion: 3.6.0 
+RStudio: 2023.03.0+386 Cherry Blossom Release
+Platform: "x86_64-w64-mingw32/x64 (64-bit)"
+OS: "Windows 11 SE"
+
+format: 
+  docx: default
+  html:
+    toc: true
+    toc-depth: 3
+    toc-title: "Contents"
+    toc-location: left
+    code-fold: true
+    code-line-numbers: true
+    theme: spacelab
+    html-math-method: mathjax
+    highlight: "tango"
+    #css: "../data/custom.css"
+output:
+  word_document:
+    fig.retina: 300
+prefer-docx: true
+lang: "en-GB"
+bibliography: "../data/AS_CW_References.bib"
+csl: "../data/harvard-university-of-the-west-of-england.csl"
+
+knitr:
+  opts_chunk:
+    include: false
+    tidy: true
+    echo: false
+    warning: false
+    message: false
+    error: true
+    out.width: '90%'
+    #fig.width: 6
+    #fig.height: 4
+---
+
+```{r DR_model_packages}
+# load/install R packages/libraries
+# set seed
+# load flextable defaults
+# see R file for details
+set.seed(567)
+file <- "model"
+source("R/chem_report_load.R")
+
+# load scaling script
+source("R/scale_data_using_train_stats.R")
+
+
+```
+
+<!--# Scaled datasets are created for train and validate subsets.  Train is means centred with a standard deviation of one.  The train means and SDs are applied to the validate set.-->
+
+```{r train_scale_data}
+
+# load data from csv file saved in EDA
+train_label <- read.csv("../data/chem_train.csv")
+
+# create train set without label
+train <- train_label[,-21]
+
+# load scaled data from csv file saved in EDA
+train_scaled_label <- read.csv("../data/train_scaled_label.csv")
+
+# create train_scaled set without label
+train_scaled <- train_scaled_label[, -21]
+
+#summary(train_scaled_label)
+```
+
+```{r validate_scale_data}
+# read in test dataset
+valid_label <- read.csv("../data/chem_valid.csv")
+#num_test_label
+
+# remove label from test data
+valid <- valid_label[,-21]
+#num_test
+
+# calculate train means and sds for scaling function
+train_means <- colMeans(train)
+train_sds <- apply(train, 2, sd)
+
+# scale based on train stats
+valid_scaled <- scale_data_using_train(valid, train_means = train_means, train_sds = train_sds)
+valid_scaled
+
+# write to csv
+write.csv(valid_scaled, "../data/valid_scaled.csv", row.names = FALSE)
+
+```
+
+## Principal Component Analysis {#sec-principal-component-analysis}
+
+### Suitability {#sec-suitability}
+
+<!--# PCA looks to reduce dimensionality (in this case, 20 variables) by considering any underlying structure in the dataset.  The correlation plots and corresponding R coefficients suggest that there may be sufficient correlation in the dataset to warrant PCA. -->
+
+<!--# kmo samplying adequacy - >0.6 -->
+
+```{r kmo}
+kmo_result <- KMO(train_scaled)
+kmo_result$MSA
+#KMO_result$Image
+kmo_result$MSAi
+
+round(min(kmo_result$MSAi),2)
+colnames(train_scaled)[which.min(kmo_result$MSAi)]
+```
+
+Principal Component Analysis attempts to reduce the variability in a dataset to fewer, linearly *uncorrelated* 'principal components'.
+
+The sample dataset appears suitable for PCA based on correlations. This is statistically confirmed with a `KMO` test value of `r round(kmo_result$MSA,2)` which is greater than the accepted threshold for `PCA` suitability (0.6).
+
+Only three variables have a low sampling adequacy, with `r colnames(train_scaled)[which.min(kmo_result$MSAi)]` having a value of `r round(min(kmo_result$MSAi),2)`.
+
+```{r kmo_summary, include=TRUE, echo=FALSE, message = FALSE, tab.align='left', fig.alt="Summary of individual measures of sampling adequacy (MSA)"}
+#| tab.id: tbl-kmo
+#| tbl-cap: "Summary of individual measures of sampling adequacy (MSA)"
+#| tbl-cap-location: bottom
+#| tbl-alt: "Summary of individual measures of sampling adequacy (MSA)"
+
+
+
+# summary object, pipe through steps to add colnames, msa band
+
+kmo_summary <- train_scaled %>% 
+  KMO() %>% 
+  .$MSAi %>% 
+  tibble::enframe() %>% 
+  mutate(name = colnames(train_scaled), 
+         MSAi_band = cut(value, 
+                         breaks = c(0, 0.5, 0.6, 0.7, 0.8, 0.9, Inf), 
+                         labels = c("< 0.5", "0.5-0.59", "0.6-0.69", "0.7-0.79", "0.8-0.89", ">= 0.9"))) %>% 
+  dplyr::select(name, MSAi_band)
+
+# suitability tibble with matching msa banding
+suitability <- tibble(
+  MSAi_band = c("< 0.5", "0.5-0.59", "0.6-0.69", "0.7-0.79", "0.8-0.89", ">= 0.9"),
+  Suitability = c("Unsuitable", "Marginal", "Mediocre", "Good", "Excellent", "Excellent")
+)
+
+# summary join
+kmo_summary <- kmo_summary %>% 
+  left_join(suitability, by = "MSAi_band") %>% 
+  group_by(MSAi_band, Suitability) %>% 
+  summarise(Variables = paste(name, collapse = ", ")) 
+
+# reorder by msa
+kmo_summary$MSAi_band <- factor(kmo_summary$MSAi_band, levels = c(">= 0.9", "0.8-0.89", "0.7-0.79", "0.6-0.69", "0.5-0.59", "< 0.5"))
+kmo_summary <- kmo_summary[order(kmo_summary$MSAi_band, decreasing = FALSE), ]
+
+
+# flextable
+flextable(kmo_summary) |>
+  width(j = "Variables", width = 6.5, unit = "cm")
+
+
+
+```
+
+<!--# Bartlett's test of sphericity has the hypothesis that a correlation matrix is an identity matrix; significant p-value indicates PCA is appropriate, which again confirms that PCA is worth exploring. -->
+
+```{r bartlett}
+# run a bartlett's test of sphericity
+cortest.bartlett(train_scaled)
+```
+
+### Components {#sec-components}
+
+<!--# Scree plots allow us to visually determine how many 'dimensions' are in the underlying data.  Usually the cutoff is at the 'elbow' joint or where eigenvalues are greater than 1.  The plot below suggests four plots for PCA (and 3 for Factor Analysis), after which additional dimensions do not significantly account for the variability in the dataset. After the first 3 or 4 factors, the remaining components appear to offer a similar amount of explanatory power to the data.  This could be problematic in that it might mean we will not be able to capture enough variability in the components. -->
+
+```{r screeplot}
+
+# plot a scree plot
+scree(train_scaled)
+```
+
+<!--# Horn's Parallel Analysis has been applied to the dataset, which estimates the number of 'significant' components through the generation of a large number of simulated data sets - in this case 5000.  The resulting eigenvalues are averaged to get a mean estimate of the expected eigenvalues, which are compared to the observed values in order to determine how many 'significant' components to keep. The results below suggest to retain 4 components - based on the eigenvalue being greater than 1. -->
+
+```{r parallel_analysis}
+# run a parallel analysis
+paran(train_scaled, iterations = 5000)
+paran<-paran(train_scaled, iterations = 5000)
+#paran
+
+components <- paran$Retained
+
+```
+
+`Screeplots` and `Horn's Parallel Analysis` help determine how many components to retain. The visual approach, where eigenvalues (representing variance explained) are plotted against components and parallel analysis indicate `r components` components.
+
+### Implementing PCA {#sec-implementing-pca}
+
+<!--# An initial PCA below allows us to understand how the variability is captured by the components. -->
+
+Most variables load on at least one component but loadings on components 5, 6, etc. will not be retained. For example, X20 is highly loaded on the fourth component but not contributing elsewhere.
+
+```{r initial_pca_plots, include=TRUE, echo=FALSE, message = FALSE, tab.align='left', fig.alt="Plot with variable loadings for first six components"}
+#| label: fig-pca-loading
+#| fig-cap: "First six PCA component variable loadings"
+
+# initial pca using prcromp from base R to understand loadings
+
+pca_loadings <- get_pca_var(prcomp(train_scaled))
+#pca_loadings$contrib
+#pca_loadings$cor
+
+
+
+# contribution of each variable to the first six components
+contrib <- pca_loadings$contrib[, 1:6]
+
+# `contrib` to a data frame
+contrib <- as.data.frame(contrib)
+
+# add a column called `variable` to the `contrib` data frame
+contrib$variable <- rownames(contrib)
+
+
+
+# Plot the contribution of each variable
+PC1 <- ggplot(contrib, aes(x = fct_inorder(rev(variable)), y = contrib[, 1], fill = contrib[, 1])) +
+  geom_bar(stat = "identity") +
+  coord_flip() +
+  labs(x = "Variable", y = "", fill = "blue") +
+   theme(legend.position = "none")
+
+PC2 <- ggplot(contrib, aes(x = fct_inorder(rev(variable)), y = contrib[, 2], fill = contrib[, 2])) +
+  geom_bar(stat = "identity") +
+  coord_flip() +
+  labs(x = "", y = "", fill = "blue") +
+   theme(legend.position = "none")
+
+PC3 <- ggplot(contrib, aes(x = fct_inorder(rev(variable)), y = contrib[, 3], fill = contrib[, 3])) +
+  geom_bar(stat = "identity") +
+  coord_flip() +
+  labs(x = "", y = "", fill = "blue") +
+   theme(legend.position = "none")
+
+# combine plots 1-3
+pca1_3 <-(PC1 + PC2 + PC3) + theme(legend.position = "none")
+
+PC4 <- ggplot(contrib, aes(x = fct_inorder(rev(variable)), y = contrib[, 4], fill = contrib[, 4])) +
+  geom_bar(stat = "identity") +
+  coord_flip() +
+  labs(x = "Variable", y = "", fill = "blue") +
+   theme(legend.position = "none")
+
+PC5 <- ggplot(contrib, aes(x = fct_inorder(rev(variable)), y = contrib[, 5], fill = contrib[, 5])) +
+  geom_bar(stat = "identity") +
+  coord_flip() +
+  labs(x = "", y = "Contribution by variable", fill = "blue") +
+   theme(legend.position = "none")
+
+PC6 <- ggplot(contrib, aes(x = fct_inorder(rev(variable)), y = contrib[, 6], fill = contrib[, 6])) +
+  geom_bar(stat = "identity") +
+  coord_flip() +
+  labs(x = "", y = "", fill = "blue") +
+   theme(legend.position = "none")
+
+# combine plots 4-6
+pca4_6 <-(PC4 + PC5 + PC6) + theme(legend.position = "none")
+
+# combine combined plots
+pca1_3 / pca4_6
+
+```
+
+<!--# Below a PCA has been applied, specifying four components.  Some interpretation of the PCA results: Mean item complexity is a measure of how complex the items in the data are - i.e., we could say that on average, each item in the data loads onto 1.4 components.  This can be interpreted to mean that there is clear underlying structure to the data. However, explaining 46% of the variability may not be sufficient?-->
+
+<!--# The root mean square of the residuals (RMSR) is the difference between the actual and predicted values, so smaller RMSRs  mean that there is a better fit.  An RMSR of 0.07 suggests a reasonable fit. -->
+
+```{r pca4}
+
+# pca with 4 components
+pca4 <- pca(train_scaled, nfactors = 4)
+# results
+pca4
+```
+
+<!--# Below we fit a PCA using dudi.pca, specifying four components, no centring and no scaling as this has already been done.  Looking at the screeplot of variance explained below, the fourth component does not explain much additional variance, however it will be retained.  -->
+
+<!--# pca5 below is a plot of individual points for components 1 and 2 with added ellipses by their label.  This shows the clusters - but there is a significant amount of overlay.  This suggests that there may not be enough information to effetively differentiate between the different labels.   -->
+
+```{r pca_plots}
+
+# pca without scaling, centring (already done) using dudi - four components
+train_scaled_pca <- dudi.pca(train_scaled, center = FALSE, scale = FALSE, scannf = F, nf=4)
+
+# pca summary
+summary(train_scaled_pca)
+
+# plot scree and eigen
+scree <- fviz_screeplot(train_scaled_pca)
+eigen <- get_eigenvalue(train_scaled_pca)
+
+# biplot dimension 1 x dimension 2
+pca1 <- fviz_pca_biplot(train_scaled_pca, label="var",var.lab = TRUE, col.ind = "#D95F02", alpha.ind = 0.4, col.var = "grey30", repel=TRUE)  +
+  ggtitle("PCA Biplots (dimensions 1x2, 2x3) of scaled dataset")
+
+# biplot dimension 2 x dimension 3
+pca2 <- fviz_pca_biplot(train_scaled_pca,label="var", col.ind = "#1B9E77", alpha.ind = 0.4, col.var = "grey30", repel=TRUE,axes=c(2,3)) +
+  ggtitle("")
+
+# biplot dimension 1 x dimension 3
+pca3 <- fviz_pca_biplot(train_scaled_pca, col.ind="x", col.var = "grey30", label="var", repel=TRUE,axes=c(1,2)) +
+      scale_color_gradient2(low="white", mid="blue",
+      high="red", midpoint=0.6)
+
+# biplot variation
+pca4 <- fviz_pca_biplot(train_scaled_pca,
+                        repel = T,
+                        label = "var",
+                        col.ind = train_label$label) + 
+  theme(legend.position = "none")
+
+# biplot with ellipses by 'label' (target)
+pca5 <- fviz_pca_ind(train_scaled_pca,
+                     geom.ind = "point", # show points only (but not "text")
+                     col.ind = train_scaled_label$label, # colour by groups
+                     addEllipses = TRUE,
+                     ggtheme = theme_minimal() + 
+                       theme(legend.position = "bottom", 
+                             plot.title = element_text(hjust = 0.5, size = 14)))  +
+  ggtitle("PCA Biplots with Ellipses by Labels") + 
+  theme(legend.position = "bottom", legend.justification = "center", legend.box = "vertical", legend.title = element_text(size = 10), legend.text = element_text(size = 8))
+
+# return scree, eigen results
+scree
+eigen
+
+## return plots
+# pca1
+# pca2
+pca3
+pca4
+pca5
+
+
+# combine plots 1 and 2
+(pca1 + pca2)
+ 
+ 
+# save as dataframe for later use
+train_scaled_pca_df <- as.data.frame(train_scaled_pca$li)
+
+# save to file for later use 
+write.csv(train_scaled_pca_df, "../data/train_scaled_pca_df.csv", row.names = FALSE)
+ 
+```
+
+The PCA biplots show correlations discussed in [Exploratory Data Analysis](#sec-exploratory-data-analysis) in the components.
+
+Angles between variables:
+
+-   close to 0° indicate a strong positive correlation (X17, X19)
+-   close to 180° indicate a strong negative correlation (X17, X18)
+-   close to 90° are uncorrelated (X8, X17)
+
+The length of the vector indicates the importance of that variable in explaining the variance.
+
+@fig-pca-biplot shows some strong correlations captured in the first two dimensions, while the third dimension is more difficult to interpret.
+
+```{r pca_biplots, include=TRUE, echo=FALSE, message = FALSE, tab.align='left', fig.alt="Biplots of first six PCA dimensions"}
+#| label: fig-pca-biplot
+#| fig-cap: "Biplots of scaled dataset"
+
+#plot combined plot
+(pca1 + pca2)
+
+
+```
+
+<!--# Here the PCA transformation has been applied using predict() to the validate subset which will be used in the clustering and modelling stages.  We can see that there are four dimensions in the valid dataset with means close to 0 but not  0.-->
+
+```{r pca_transform_valid}
+
+#apply PCA transformation to validate dataset
+valid_scaled_pca_df <- predict(train_scaled_pca, newdata = valid_scaled)
+
+# save to csv
+write.csv(valid_scaled_pca_df, "../data/valid_scaled_pca_df.csv", row.names = FALSE)
+
+# show summary
+summary(valid_scaled_pca_df)
+```

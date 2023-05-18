@@ -1,0 +1,501 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en-GB" xml:lang="en-GB"><head>
+
+<meta charset="utf-8">
+<meta name="generator" content="quarto-1.3.296">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+
+<meta name="author" content="Petter Lövehagen">
+<meta name="dcterms.date" content="2023-05-09">
+
+<title>Chemical Sample Classification Report</title>
+<style>
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+div.columns{display: flex; gap: min(4vw, 1.5em);}
+div.column{flex: auto; overflow-x: auto;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+ul.task-list li input[type="checkbox"] {
+  width: 0.8em;
+  margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
+  vertical-align: middle;
+}
+</style>
+
+
+<script src="06_Model_Classifier_files/libs/clipboard/clipboard.min.js"></script>
+<script src="06_Model_Classifier_files/libs/quarto-html/quarto.js"></script>
+<script src="06_Model_Classifier_files/libs/quarto-html/popper.min.js"></script>
+<script src="06_Model_Classifier_files/libs/quarto-html/tippy.umd.min.js"></script>
+<script src="06_Model_Classifier_files/libs/quarto-html/anchor.min.js"></script>
+<link href="06_Model_Classifier_files/libs/quarto-html/tippy.css" rel="stylesheet">
+<link href="06_Model_Classifier_files/libs/quarto-html/quarto-syntax-highlighting.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<script src="06_Model_Classifier_files/libs/bootstrap/bootstrap.min.js"></script>
+<link href="06_Model_Classifier_files/libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
+<link href="06_Model_Classifier_files/libs/bootstrap/bootstrap.min.css" rel="stylesheet" id="quarto-bootstrap" data-mode="light">
+
+<script src="06_Model_Classifier_files/libs/kePrint-0.0.1/kePrint.js"></script>
+<link href="06_Model_Classifier_files/libs/lightable-0.0.1/lightable.css" rel="stylesheet">
+<link href="06_Model_Classifier_files/libs/tabwid-1.1.3/tabwid.css" rel="stylesheet">
+<script src="06_Model_Classifier_files/libs/tabwid-1.1.3/tabwid.js"></script>
+
+
+</head>
+
+<body>
+
+<div id="quarto-content" class="page-columns page-rows-contents page-layout-article toc-left">
+<div id="quarto-sidebar-toc-left" class="sidebar toc-left">
+  <nav id="TOC" role="doc-toc" class="toc-active">
+    <h2 id="toc-title">Contents</h2>
+   
+  <ul>
+  <li><a href="#sec-classification-models" id="toc-sec-classification-models" class="nav-link active" data-scroll-target="#sec-classification-models">Classification Models</a>
+  <ul class="collapse">
+  <li><a href="#sec-pca-performance" id="toc-sec-pca-performance" class="nav-link" data-scroll-target="#sec-pca-performance">PCA Performance</a></li>
+  <li><a href="#sec-feature-reduction" id="toc-sec-feature-reduction" class="nav-link" data-scroll-target="#sec-feature-reduction">Feature Reduction</a></li>
+  <li><a href="#sec-model-performance" id="toc-sec-model-performance" class="nav-link" data-scroll-target="#sec-model-performance">Model Performance</a></li>
+  </ul></li>
+  </ul>
+<div class="quarto-alternate-formats"><h2>Other Formats</h2><ul><li><a href="06_Model_Classifier.docx"><i class="bi bi-file-word"></i>MS Word</a></li></ul></div></nav>
+</div>
+<div id="quarto-margin-sidebar" class="sidebar margin-sidebar">
+</div>
+<main class="content" id="quarto-document-content">
+
+<header id="title-block-header" class="quarto-title-block default">
+<div class="quarto-title">
+<h1 class="title">Chemical Sample Classification Report</h1>
+</div>
+
+
+
+<div class="quarto-title-meta">
+
+    <div>
+    <div class="quarto-title-meta-heading">Author</div>
+    <div class="quarto-title-meta-contents">
+             <p>Petter Lövehagen </p>
+          </div>
+  </div>
+    
+    <div>
+    <div class="quarto-title-meta-heading">Published</div>
+    <div class="quarto-title-meta-contents">
+      <p class="date">9 May 2023</p>
+    </div>
+  </div>
+  
+    
+  </div>
+  
+
+</header>
+
+<!--# In this section, we proceed with some classification models using both PCA and non-PCA datasets.  We start with KNN (K nearest neighbour) classifier.-->
+<!--# The baseline knn is not great, especially when it comes to predicting for label E.  The confusion matrix shows that the model has both false positives and true negatives - that is, it is predicting E when it is not E and predicting not-E when in fact, the true label is E. -->
+<!--# Let us consider more values for K and print confusion matrices for each, as well as storing the accuracies.  It common to check up to the value of the square root of the observations, for the value of K.-->
+<section id="sec-classification-models" class="level2">
+<h2 class="anchored" data-anchor-id="sec-classification-models">Classification Models</h2>
+<section id="sec-pca-performance" class="level3">
+<h3 class="anchored" data-anchor-id="sec-pca-performance">PCA Performance</h3>
+<p>Three classifiers were developed and fitted with PCA and non-PCA data to compare results: <code>k nearest neighbour</code> (KNN), <code>model based discriminant analysis</code> (DA) and <code>support vector machines</code> (SVM).</p>
+<p>Models were trained and then validated on ‘unseen’ data. Accuracy (correct model predictions) was the performance metric.</p>
+<section id="sec-k-nearest-neighbour" class="level4">
+<h4 class="anchored" data-anchor-id="sec-k-nearest-neighbour">K Nearest Neighbour</h4>
+<!--# A quick scroll through the confusion matrices for K up to 35 and it is evident that the size of K does not improve the performance of the model.  More K does not mean better classification, especially of label E.  The other labels are being classified relatively well but there is no convergence on group E. -->
+<p>KNN classifies samples into groups by ‘distance’ to neighbours. Overall, non-PCA models performed better with a best default accuracy of 0.82% compared to 73.5%.</p>
+<!--# The best accuracy achieved by the knn classifier is 82.4% which was with k = 7. This is visualised below. -->
+<!--# Below is the same loop but for the PCA transformed dataset. -->
+<p>KNN classifies samples into groups by ‘distance’ to neighbours. Overall, non-PCA models performed better with a best default accuracy of 0.82% compared to 0.74%.</p>
+<div class="cell" data-tab.align="left">
+<div class="cell-output-display">
+<div id="fig-compare-knn-plot" class="quarto-figure quarto-figure-center anchored">
+<figure class="figure">
+<p><img src="06_Model_Classifier_files/figure-html/fig-compare-knn-plot-1.png" class="quarto-discovered-preview-image img-fluid figure-img" alt="Plot KNN classifier accuracies for different K in PCA and non-PCA training data" width="672"></p>
+<p></p><figcaption class="figure-caption">Figure&nbsp;1: KNN classifier accuracies for different K</figcaption><p></p>
+</figure>
+</div>
+</div>
+</div>
+</section>
+<section id="sec-discriminant-analysis" class="level4">
+<h4 class="anchored" data-anchor-id="sec-discriminant-analysis">Discriminant Analysis</h4>
+<!--# KNN models for both PCA and non-PCA data have their best accuracy at K = 7 but the accuracy is almost 10% better with the un-transformed dataset. -->
+<!--# Below I fitted a linear discriminant analysis model using mclust and plotted some results.  The plots have been commented out in the interest of speed.  To run these, remove the #.  -->
+<!--# The default mclust model on the scaled dataset show that no valid model was identified for labels A, B, D, E - instead the algorithm defaulted to basic univariate modelling which essentially means that each variable is treated separately and labels (groups) are assigned on the marginal probability of each variable, assuming that the variables are independent and have equal variance. Label E, however had a specific model - EEI - which means it is a model of equal covariance matrix with unconstrained dimensions and there are three clusters.-->
+<!--# The model performed well when looking at the confusion matrix.  It had a classification error of 0.0278 and a Brier score of 0.024.  The classification error is the sum of off-diagonal elements divided by total observations - meaning that it has high predictive accuracy.  Brier score is another measure of accuracy based on probabilistic predictions but taking into account correctness and confidence of predictions.  Brier score penalises for over-confidence and rewards for correct predictions.  A low Brier score indicates a better performing model - so 0.024 is good.  -->
+<!--# Again it is label E which s challenging.  The model still predicts 218/236 which is still good at 92.4% correct. Other statistics include the log-likelihood where a higher value means a better fitting model; BIC (Bayesian information criterion) where a lower value is better.  The low BIC value suggests that this model fits the data well and is not overly complex. -->
+<!--# It is useful to confirm this results on our 'validate' set - this is unseen data, so we can confirm how well the model generalises to new data.  The results are very good - with an accuracy of 96.4% - only slightly worse then the accuracy on the train dataset (97.2%).  The Brier score on the validate set is 0.0311, also very good. -->
+<!--# The same model has been fitted to the PCA transformed data for a comparison.  The results on the PCA training set are signifcantly worse than un-transformed training set with a classification error of 0.25 and a Brier score of 0.17. This means that the accuracy is only 75%.  The usual suspect - label E - is very poorly classified but there is also misclassification for label B, C and D.  It seems likely that four components may not have captured enough of the variability in the dataset. -->
+<p>Discriminant Analysis classification creates groups from mixed mathematical models based on different variable means. The default model had accuracies of 96.41% (non-PCA) and 75% on the ‘validation’ dataset.</p>
+<p>Label E is particularly challenging to classify with false positives and false negative misclassifications.</p>
+</section>
+<section id="sec-support-vector-machines" class="level4">
+<h4 class="anchored" data-anchor-id="sec-support-vector-machines">Support Vector Machines</h4>
+
+<!--# Another model to investigate is the support vector machine (SVM) - which provides a 90.7% classification accuracy initially.This was fitted to the PCA dataset as well, which produced an accurace of 69.8% which confirms that PCA is probably not suitable for the final classifier.-->
+<p>SVM which did not perform as well as DA or KNN. The non-PCA model had an accuracy of 90.69% and the PCA model resulted in an accuracy of only 69.77%.</p>
+<div class="callout callout-style-default callout-important callout-titled">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+Decision
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<p>PCA is not appropriate on this dataset as it does not capture enough variability for a successful classifier.</p>
+</div>
+</div>
+</section>
+</section>
+<section id="sec-feature-reduction" class="level3">
+<h3 class="anchored" data-anchor-id="sec-feature-reduction">Feature Reduction</h3>
+<p>An alternative to dimension reduction is <code>feature reduction</code> - removing variables. Some variables may not add explanatory power because they capture similar information to other variables or they do not contain relevant information.</p>
+<!--# At this point, trees and forests will be explored and considered for this report -->
+<!--# The complexity plot above allows us to find the point (elbow) where relative error is lowest in relation to the complexity - which is 0.0034. -->
+<!--# Looking at the above trees, it is clear that classifying E is the challenge.  Class A is isolated with two variables - X9 and X7 but E and to a much lesser extent, the other labels are spread widely. -->
+<!--# By comparing error rates on th the three trees, we can see that the unpruned tree performs best and as expected is completely overfitted to the train set.  The optimal tree has an accuracy of 90.5% on the valid set while the 1 standard deviation tree has an accuracy of 89.7%. Thus, we see that pruning the tree hits accuracy but it has the benefit of curtailing overfitting whilst retaining predictive power.-->
+<!--# Trees can help understand the importance of individual variables by looking at which ones are used to split the branches.  The barchart below shows the most important variables are X9, X7, X8, X10, followe by X11, X3, X1, X6 and then they sart to have less of an impact.  Removing features (variables) will be looked at - so this is useful information. -->
+
+<!--# One thing to try is bootstrapping data samples and trees so that the accuracy can be assessed.  The general principle is to calculate the error difference between trees - if it is high - then it could indicate that the model is unstable.  For example, the below two trees have a difference of 17% which is quite high...but it is only two random samples, so bootstrapping several hundred will get closer to the mean. -->
+<!--# The bootstrapping suggests that the trees are not that stable - with an overall error of 15% on average. -->
+<!--# Trees are usually not the best classifiers, but 'random forests' can be. This first on is not great - with an error rate of 10.29%. -->
+<!--# The default forest has a misclassification error rate of 3.6% on the validate set and an estimated out of bag error rate of 8.65% - how it will generalise to unseen data.  Again, it is label E wich is difficult to classify.  Is it really a label? -->
+<!--# Looking at the variable importance from random forests, it is evident that X9, X7, X8, X10 are the most important variables, followed by X11, X3 and others so this should be explored in terms of feature reduction.-->
+<p>Clustering techniques like trees and random forests, can help identify candidate variables for inclusion / exclusion. <a href="#fig-var-imp">Figure&nbsp;2</a> shows taht variables X7-X10 are more important when splitting into labels.</p>
+<div class="cell" data-tab.align="left">
+<div class="cell-output-display">
+<div id="fig-var-imp" class="quarto-figure quarto-figure-center anchored">
+<figure class="figure">
+<p><img src="06_Model_Classifier_files/figure-html/fig-var-imp-1.png" class="img-fluid figure-img" alt="Plot with variable importance using random forest" width="672"></p>
+<p></p><figcaption class="figure-caption">Figure&nbsp;2: Variable importance using random forest</figcaption><p></p>
+</figure>
+</div>
+</div>
+</div>
+<p>Reduced variable datasets to test performance:</p>
+<table class="table">
+<caption>Reduced Feature Datasets</caption>
+<thead>
+<tr class="header">
+<th>Set</th>
+<th>Included Variables</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>Set 1</td>
+<td>X7, X8, X9, X10</td>
+</tr>
+<tr class="even">
+<td>Set 2</td>
+<td>X7, X8, X9, X10, X3, X1</td>
+</tr>
+<tr class="odd">
+<td>Set 3</td>
+<td>X7, X8, X9, X10, X3, X11</td>
+</tr>
+<tr class="even">
+<td>Set 4</td>
+<td>X7, X8, X9, X10, X3, X1, X2, X13</td>
+</tr>
+<tr class="odd">
+<td>Set 5</td>
+<td>X7, X8, X9, X10, X3, X11, X16</td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="sec-model-performance" class="level3">
+<h3 class="anchored" data-anchor-id="sec-model-performance">Model Performance</h3>
+<p>Models were optimsed by searching through combinations of <code>hyperparameters</code> on datasets with different variables.</p>
+<!--# On the basis of the results of knn and mclust discriminant analysis classification models, it appears that PCA transformed data is not as good at classifying these chemicals as the un-transformed dataset, so PCA is abandoned in the modelling.  Only scaled data will be considered from here. -->
+<!--# Below is the first attempt at tuning the hyperparameters of the Mclust DA model.  It uses lower BIC as its improvement metric and I found that the BIC keeps lowering even after the accuracy worsens, as n.components increases.  This is likely because the model is overfitting - that is, it is improving on the 'train' dataset but at the expense of generalising to unseen data. In terms of the best model, n.components is 11 with EEI models for each label.  The Brier scores are 0.023 and 0.034 for train and validate, respectively.  The classification errors are 0.033 and 0.041 respectively. It has been commented out in the interest of faster report knitting.-->
+<!--# Version 2 of hyperparameter tuning can be found below. In addition to n.components, this searches over model names and diagonal as well.  It is also based on BIC scores.-->
+<!--# The results of this loop have overtrained massively.  The model is almost perfect on the train dataset with only one misclassification (E as B) but it is poor on the validate set with a classification error of 11.8%. -->
+<!--# The below is a Quadratic Discriminant Analysis model using Mclust.  QDA only supports EII models.  It is not as good as the previous models, with an accuracy of 85.1%.  It has been commented out in the interest of report knitting speed.-->
+<!--# As with the Mclust DA models, the SVM can be hypertuned - the best model has an acuracy of 95.6% -->
+<!--# Investigating accuracy of models using KNN classifier with the reduced variable set shows a best accuracy of 94.1% with only one neighbour. We can investigate several reduced variable sets by setting up a loop and storing the results. -->
+<section id="sec-knn-loop" class="level4">
+<h4 class="anchored" data-anchor-id="sec-knn-loop">KNN loop</h4>
+<!--# The above KNN loop checks accuries for different datasets through different values of K.  Below, I have modified to store the results  -->
+<p>The best performing KNN model uses <code>valid_3</code> consisting of: X7, X8, X9, X10, X3, X11. The complete dataset (valid_6) peaks with an accuracy of 88.89% compared to 95.1% for the reduced variable set.</p>
+<!--# The best performing reduced variable dataset is set3 which contains the variables.  Its accuracy on the valid set is comparable to that of the full dataset. So how does it perform on the other models - mclust DA, SVM -->
+<div class="cell" data-tab.align="left">
+<div class="cell-output-display">
+<div id="fig-knn-all-accuracy-dataset" class="quarto-figure quarto-figure-center anchored">
+<figure class="figure">
+<p><img src="06_Model_Classifier_files/figure-html/fig-knn-all-accuracy-dataset-1.png" class="img-fluid figure-img" alt="Plot KNN classifier accuracies for different K and datasets" width="672"></p>
+<p></p><figcaption class="figure-caption">Figure&nbsp;3: KNN classifier accuracies for different K and datasets</figcaption><p></p>
+</figure>
+</div>
+</div>
+</div>
+<!--# As with knn, the feature reduced dataset performs comparably well with mclust DA.  Early indications are that the client can collect less data without much of a hit in terms of classification.  Below is a loop which uses accuracy as the measure instead of BIC. Very good results - 96% accuracy.-->
+<!--# These loops work but have been superseded by the combined loop below. -->
+</section>
+<section id="sec-da-loop" class="level4">
+<h4 class="anchored" data-anchor-id="sec-da-loop">DA loop</h4>
+<p>Discriminant Analysis (LDA) models were tuned with ‘n.components’, ‘diagonal’ and ‘model name’ <code>hyperparameters</code> to allow the algorithm to find the combination of mixture models with the best accuracy for the groups.</p>
+<p>The ten best DA models are:</p>
+<div class="cell tbl-cap-location-bottom" data-tab.id="tbl-DA-accuracies-Top10" data-tbl-alt="Table with top 10 Model-Dataset DA Models by Accuracy">
+<div class="cell-output-display">
+
+<div class="tabwid tabwid-caption-bottom"><style>.cl-bdb9ca76{}.cl-bdb1ce20{font-family:'Helvetica';font-size:12pt;font-weight:bold;font-style:normal;text-decoration:none;color:rgba(51, 51, 51, 1.00);background-color:transparent;}.cl-bdb1ce34{font-family:'Helvetica';font-size:12pt;font-weight:normal;font-style:normal;text-decoration:none;color:rgba(51, 51, 51, 1.00);background-color:transparent;}.cl-bdb4b28e{margin:0;text-align:left;border-bottom: 0 solid rgba(0, 0, 0, 1.00);border-top: 0 solid rgba(0, 0, 0, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);padding-bottom:5pt;padding-top:5pt;padding-left:6pt;padding-right:6pt;line-height: 1;background-color:transparent;}.cl-bdb4b298{margin:0;text-align:right;border-bottom: 0 solid rgba(0, 0, 0, 1.00);border-top: 0 solid rgba(0, 0, 0, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);padding-bottom:5pt;padding-top:5pt;padding-left:6pt;padding-right:6pt;line-height: 1;background-color:transparent;}.cl-bdb4c45e{width:1.425in;background-color:rgba(255, 255, 255, 1.00);vertical-align: middle;border-bottom: 1.5pt solid rgba(0, 0, 128, 1.00);border-top: 1.5pt solid rgba(0, 0, 128, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);margin-bottom:0;margin-top:0;margin-left:0;margin-right:0;}.cl-bdb4c45f{width:1.11in;background-color:rgba(255, 255, 255, 1.00);vertical-align: middle;border-bottom: 1.5pt solid rgba(0, 0, 128, 1.00);border-top: 1.5pt solid rgba(0, 0, 128, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);margin-bottom:0;margin-top:0;margin-left:0;margin-right:0;}.cl-bdb4c460{width:1.425in;background-color:rgba(255, 255, 255, 1.00);vertical-align: middle;border-bottom: 0.75pt solid rgba(0, 0, 128, 1.00);border-top: 0 solid rgba(0, 0, 0, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);margin-bottom:0;margin-top:0;margin-left:0;margin-right:0;}.cl-bdb4c468{width:1.11in;background-color:rgba(255, 255, 255, 1.00);vertical-align: middle;border-bottom: 0.75pt solid rgba(0, 0, 128, 1.00);border-top: 0 solid rgba(0, 0, 0, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);margin-bottom:0;margin-top:0;margin-left:0;margin-right:0;}.cl-bdb4c469{width:1.425in;background-color:rgba(255, 255, 255, 1.00);vertical-align: middle;border-bottom: 0.75pt solid rgba(0, 0, 128, 1.00);border-top: 0.75pt solid rgba(0, 0, 128, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);margin-bottom:0;margin-top:0;margin-left:0;margin-right:0;}.cl-bdb4c46a{width:1.11in;background-color:rgba(255, 255, 255, 1.00);vertical-align: middle;border-bottom: 0.75pt solid rgba(0, 0, 128, 1.00);border-top: 0.75pt solid rgba(0, 0, 128, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);margin-bottom:0;margin-top:0;margin-left:0;margin-right:0;}.cl-bdb4c472{width:1.425in;background-color:rgba(255, 255, 255, 1.00);vertical-align: middle;border-bottom: 0.75pt solid rgba(0, 0, 128, 1.00);border-top: 0.75pt solid rgba(0, 0, 128, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);margin-bottom:0;margin-top:0;margin-left:0;margin-right:0;}.cl-bdb4c473{width:1.11in;background-color:rgba(255, 255, 255, 1.00);vertical-align: middle;border-bottom: 0.75pt solid rgba(0, 0, 128, 1.00);border-top: 0.75pt solid rgba(0, 0, 128, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);margin-bottom:0;margin-top:0;margin-left:0;margin-right:0;}.cl-bdb4c47c{width:1.425in;background-color:rgba(255, 255, 255, 1.00);vertical-align: middle;border-bottom: 0.75pt solid rgba(0, 0, 128, 1.00);border-top: 0.75pt solid rgba(0, 0, 128, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);margin-bottom:0;margin-top:0;margin-left:0;margin-right:0;}.cl-bdb4c47d{width:1.11in;background-color:rgba(255, 255, 255, 1.00);vertical-align: middle;border-bottom: 0.75pt solid rgba(0, 0, 128, 1.00);border-top: 0.75pt solid rgba(0, 0, 128, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);margin-bottom:0;margin-top:0;margin-left:0;margin-right:0;}.cl-bdb4c486{width:1.425in;background-color:rgba(255, 255, 255, 1.00);vertical-align: middle;border-bottom: 1.5pt solid rgba(0, 0, 128, 1.00);border-top: 0.75pt solid rgba(0, 0, 128, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);margin-bottom:0;margin-top:0;margin-left:0;margin-right:0;}.cl-bdb4c487{width:1.11in;background-color:rgba(255, 255, 255, 1.00);vertical-align: middle;border-bottom: 1.5pt solid rgba(0, 0, 128, 1.00);border-top: 0.75pt solid rgba(0, 0, 128, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);margin-bottom:0;margin-top:0;margin-left:0;margin-right:0;}</style><table data-quarto-disable-processing="true" class="cl-bdb9ca76"><caption><p>Top 10 Model-Dataset DA Models by Accuracy</p></caption><thead><tr style="overflow-wrap:break-word;"><th class="cl-bdb4c45e"><p class="cl-bdb4b28e"><span class="cl-bdb1ce20">dataset</span></p></th><th class="cl-bdb4c45f"><p class="cl-bdb4b298"><span class="cl-bdb1ce20">accuracy</span></p></th></tr></thead><tbody><tr style="overflow-wrap:break-word;"><td class="cl-bdb4c460"><p class="cl-bdb4b28e"><span class="cl-bdb1ce34">Complete</span></p></td><td class="cl-bdb4c468"><p class="cl-bdb4b298"><span class="cl-bdb1ce34">0.9771242</span></p></td></tr><tr style="overflow-wrap:break-word;"><td class="cl-bdb4c469"><p class="cl-bdb4b28e"><span class="cl-bdb1ce34">Complete</span></p></td><td class="cl-bdb4c46a"><p class="cl-bdb4b298"><span class="cl-bdb1ce34">0.9754902</span></p></td></tr><tr style="overflow-wrap:break-word;"><td class="cl-bdb4c469"><p class="cl-bdb4b28e"><span class="cl-bdb1ce34">Complete</span></p></td><td class="cl-bdb4c46a"><p class="cl-bdb4b298"><span class="cl-bdb1ce34">0.9738562</span></p></td></tr><tr style="overflow-wrap:break-word;"><td class="cl-bdb4c472"><p class="cl-bdb4b28e"><span class="cl-bdb1ce34">Reduced Set 3</span></p></td><td class="cl-bdb4c473"><p class="cl-bdb4b298"><span class="cl-bdb1ce34">0.9722222</span></p></td></tr><tr style="overflow-wrap:break-word;"><td class="cl-bdb4c469"><p class="cl-bdb4b28e"><span class="cl-bdb1ce34">Complete</span></p></td><td class="cl-bdb4c46a"><p class="cl-bdb4b298"><span class="cl-bdb1ce34">0.9722222</span></p></td></tr><tr style="overflow-wrap:break-word;"><td class="cl-bdb4c469"><p class="cl-bdb4b28e"><span class="cl-bdb1ce34">Complete</span></p></td><td class="cl-bdb4c46a"><p class="cl-bdb4b298"><span class="cl-bdb1ce34">0.9705882</span></p></td></tr><tr style="overflow-wrap:break-word;"><td class="cl-bdb4c47c"><p class="cl-bdb4b28e"><span class="cl-bdb1ce34">Reduced Set 4</span></p></td><td class="cl-bdb4c47d"><p class="cl-bdb4b298"><span class="cl-bdb1ce34">0.9689542</span></p></td></tr><tr style="overflow-wrap:break-word;"><td class="cl-bdb4c469"><p class="cl-bdb4b28e"><span class="cl-bdb1ce34">Complete</span></p></td><td class="cl-bdb4c46a"><p class="cl-bdb4b298"><span class="cl-bdb1ce34">0.9689542</span></p></td></tr><tr style="overflow-wrap:break-word;"><td class="cl-bdb4c47c"><p class="cl-bdb4b28e"><span class="cl-bdb1ce34">Reduced Set 2</span></p></td><td class="cl-bdb4c47d"><p class="cl-bdb4b298"><span class="cl-bdb1ce34">0.9673203</span></p></td></tr><tr style="overflow-wrap:break-word;"><td class="cl-bdb4c486"><p class="cl-bdb4b28e"><span class="cl-bdb1ce34">Reduced Set 3</span></p></td><td class="cl-bdb4c487"><p class="cl-bdb4b298"><span class="cl-bdb1ce34">0.9673203</span></p></td></tr></tbody></table></div>
+</div>
+</div>
+<p>The complete dataset has the highest accuracy (97.71%) but there are 4 models using reduced datasets in the top 10. Set 3 has an accuracy of 97.22% - a performance difference of 0.49% using only 6 variables instead of 20.</p>
+</section>
+<section id="sec--random-forest-loop-" class="level4">
+<h4 class="anchored" data-anchor-id="sec--random-forest-loop-">Random Forest loop</h4>
+<p>The random forest classifiers are very quick to run and perform very well. All of the forests achieve higher than 95.92% accuracy with the complete dataset marginally best with an accuracy of 96.73%.</p>
+<!--# And the winner is mclustDA with 97% -->
+</section>
+</section>
+</section>
+
+</main>
+<!-- /main column -->
+<script id="quarto-html-after-body" type="application/javascript">
+window.document.addEventListener("DOMContentLoaded", function (event) {
+  const toggleBodyColorMode = (bsSheetEl) => {
+    const mode = bsSheetEl.getAttribute("data-mode");
+    const bodyEl = window.document.querySelector("body");
+    if (mode === "dark") {
+      bodyEl.classList.add("quarto-dark");
+      bodyEl.classList.remove("quarto-light");
+    } else {
+      bodyEl.classList.add("quarto-light");
+      bodyEl.classList.remove("quarto-dark");
+    }
+  }
+  const toggleBodyColorPrimary = () => {
+    const bsSheetEl = window.document.querySelector("link#quarto-bootstrap");
+    if (bsSheetEl) {
+      toggleBodyColorMode(bsSheetEl);
+    }
+  }
+  toggleBodyColorPrimary();  
+  const icon = "";
+  const anchorJS = new window.AnchorJS();
+  anchorJS.options = {
+    placement: 'right',
+    icon: icon
+  };
+  anchorJS.add('.anchored');
+  const isCodeAnnotation = (el) => {
+    for (const clz of el.classList) {
+      if (clz.startsWith('code-annotation-')) {                     
+        return true;
+      }
+    }
+    return false;
+  }
+  const clipboard = new window.ClipboardJS('.code-copy-button', {
+    text: function(trigger) {
+      const codeEl = trigger.previousElementSibling.cloneNode(true);
+      for (const childEl of codeEl.children) {
+        if (isCodeAnnotation(childEl)) {
+          childEl.remove();
+        }
+      }
+      return codeEl.innerText;
+    }
+  });
+  clipboard.on('success', function(e) {
+    // button target
+    const button = e.trigger;
+    // don't keep focus
+    button.blur();
+    // flash "checked"
+    button.classList.add('code-copy-button-checked');
+    var currentTitle = button.getAttribute("title");
+    button.setAttribute("title", "Copied!");
+    let tooltip;
+    if (window.bootstrap) {
+      button.setAttribute("data-bs-toggle", "tooltip");
+      button.setAttribute("data-bs-placement", "left");
+      button.setAttribute("data-bs-title", "Copied!");
+      tooltip = new bootstrap.Tooltip(button, 
+        { trigger: "manual", 
+          customClass: "code-copy-button-tooltip",
+          offset: [0, -8]});
+      tooltip.show();    
+    }
+    setTimeout(function() {
+      if (tooltip) {
+        tooltip.hide();
+        button.removeAttribute("data-bs-title");
+        button.removeAttribute("data-bs-toggle");
+        button.removeAttribute("data-bs-placement");
+      }
+      button.setAttribute("title", currentTitle);
+      button.classList.remove('code-copy-button-checked');
+    }, 1000);
+    // clear code selection
+    e.clearSelection();
+  });
+  function tippyHover(el, contentFn) {
+    const config = {
+      allowHTML: true,
+      content: contentFn,
+      maxWidth: 500,
+      delay: 100,
+      arrow: false,
+      appendTo: function(el) {
+          return el.parentElement;
+      },
+      interactive: true,
+      interactiveBorder: 10,
+      theme: 'quarto',
+      placement: 'bottom-start'
+    };
+    window.tippy(el, config); 
+  }
+  const noterefs = window.document.querySelectorAll('a[role="doc-noteref"]');
+  for (var i=0; i<noterefs.length; i++) {
+    const ref = noterefs[i];
+    tippyHover(ref, function() {
+      // use id or data attribute instead here
+      let href = ref.getAttribute('data-footnote-href') || ref.getAttribute('href');
+      try { href = new URL(href).hash; } catch {}
+      const id = href.replace(/^#\/?/, "");
+      const note = window.document.getElementById(id);
+      return note.innerHTML;
+    });
+  }
+      let selectedAnnoteEl;
+      const selectorForAnnotation = ( cell, annotation) => {
+        let cellAttr = 'data-code-cell="' + cell + '"';
+        let lineAttr = 'data-code-annotation="' +  annotation + '"';
+        const selector = 'span[' + cellAttr + '][' + lineAttr + ']';
+        return selector;
+      }
+      const selectCodeLines = (annoteEl) => {
+        const doc = window.document;
+        const targetCell = annoteEl.getAttribute("data-target-cell");
+        const targetAnnotation = annoteEl.getAttribute("data-target-annotation");
+        const annoteSpan = window.document.querySelector(selectorForAnnotation(targetCell, targetAnnotation));
+        const lines = annoteSpan.getAttribute("data-code-lines").split(",");
+        const lineIds = lines.map((line) => {
+          return targetCell + "-" + line;
+        })
+        let top = null;
+        let height = null;
+        let parent = null;
+        if (lineIds.length > 0) {
+            //compute the position of the single el (top and bottom and make a div)
+            const el = window.document.getElementById(lineIds[0]);
+            top = el.offsetTop;
+            height = el.offsetHeight;
+            parent = el.parentElement.parentElement;
+          if (lineIds.length > 1) {
+            const lastEl = window.document.getElementById(lineIds[lineIds.length - 1]);
+            const bottom = lastEl.offsetTop + lastEl.offsetHeight;
+            height = bottom - top;
+          }
+          if (top !== null && height !== null && parent !== null) {
+            // cook up a div (if necessary) and position it 
+            let div = window.document.getElementById("code-annotation-line-highlight");
+            if (div === null) {
+              div = window.document.createElement("div");
+              div.setAttribute("id", "code-annotation-line-highlight");
+              div.style.position = 'absolute';
+              parent.appendChild(div);
+            }
+            div.style.top = top - 2 + "px";
+            div.style.height = height + 4 + "px";
+            let gutterDiv = window.document.getElementById("code-annotation-line-highlight-gutter");
+            if (gutterDiv === null) {
+              gutterDiv = window.document.createElement("div");
+              gutterDiv.setAttribute("id", "code-annotation-line-highlight-gutter");
+              gutterDiv.style.position = 'absolute';
+              const codeCell = window.document.getElementById(targetCell);
+              const gutter = codeCell.querySelector('.code-annotation-gutter');
+              gutter.appendChild(gutterDiv);
+            }
+            gutterDiv.style.top = top - 2 + "px";
+            gutterDiv.style.height = height + 4 + "px";
+          }
+          selectedAnnoteEl = annoteEl;
+        }
+      };
+      const unselectCodeLines = () => {
+        const elementsIds = ["code-annotation-line-highlight", "code-annotation-line-highlight-gutter"];
+        elementsIds.forEach((elId) => {
+          const div = window.document.getElementById(elId);
+          if (div) {
+            div.remove();
+          }
+        });
+        selectedAnnoteEl = undefined;
+      };
+      // Attach click handler to the DT
+      const annoteDls = window.document.querySelectorAll('dt[data-target-cell]');
+      for (const annoteDlNode of annoteDls) {
+        annoteDlNode.addEventListener('click', (event) => {
+          const clickedEl = event.target;
+          if (clickedEl !== selectedAnnoteEl) {
+            unselectCodeLines();
+            const activeEl = window.document.querySelector('dt[data-target-cell].code-annotation-active');
+            if (activeEl) {
+              activeEl.classList.remove('code-annotation-active');
+            }
+            selectCodeLines(clickedEl);
+            clickedEl.classList.add('code-annotation-active');
+          } else {
+            // Unselect the line
+            unselectCodeLines();
+            clickedEl.classList.remove('code-annotation-active');
+          }
+        });
+      }
+  const findCites = (el) => {
+    const parentEl = el.parentElement;
+    if (parentEl) {
+      const cites = parentEl.dataset.cites;
+      if (cites) {
+        return {
+          el,
+          cites: cites.split(' ')
+        };
+      } else {
+        return findCites(el.parentElement)
+      }
+    } else {
+      return undefined;
+    }
+  };
+  var bibliorefs = window.document.querySelectorAll('a[role="doc-biblioref"]');
+  for (var i=0; i<bibliorefs.length; i++) {
+    const ref = bibliorefs[i];
+    const citeInfo = findCites(ref);
+    if (citeInfo) {
+      tippyHover(citeInfo.el, function() {
+        var popup = window.document.createElement('div');
+        citeInfo.cites.forEach(function(cite) {
+          var citeDiv = window.document.createElement('div');
+          citeDiv.classList.add('hanging-indent');
+          citeDiv.classList.add('csl-entry');
+          var biblioDiv = window.document.getElementById('ref-' + cite);
+          if (biblioDiv) {
+            citeDiv.innerHTML = biblioDiv.innerHTML;
+          }
+          popup.appendChild(citeDiv);
+        });
+        return popup.innerHTML;
+      });
+    }
+  }
+});
+</script>
+</div> <!-- /content -->
+
+
+
+</body></html>

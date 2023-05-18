@@ -1,0 +1,71 @@
+---
+title: ""
+bibliography: "../data/AS_CW_Libraries.bib"
+csl: "../data/harvard-university-of-the-west-of-england.csl"
+format: 
+  docx: default
+nocite: |
+  @*
+
+---
+
+------------------------------------------------------------------------
+
+```{r include=FALSE, echo=FALSE, warning=FALSE, message=FALSE}
+# libraries <- c("base","dplyr", 
+#                "tidyr", # data manipulation
+#                "forcats", # formatting
+#                "RColorBrewer", # colour palette
+#                "naniar", # missing data
+#                "flextable", # table production
+#                "ggplot2", # data visualisation, plotting
+#                "GGally",  # data visualisation
+#                "knitr",  # report production
+#                "corrplot", # correlation
+#                "ggcorrplot", # correlation
+#                "ade4", # EDA
+#                "factoextra", # PCA, visualisation
+#                "cowplot", # plotting
+#                "patchwork", # plotting
+#                "psych", # statistics, PCA
+#                "paran", # parallel analysis
+#                "dendextend", # dendrograms
+#                "cluster", # clustering
+#                "kableExtra", # tables
+#                "glue", # text work
+#                "class", # knn model
+#                "mclust", # cluster, discriminant analysis
+#                "e1071", # support vector machine
+#                "rpart", # trees
+#                "randomForest") # forests 
+# 
+# bibtex_file <- "libraries.bib"
+# 
+# # Open the file for writing
+# file_conn <- file(bibtex_file, open = "w")
+# 
+# # Write the BibTeX entries to the file
+# for (pkg in libraries) {
+#   # Get the citation object
+#   cit <- citation(pkg)
+#   # Convert it to a BibTeX format
+#   bibtex <- toBibtex(cit)
+#   # Write the BibTeX to the file
+#   writeLines(bibtex, file_conn)
+# }
+# 
+# # Close the file
+# close(file_conn)
+```
+
+------------------------------------------------------------------------
+
+
+
+
+
+### R Packages
+
+### Bibliography
+
+<!-- [@brownChoosingRightType; @blankersMissingDataApproaches2010; @changGraphicsCookbook2nd; @ComposerPlots; @dimensio; @fraleyModelBasedClusteringDiscriminant2002; @freedman; @freedman2022; @ghoshOptimumChoiceNearest2006; @gohelFlextableFunctionsTabular2023; @grolemundDataScience2017; @hayton2004; @jamesIntroductionStatisticalLearning2013; @osborneWhatRotatingExploratory; @pearlCausalityModelsReasoning2000; @revellePsychProceduresPsychological2022; @riedererMarkdownCookbook; @shahidComparisonDistanceMeasures2009; @shlensTutorialPrincipalComponent2014; @sterneMultipleImputationMissing2009; @wickhamGgplot2CreateElegant2022a; @wilke; @wilkeFundamentalsDataVisualization] -->

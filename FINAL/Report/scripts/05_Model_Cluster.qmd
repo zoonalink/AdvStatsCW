@@ -1,0 +1,462 @@
+---
+title: "Chemical Sample Classification Report"
+#subtitle: "Modelling"
+author: "Petter Lövehagen"
+date: "09 May 2023"
+
+RVersion: 3.6.0 
+RStudio: 2023.03.0+386 Cherry Blossom Release
+Platform: "x86_64-w64-mingw32/x64 (64-bit)"
+OS: "Windows 11 SE"
+
+format: 
+  docx: default
+  html:
+    toc: true
+    toc-depth: 3
+    toc-title: "Contents"
+    toc-location: left
+    code-fold: true
+    code-line-numbers: true
+    theme: spacelab
+    html-math-method: mathjax
+    highlight: "tango"
+    #css: "../data/custom.css"
+output:
+  word_document:
+    fig.retina: 300
+prefer-docx: true
+lang: "en-GB"
+bibliography: "../data/AS_CW_References.bib"
+csl: "../data/harvard-university-of-the-west-of-england.csl"
+
+knitr:
+  opts_chunk:
+    include: false
+    tidy: true
+    echo: false
+    warning: false
+    message: false
+    error: true
+    out.width: '90%'
+    #fig.width: 6
+    #fig.height: 4
+---
+
+```{r CLU_model_packages}
+# load/install R packages/libraries
+# set seed
+# load flextable defaults
+# see R file for details
+set.seed(567)
+file <- "model"
+source("R/chem_report_load.R")
+
+
+```
+
+```{r clu_load_train_data}
+# load in train dataset from csv files
+
+# scaled train with labels
+train_scaled_label <- read.csv("../data/train_scaled_label.csv")
+train_label_vec <- train_scaled_label$label
+
+# scaled train without labels 
+train_scaled <- train_scaled_label[, -21]
+
+# scaled train pca df
+train_scaled_pca_df <- read.csv("../data/train_scaled_pca_df.csv")
+```
+
+```{r clu_load_validate_data}
+# load in validate datasets from csv files
+
+# read in valid dataset
+valid_label <- read.csv("../data/chem_valid.csv")
+valid_label_vec <- valid_label$label
+
+# scaled validate without labels 
+valid_scaled <- read.csv("../data/valid_scaled.csv")
+
+# scaled validate with labels
+valid_scaled_label <- cbind(valid_scaled, valid_label[21])
+
+# scaled validate pca df
+valid_scaled_pca_df <- read.csv("../data/valid_scaled_pca_df.csv")
+```
+
+<!--# This section involves exploratory and confirmatory cluster analysis which helps understand the dataset and make decisions about the classification models.  -->
+
+```{r distances}
+
+# calculate euclidean and manhattan distances for pca and non-pca transformed train datasets.
+# working with scaled data only
+
+# distance matrices - train
+train_dist_euc <- dist(train_scaled, method = "euclidean")
+train_dist_man <- dist(train_scaled, method = "manhattan")
+train_pca_dist_euc <- dist(train_scaled_pca_df, method = "euclidean")
+train_pca_dist_man <- dist(train_scaled_pca_df, method = "manhattan")
+
+# # view heatmaps of distances
+# fviz_dist(train_dist_euc)
+# fviz_dist(train_dist_man)
+
+
+
+```
+
+<!--# The heatmaps of the distances have been commented-out as they take some time to run and are not very informative given their size.  To run them, remove the # from  the last two lines. -->
+
+<!--# For the purposes of this analysis and report, Euclidean distance will be used as the default distance.  It is a good starting position, generally more accurate than Manhattan but also more computationally expensive for larger datasets.  This could be reviewed with more information from the client. -->
+
+<!--# Below I have created hierarchical cluster objects for the train dataset with and without pca for four different linkage methods.  Kmeans clustering has also been applied. -->
+
+```{r clustering}
+
+
+# hierarchical clustering - train dataset distance
+train_hclust_euc_single <- hclust(train_dist_euc, method = "single")
+train_hclust_euc_complete <- hclust(train_dist_euc, method = "complete")
+train_hclust_euc_average <- hclust(train_dist_euc, method = "average")
+train_hclust_euc_ward <- hclust(train_dist_euc, method = "ward.D2")
+
+
+
+# hierarchical clustering - train with pca 
+train_pca_hclust_euc_single <- hclust(train_pca_dist_euc, method = "single")
+train_pca_hclust_euc_complete <- hclust(train_pca_dist_euc, method = "complete")
+train_pca_hclust_euc_average <- hclust(train_pca_dist_euc, method = "average")
+train_pca_hclust_euc_ward <- hclust(train_pca_dist_euc, method = "ward.D2")
+
+
+
+# K-means clustering, with initial random start = 25
+train_kmeans <- kmeans(train_scaled, centers = 5, nstart = 25)
+train_pca_kmeans <- kmeans(train_scaled_pca_df, centers = 5, nstart = 25)
+
+
+
+```
+
+<!--#  The ward linkage clusters are plotted below to allow for visual comparison and interpretation. -->
+
+## Clustering {#sec-clustering}
+
+Clustering techniques were deployed on the datasets with and without PCA transformation to assess its usefulness.
+
+It is difficult to identify clusters with `K-means clustering`. 
+
+```{r plot_wards_clusters, include=TRUE, echo=FALSE, message = FALSE, tab.align='left', fig.alt="Plot of K-means clusters on PCA and non-PCA training data"}
+#| label: fig-kmeans-clusters
+#| fig-cap: "K-means clusters on PCA and non-PCA training data"
+
+# plotting wards pca v non-pca
+
+# cut tree into 5 clusters (matching known labels)
+res_cluster_pca <- cutree(train_pca_hclust_euc_ward, k = 5)
+res_cluster <- cutree(train_hclust_euc_ward, k = 5)
+
+  
+# title
+title <- "Five clusters with Wards linkage, Euclidean distance"
+
+# subtitle for the first plot
+subtitle_1 <- "PCA"
+
+# subtitle for the second plot
+subtitle_2 <- "no PCA"
+
+# cluster plot using fviz_cluser on pca train
+cluster_scale_PCA <- fviz_cluster(
+  list(data = train_scaled_pca_df, cluster = res_cluster_pca), 
+  palette = c("#00AFBB", "#E7B800", "#FC4E07", "#800080", "#808000"), 
+  ggtheme = theme_minimal(), 
+  geom = "point"
+) + 
+  theme(legend.position = "none") + 
+  ggtitle("") + 
+  labs(subtitle = subtitle_1)
+
+# cluster plot using fviz_cluser on train
+cluster_scale <- fviz_cluster(
+  list(data = train_scaled, cluster = res_cluster), 
+  palette = c("#00AFBB", "#E7B800", "#FC4E07", "#800080", "#808000"), 
+  ggtheme = theme_minimal(), 
+  geom = "point"
+) + 
+  ggtitle("") + 
+  labs(subtitle = subtitle_2)
+
+# Combine the plots
+(cluster_scale_PCA + cluster_scale)
+
+
+```
+
+<!--#Five clusters are plotted, but it is difficult to see them in a two dimensional plot - they are not obvious. -->
+
+```{r dendrograms}
+
+# plotting a selection of dendrograms for train with and without pca, for different linkages
+# not so useful
+
+# plot(train_hclust_euc_single) 
+# plot(train_hclust_euc_complete)
+# plot(train_hclust_euc_average) 
+# plot(train_hclust_euc_ward) 
+# 
+# 
+# plot(train_pca_hclust_euc_single) 
+# plot(train_pca_hclust_euc_complete) 
+# plot(train_pca_hclust_euc_average) 
+# plot(train_pca_hclust_euc_ward) 
+```
+
+<!--# Looking through the standard dendrograms is not so useful.  The dendrograms are replotted, specifying 5 groups.  We can see how the trees have been created and the relative number of members in each group.-->
+
+```{r dendrograms_cutree5}
+
+# Plot dendrogram with cutree for k=5
+plot(cutree(train_hclust_euc_single, k = 5), col = "blue")
+plot(train_hclust_euc_single, main = "Single linkage with k=5")
+
+# Plot dendrogram with cutree for k=5
+plot(cutree(train_hclust_euc_complete, k = 5), col = "blue")
+plot(train_hclust_euc_complete, main = "Complete linkage with k=5")
+
+# Plot dendrogram with cutree for k=5
+plot(cutree(train_hclust_euc_average, k = 5), col = "blue")
+plot(train_hclust_euc_average, main = "Average linkage with k=5")
+
+# Plot dendrogram with cutree for k=5
+plot(cutree(train_hclust_euc_ward, k = 5), col = "blue")
+plot(train_hclust_euc_ward, main = "Ward linkage with k=5")
+
+# Plot dendrogram with cutree for k=5
+plot(cutree(train_pca_hclust_euc_single, k = 5), col = "blue")
+plot(train_pca_hclust_euc_single, main = "PCA Single linkage with k=5")
+
+# Plot dendrogram with cutree for k=5
+plot(cutree(train_pca_hclust_euc_complete, k = 5), col = "blue")
+plot(train_pca_hclust_euc_complete, main = "PCA Complete linkage with k=5")
+
+# Plot dendrogram with cutree for k=5
+plot(cutree(train_pca_hclust_euc_average, k = 5), col = "blue")
+plot(train_pca_hclust_euc_average, main = "PCA Average linkage with k=5")
+
+# Plot dendrogram with cutree for k=5
+plot(cutree(train_pca_hclust_euc_ward, k = 5), col = "blue")
+plot(train_pca_hclust_euc_ward, main = "PCA Ward linkage with k=5")
+rect.hclust(train_pca_hclust_euc_ward, k = 5, border = "red")
+
+```
+
+```{r cluster_extract}
+
+# non-pca train
+# cluster assignments for k = 5
+clusters <- cutree(train_hclust_euc_ward, k = 5)
+
+# data in each cluster
+train_clusters <- cbind(train_scaled, cluster = clusters)
+
+aggregate(train_clusters, by = list(cluster = train_clusters$cluster), FUN = mean)
+
+# PCA train
+# cluster assignments for k = 5
+clusters <- cutree(train_pca_hclust_euc_ward, k = 5)
+
+#  data in each cluster
+train_pca_clusters <- cbind(train_scaled_pca_df, cluster = clusters)
+
+aggregate(train_pca_clusters, by = list(cluster = train_pca_clusters$cluster), FUN = mean)
+```
+
+<!--# The means have been aggregated so that the data in each cluster can be better understood.  In the PCA transformed data, for example, we can see that the first component loads positively on cluster 4 and negatively on cluster 1-->
+
+<!--# To get a better understanding about the clusters, we can look at the silhouette plots and compare plots between PCA transformed data and only scaled data. There is a fairly clear difference between PCA transformed data which has an average silhouette width of 0.22 and PCA data which has an average silhouette width of 0.08.  A higher score is better as it indicates that similar objects (samples) are closer to objects within their own cluster. -->
+
+<!--# The clusters in the PCA data are clearly defined and has little going below 0. -->
+
+```{r more_silhouettes}
+# Compute silhouette scores for each hierarchical clustering solution
+train_hclust_euc_single <- hclust(train_dist_euc, method = "single")
+train_hclust_euc_complete <- hclust(train_dist_euc, method = "complete")
+train_hclust_euc_average <- hclust(train_dist_euc, method = "average")
+train_hclust_euc_ward <- hclust(train_dist_euc, method = "ward.D2")
+
+
+
+# Calculate the silhouette width for each clustering method
+train_hclust_euc_single_sil <- silhouette(cutree(train_hclust_euc_single, k = 5), train_dist_euc)
+train_hclust_euc_complete_sil <- silhouette(cutree(train_hclust_euc_complete, k = 5), train_dist_euc)
+train_hclust_euc_average_sil <- silhouette(cutree(train_hclust_euc_average, k = 5), train_dist_euc)
+train_hclust_euc_ward_sil <- silhouette(cutree(train_hclust_euc_ward, k = 5), train_dist_euc)
+train_pca_hclust_euc_single_sil <- silhouette(cutree(train_pca_hclust_euc_single, k = 5), train_pca_dist_euc)
+train_pca_hclust_euc_complete_sil <- silhouette(cutree(train_pca_hclust_euc_complete, k = 5), train_pca_dist_euc)
+train_pca_hclust_euc_average_sil <- silhouette(cutree(train_pca_hclust_euc_average, k = 5), train_pca_dist_euc)
+train_pca_hclust_euc_ward_sil <- silhouette(cutree(train_pca_hclust_euc_ward, k = 5), train_pca_dist_euc)
+
+# Plot the silhouette widths
+par(mfrow = c(2, 4))
+fviz_silhouette(train_hclust_euc_single_sil)
+fviz_silhouette(train_hclust_euc_complete_sil)
+fviz_silhouette(train_hclust_euc_average_sil)
+fviz_silhouette(train_hclust_euc_ward_sil)
+fviz_silhouette(train_pca_hclust_euc_single_sil)
+fviz_silhouette(train_pca_hclust_euc_complete_sil)
+fviz_silhouette(train_pca_hclust_euc_average_sil)
+fviz_silhouette(train_pca_hclust_euc_ward_sil)
+
+
+
+```
+
+<!--# The highest silhouette score is the default K=5 plot with very few values lower than 0, although a lot near 0.  In terms of clustering, Wards linkage is best, followed by complete linkage; and PCA data clusters better than non-PCA data.  -->
+
+`Silhouette plots` show cluster quality; PCA-transformed data results in 'better' clusters. The height represents how well that observation matches its cluster - PCA data has an average of 0.22 in comparison to 0.08 for the scaled data.
+
+
+```{r best_sils}
+#| label: fig-cluster-sil1
+#| fig-cap: "Cluster Silhouettes on PCA and non-PCA training data"
+
+# K-means clustering without PCA
+train_silhouette <- silhouette(train_kmeans$cluster, dist(train_scaled))
+#mean(train_silhouette[,3])
+sil_train <- fviz_silhouette(train_silhouette, title= "", subtitle = "non-PCA data", ylab="") + theme(legend.position = "none" )
+
+# K-means clustering with PCA
+train_pca_silhouette <- silhouette(train_pca_kmeans$cluster, dist(train_scaled_pca_df))
+#mean(train_pca_silhouette[,3])
+sil_pca <- fviz_silhouette(train_pca_silhouette, title= "", subtitle = "PCA")
+
+#(sil_pca + sil_train)
+
+```
+
+```{r best_silhouettes, include=TRUE, echo=FALSE, message = FALSE, tab.align='left', fig.alt="Plot of Cluster Silhouettes on PCA and non-PCA training data"}
+#| label: fig-best-cluster-sil
+#| fig-cap: "Cluster Silhouettes on PCA and non-PCA training data"
+
+(sil_pca + sil_train)
+```
+
+
+<!--# Below silhouettes for different values of K are computed for each dataset and then plotted.  The silhouette seems to keep going up as K increases - this may suggest that there may not be so many well-defined clusters in the data. -->
+
+```{r silhouettes_for_K}
+# Compute the silhouettes for different k values
+sil <- sapply(2:20, function(k) {
+  km <- kmeans(train_scaled, centers = k)
+  avg_sil <- mean(silhouette(km$cluster, train_dist_euc))
+  return(avg_sil)
+})
+
+# Plot the silhouette values for each k
+plot(2:20, sil, type = "b", xlab = "Number of clusters (k)", ylab = "Average silhouette width")
+
+sil_pca <- sapply(2:20, function(k) {
+  km <- kmeans(train_scaled_pca_df, centers = k)
+  avg_sil <- mean(silhouette(km$cluster, train_pca_dist_euc))
+  return(avg_sil)
+})
+
+# Plot the silhouette values for each k
+plot(2:20, sil_pca, type = "b", xlab = "Number of clusters (k)", ylab = "Average silhouette width")
+
+```
+
+<!--# As well as silhouette plots, it is worth looking at the 'within-cluster sum of squares' (wss) for different K. The plots for PCA and non-PCA datasets look very similar.-->
+
+```{r wss_train}
+# within-cluster sum of squares (wss) for different k values, for train
+wss <- sapply(2:10, function(k) {
+  km <- kmeans(train_scaled, centers = k)
+  return(km$tot.withinss)
+})
+
+# plot the wss values for each k
+plot(2:10, wss, type = "b", xlab = "Number of clusters (k)", ylab = "Within-cluster sum of squares (wss)")
+
+# identify the elbow 
+non_pca_opt_clus <- fviz_nbclust(train_scaled, kmeans, method = "wss") + 
+  geom_vline(xintercept = 4, linetype = "dashed") + geom_vline(xintercept = 8, linetype = "dotted", colour = "red")
+```
+
+```{r wss_train_pca}
+
+# within-cluster sum of squares (wss) for different k values, for train_pca
+wss_pca <- sapply(2:10, function(k) {
+  km_pca <- kmeans(train_scaled_pca_df, centers = k)
+  return(km_pca$tot.withinss)
+})
+
+# plot the wss values for each k
+plot(2:10, wss_pca, type = "b", xlab = "", ylab = "")
+
+# identify the elbow  
+pca_opt_clus <- fviz_nbclust(train_scaled_pca_df, kmeans, method = "wss") + 
+  geom_vline(xintercept = 4, linetype = "dashed") + geom_vline(xintercept = 8, linetype = "dotted", colour = "red")
+```
+
+The 'optimal' number of clusters for both datasets using `within-cluster sum of squares` (WSS) is 4 or more.
+
+```{r opt_clus_plots, include=TRUE, echo=FALSE, message = FALSE, warning=FALSE, tab.align='left', fig.alt="Plots of optimum clusters in PCA and non-PCA data"}
+#| label: fig-gap-stat-combined
+#| fig-cap: "Optimal Clusters (WSS) PCA and non-PCA"
+
+(pca_opt_clus + non_pca_opt_clus)
+```
+
+
+However, the `gap statistic` as an estimate of optimal clusters, does not converge for non-PCA, (meaning it cannot identify clusters), while the PCA data seems to have its 'elbow' between three and six clusters.
+
+The dataset does not have obvious clusters.
+
+<!--# The gap statistic uses the WSS and calculates the different between expected WSS and actual WSS and identifies where the gap statistic is largest, the theory being that where clustering is very good, the gap between within-cluster disperson for that cluster should be large. -->
+
+```{r gap_statistic}
+
+# gap stat for different k values
+#gap_stat <- clusGap(train_scaled, FUN = kmeans, K.max = 10, B = 50, verbose = FALSE)
+
+# plot the gap stat values for each k
+#plot(gap_stat, main = "Gap statistic", xlab = "Number of clusters (k)")
+
+# optimal number of clusters 
+#gap_train <- fviz_gap_stat(gap_stat)
+```
+
+```{r gap_stat_pca}
+# gap stat for different k values
+#gap_stat_pca <- clusGap(train_scaled_pca_df, FUN = kmeans, K.max = 10, B = 50, verbose = FALSE)
+
+# plot the gap stat values for each k
+#plot(gap_stat_pca, main = "Gap statistic", xlab = "Number of clusters (k)")
+
+# optimal number of clusters 
+
+#gap_pca <- fviz_gap_stat(gap_stat_pca)
+```
+
+```{r best_silhouettes, include=TRUE, echo=FALSE, message = FALSE, warning=FALSE, tab.align='left', fig.alt="Plot of gap statistics on PCA and non-PCA training data"}
+#| label: fig-gap-statistics
+#| fig-cap: "Gap statistics for PCA and non-PCA training data"
+
+# Compute gap statistic for PCA and non-PCA data
+gap_pca <- clusGap(train_scaled_pca_df, FUN = kmeans, K.max = 10, B = 50, verbose = FALSE)
+gap_no_pca <- clusGap(train_scaled, FUN = kmeans, K.max = 10, B = 50, verbose = FALSE)
+
+# Plot the gap statistic with different colored lines
+plot(gap_pca$Tab[, "gap"], type = "b", xlab = "Number of Clusters (k)", ylab = "Gap Statistic", ylim = c(0.58, 0.66),
+     main = "Gap Statistic for k-means Clustering (PCA vs. no PCA)", col = "red")
+lines(gap_no_pca$Tab[, "gap"], type = "b", col = "blue")
+legend("right", legend = c("PCA", "no PCA"), col = c("red", "blue"), lty = 1)
+
+
+```
+
+<!--# Looking at the gap statistics for PCA and non-PCA datasets, the scaled data does not converge, while the PCA data is suggesting that there are perhaps three clusters.  Overall, there cluster investigation has left the door open and not clarified the approach -->
